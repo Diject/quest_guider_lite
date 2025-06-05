@@ -1,0 +1,2 @@
+GLOBAL: scripts/quest_guider_lite/main.lua
+PLAYER: scripts/quest_guider_lite/player.lua
