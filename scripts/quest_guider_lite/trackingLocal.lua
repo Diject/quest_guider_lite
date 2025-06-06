@@ -196,6 +196,9 @@ function this.addMarker(params)
 
     local markEntrances = #positionData.positions < config.data.tracking.maxPos
 
+    local positionalMarkers = { record = objectMarkerData.localMarkerId, groupName = questData.name, positions = {} }
+    local doorMarkers = { record = objectMarkerData.localDoorMarkerId, groupName = questData.name, positions = {} }
+
     for _, data in pairs(positionData.positions or {}) do
 
         if objectMarkerData.localMarkerId then
@@ -207,18 +210,13 @@ function this.addMarker(params)
                     objects[rawData.id] = true
                 end
             else
-                proximityTool.addMarker{
-                    record = objectMarkerData.localMarkerId,
-                    positions = {
-                        {
-                            cell = {
-                                isExterior = data.id and false or true,
-                                id = data.id,
-                            },
-                            position = data.position,
-                        }
-                    }
-                }
+                table.insert(positionalMarkers.positions, {
+                    cell = {
+                        isExterior = data.id and false or true,
+                        id = data.id,
+                    },
+                    position = data.position,
+                })
             end
         end
 
@@ -232,19 +230,11 @@ function this.addMarker(params)
 
                     if exitPositions and objectMarkerData.localDoorMarkerId then
 
-                        ---@type proximityTool.positionData[]
-                        local positions = {}
                         for _, posData in pairs(exitPositions) do
                             ---@type proximityTool.positionData
                             local pos = {position = posData, cell = {isExterior = true}}
-                            table.insert(positions, pos)
+                            table.insert(doorMarkers.positions, pos)
                         end
-
-                        proximityTool.addMarker{
-                            record = objectMarkerData.localDoorMarkerId,
-                            positions = positions,
-                            groupName = questData.name,
-                        }
                     end
                 end
 
@@ -257,11 +247,20 @@ function this.addMarker(params)
         end
     end
 
-    if objectMarkerData.localMarkerId then
+    if #positionalMarkers.positions > 0 then
+        proximityTool.addMarker(positionalMarkers)
+    end
+
+    if #doorMarkers.positions > 0 then
+        proximityTool.addMarker(doorMarkers)
+    end
+
+    local listOfObjects = tableLib.keys(objects)
+    if #listOfObjects > 0 then
 
         proximityTool.addMarker{
             record = objectMarkerData.localMarkerId,
-            objects = tableLib.keys(objects),
+            objects = listOfObjects,
             groupName = questData.name,
             itemId = isItem and objectId or nil,
         }
@@ -270,7 +269,7 @@ function this.addMarker(params)
 
     this.markerByObjectId[objectId] = objectTrackingData
 
-    qTrackingInfo.objects[objectId] = tableLib.keys(objects)
+    qTrackingInfo.objects[objectId] = listOfObjects
 
     this.trackedObjectsByQuestId[params.questId] = qTrackingInfo
 
