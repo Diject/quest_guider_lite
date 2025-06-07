@@ -8,6 +8,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local itemLib = require("scripts.quest_guider_lite.types.item")
 local colors = require("scripts.quest_guider_lite.types.gradient")
+local common = require("scripts.quest_guider_lite.common")
 
 local storage = require("scripts.quest_guider_lite.storage.localStorage")
 
@@ -156,8 +157,11 @@ function this.addMarker(params)
 
     ---@type proximityTool.record
     local doorMarkerRecordParams = {
-        name = string.format(">| %s", positionData.name),
+        name = string.format("%s", positionData.name),
         description = {string.format("Quest: \"%s\"", questData.name or ""), ""},
+        icon = "textures/icons/quest_guider/toDoorIcon.dds",
+        iconRatio = 1.6,
+        iconColor = common.defaultColorData,
         nameColor = objectTrackingData.color,
         proximity = 24576,
         priority = 0,
