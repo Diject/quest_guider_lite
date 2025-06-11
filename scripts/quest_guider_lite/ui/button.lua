@@ -6,42 +6,59 @@ local templates = require('openmw.interfaces').MWUI.templates
 local tooltip = require("scripts.proximityTool.ui.tooltip")
 
 ---@class questGuider.ui.button.params
----@field menu any
 ---@field text string?
 ---@field textSize integer?
 ---@field textColor any?
----@field size any? -- util.vector2
----@field event function?
+---@field size any? util.vector2
+---@field event fun(layout : any)?
+---@field mousePress fun(layout : any)?
+---@field mouseRelease fun(layout : any)?
 ---@field tooltipContent any?
+---@field relativePosition any? util.vector2
+---@field position any? util.vector2
+---@field anchor any? util.vector2
+---@field updateFunc fun()
 
 ---@param params questGuider.ui.button.params
 return function (params)
-    if not params or not params.menu then return end
+    if not params then return end
     local content
     content = {
         template = templates.boxSolidThick,
         props = {
             propagateEvents = false,
+            relativePosition = params.relativePosition,
+            position = params.position,
+            anchor = params.anchor,
         },
         events = {
             mousePress = async:callback(function(e, layout)
                 if e.button ~= 1 then return end
                 content.template = templates.boxSolid
                 layout.userData.pressed = true
-                params.menu.element:update()
+                if params.mousePress then
+                    params.mousePress(layout)
+                end
+                params.updateFunc()
             end),
 
             mouseRelease = async:callback(function(e, layout)
                 if e.button ~= 1 then return end
                 content.template = templates.boxSolidThick
+                if params.mouseRelease then
+                    params.mouseRelease(layout)
+                end
                 if layout.userData.pressed and params.event then
                     params.event(layout)
                 end
                 layout.userData.pressed = false
-                params.menu.element:update()
+                params.updateFunc()
             end),
 
             focusLoss = async:callback(function(e, layout)
+                if layout.userData.pressed and params.mouseRelease then
+                    params.mouseRelease(layout)
+                end
                 layout.userData.pressed = false
                 tooltip.destroy(layout)
             end),
