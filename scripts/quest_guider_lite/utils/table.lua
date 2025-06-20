@@ -209,4 +209,11 @@ function this.shuffle(t, n)
 end
 
 
+function this.contains(tb, val)
+    for i, v in pairs(tb) do
+        if v == val then return i end
+    end
+end
+
+
 return this

@@ -23,6 +23,7 @@ end
 local function onLoad(data)
     localStorage.initPlayerStorage(data)
     tracking.init()
+    playerQuests.init()
 end
 
 
@@ -51,7 +52,7 @@ end, 5 * time.second)
 return {
     engineHandlers = {
         onQuestUpdate = function(questId, stage)
-            playerQuests.addFinished(questId)
+            playerQuests.update(questId, stage)
             tracking.trackQuest(questId, stage)
             core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
         end,
@@ -100,6 +101,13 @@ return {
 
         ["QGL:addMarkerForInteriorCellTracking"] = function (data)
             tracking.addMarkerForInteriorCellFromGlobal(data)
-        end
+        end,
+
+        ["QGL:drawQuestBlockInJournalMenu"] = function (data)
+            ---@type questDataGenerator.questData
+            local diaData = data.questData
+            local diaId = data.questId
+
+        end,
     },
 }

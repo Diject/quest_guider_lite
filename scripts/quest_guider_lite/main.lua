@@ -118,6 +118,18 @@ return {
             end
         end,
 
+        ["QGL:drawQuestBlockInJournalMenu"] = function (data)
+            local questId = data.questId
+
+            local out = {}
+
+            out.questId = data.questId
+            out.questData = questLib.getQuestData(questId)
+            if not out.questData then return end
+
+            world.players[1]:sendEvent("QGL:drawQuestBlockInJournalMenu", out)
+        end,
+
         ["QGL:questGiverMarkerCallback"] = function (data)
             local recordId = data.recordId
             local objectId = data.inputData.objectRecordId

@@ -1,4 +1,7 @@
 local include = require("scripts.quest_guider_lite.utils.include")
+local tableLib = require("scripts.quest_guider_lite.utils.table")
+local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
+local commonData = require("scripts.quest_guider_lite.common")
 
 local playerFunc = require('openmw.types').Player
 local core = require('openmw.core')
@@ -11,10 +14,58 @@ if not playerRef then
     end
 end
 
+
 local this = {}
+
+
+---@class questGuider.playerQuest.storageQuestInfo
+---@field diaId string
+---@field index integer
+
+---@class questGuider.playerQuest.storageQuestData
+---@field list questGuider.playerQuest.storageQuestInfo[]
+
+---@class questGuider.playerQuest.storageData
+---@field questData table<string, questGuider.playerQuest.storageQuestData>
+
+
+---@return questGuider.playerQuest.storageData?
+local function getStorageData()
+    return localStorage.data[commonData.playerQuestDataLabel]
+end
+
+---@return questGuider.playerQuest.storageData?
+local function initStorageData()
+    local storageData = getStorageData()
+    if not storageData or not storageData.questData then
+        localStorage.data[commonData.playerQuestDataLabel] = localStorage.data[commonData.playerQuestDataLabel] or {}
+        localStorage.data[commonData.playerQuestDataLabel].questData = localStorage.data[commonData.playerQuestDataLabel].questData or {}
+        storageData = getStorageData()
+    end
+    return storageData
+end
+
+---@return questGuider.playerQuest.storageQuestData?
+local function initStorageQuestData(qName)
+    local storageData = initStorageData()
+    if not storageData then return end
+
+    local questData = storageData.questData[qName]
+    if not questData then
+        local arr = {}
+        storageData.questData[qName] = arr
+        questData = arr
+    end
+    if not questData.list then
+        questData.list = {}
+    end
+    return questData
+end
+
 
 ---@class questGuider.playerQuest.data
 ---@field records table<string, any>
+---@field isFinished boolean?
 
 ---@type table<string, questGuider.playerQuest.data>
 this.questData = {}
@@ -27,20 +78,22 @@ local initialized = false
 function this.init()
     if initialized then return end
 
+    local storageData = initStorageData()
+
     this.finished = {}
 
     for _, dia in pairs(core.dialogue.journal.records) do
         local qName = dia.questName
-        if qName then
+        if qName and qName ~= "" then
             if not this.questData[qName] then this.questData[qName] = {records = {}} end
             this.questData[qName].records[dia.id] = dia
         end
     end
 
     for qId, q in pairs(playerFunc.quests(playerRef)) do
-        if not q.finished then goto continue end
-
-        this.finished[q.id] = true
+        if q.finished then
+            this.finished[q.id] = true
+        end
 
         local dia = core.dialogue.journal.records[q.id]
         if not dia or not dia.questName then goto continue end
@@ -48,8 +101,21 @@ function this.init()
         local qData = this.questData[dia.questName]
         if not qData then goto continue end
 
-        for id, rec in pairs(qData.records) do
-            this.finished[id] = true
+        if storageData and not storageData.questData[dia.questName] then
+            local storageQuestData = initStorageQuestData(dia.questName)
+            if storageQuestData then
+                table.insert(storageQuestData.list, {
+                    diaId = q.id,
+                    index = q.stage,
+                })
+            end
+        end
+
+        if q.finished then
+            qData.isFinished = true
+            for id, rec in pairs(qData.records) do
+                this.finished[id] = true
+            end
         end
 
         ::continue::
@@ -82,13 +148,29 @@ function this.getQuestDataByName(qName)
 end
 
 
+---@return questGuider.playerQuest.storageData?
+function this.getStorageData()
+    return initStorageData()
+end
+
+
+---@param qName string
+---@return questGuider.playerQuest.storageQuestData?
+function this.getQuestStorageData(qName)
+    local storageData = initStorageData()
+    if not storageData then return end
+
+    return storageData.questData[qName]
+end
+
+
 ---@param diaId string
 ---@return questGuider.playerQuest.data?
 function this.getQuestDataByDiaId(diaId)
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
-    return this.questData[dia.name]
+    return this.questData[dia.questName]
 end
 
 
@@ -96,33 +178,44 @@ end
 ---@param index integer
 ---@return string?
 function this.getJournalText(diaId, index)
-    local diaData = this.getQuestDialogue(diaId)
-    if not diaData then return end
+    local dia = core.dialogue.journal.records[diaId]
+    if not dia then return end
+
+    for _, info in pairs(dia.infos) do
+        if info.questStage == index then
+            return info.text
+        end
+    end
+end
+
+
+function this.update(diaId, index)
+    local qDia = this.getQuestDialogue(diaId)
+    if not qDia then return end
+
+    if qDia.finished then
+        this.finished[diaId] = true
+    end
 
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
-    local info = dia.infos[index]
-    if not info then return end
-
-    return info.text
-end
-
-
-function this.addFinished(diaId)
-    local qDia = this.getQuestDialogue(diaId)
-    if not qDia or not qDia.finished then return end
-
-    this.finished[diaId] = true
-
-    local dia = core.dialogue.journal.records[qDia.id]
-    if not dia then return end
-
-    local data = this.getQuestDataByName(dia.name or "")
+    local data = this.getQuestDataByName(dia.questName or "")
     if not data then return end
 
-    for id, _ in pairs(data.records) do
-        this.finished[id] = true
+    local questData = initStorageQuestData(dia.questName)
+    if questData then
+        table.insert(questData.list, {
+            diaId = diaId,
+            index = index,
+        })
+    end
+
+    if qDia.finished then
+        data.isFinished = true
+        for id, _ in pairs(data.records) do
+            this.finished[id] = true
+        end
     end
 end
 
