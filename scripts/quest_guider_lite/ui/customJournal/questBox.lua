@@ -9,8 +9,10 @@ local log = require("scripts.quest_guider_lite.utils.log")
 
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
+local interval = require("scripts.quest_guider_lite.ui.interval")
 
 
 local this = {}
@@ -26,6 +28,8 @@ local function fillJournal(content, params)
         local text = playerQuests.getJournalText(qInfo.diaId, qInfo.index)
         if not text then goto continue end
 
+        local dateStr = timeLib.getDateByTime(qInfo.timestamp or 0)
+
         local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12)
         local textElemSize = util.vector2(params.size.x - 12, height)
 
@@ -37,6 +41,25 @@ local function fillJournal(content, params)
                 anchor = util.vector2(0.5, 0),
             },
             content = ui.content {
+                {
+                    type = ui.TYPE.Flex,
+                    props = {
+                        autoSize = true,
+                        horizontal = true,
+                    },
+                    content = ui.content {
+                        interval(6, 1),
+                        {
+                            type = ui.TYPE.Text,
+                            props = {
+                                text = dateStr,
+                                autoSize = true,
+                                textSize = (params.fontSize or 18) + 2,
+                                textColor = util.color.rgb(0.8, 0.2, 0.2)
+                            },
+                        }
+                    }
+                },
                 {
                     template = templates.textNormal,
                     type = ui.TYPE.Text,
@@ -105,6 +128,7 @@ function this.create(params)
             return params.thisElementInContent().content[1].content[2]
         end,
         size = journalContentSize,
+        arrange = ui.ALIGNMENT.Center,
         content = journalContent
     }
 

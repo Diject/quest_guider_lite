@@ -1,6 +1,7 @@
 local async = require('openmw.async')
 local world = require('openmw.world')
 local types = require('openmw.types')
+local time = require('openmw_aux.time')
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -72,6 +73,12 @@ local function addMarkersForQuest(qId, qIndex)
 
     return objects
 end
+
+
+time.runRepeatedly(function ()
+    world.players[1]:sendEvent("QGL:updateTime", {time = world.getGameTime()})
+end, time.minute, {type = time.GameTime})
+world.players[1]:sendEvent("QGL:updateTime", {time = world.getGameTime()})
 
 
 return {

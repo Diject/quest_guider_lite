@@ -11,6 +11,8 @@ local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
+local timeLib = require("scripts.quest_guider_lite.timeLocal")
+
 
 local function onInit()
     if not localStorage.isPlayerStorageReady() then
@@ -103,11 +105,8 @@ return {
             tracking.addMarkerForInteriorCellFromGlobal(data)
         end,
 
-        ["QGL:drawQuestBlockInJournalMenu"] = function (data)
-            ---@type questDataGenerator.questData
-            local diaData = data.questData
-            local diaId = data.questId
-
+        ["QGL:updateTime"] = function (data)
+            timeLib.time = data.time
         end,
     },
 }

@@ -2,6 +2,7 @@ local include = require("scripts.quest_guider_lite.utils.include")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local commonData = require("scripts.quest_guider_lite.common")
+local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
 local playerFunc = require('openmw.types').Player
 local core = require('openmw.core')
@@ -21,6 +22,7 @@ local this = {}
 ---@class questGuider.playerQuest.storageQuestInfo
 ---@field diaId string
 ---@field index integer
+---@field timestamp number
 
 ---@class questGuider.playerQuest.storageQuestData
 ---@field list questGuider.playerQuest.storageQuestInfo[]
@@ -107,6 +109,7 @@ function this.init()
                 table.insert(storageQuestData.list, {
                     diaId = q.id,
                     index = q.stage,
+                    timestamp = timeLib.time,
                 })
             end
         end
@@ -208,6 +211,7 @@ function this.update(diaId, index)
         table.insert(questData.list, {
             diaId = diaId,
             index = index,
+            timestamp = timeLib.time,
         })
     end
 
