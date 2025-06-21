@@ -1,9 +1,12 @@
 local ui = require('openmw.ui')
 local util = require('openmw.util')
+local time = require('openmw_aux.time')
 local templates = require('openmw.interfaces').MWUI.templates
 
 local button = require("scripts.quest_guider_lite.ui.button")
 
+local iconUp = "textures/omw_menu_scroll_up.dds"
+local iconDown = "textures/omw_menu_scroll_down.dds"
 
 ---@class questGuider.ui.scrollBox.params
 ---@field size any -- util.vector2
@@ -47,6 +50,47 @@ return function(params)
         return params.thisElementInContent().content[1].content[1].content[1]
     end
 
+    local function scrollUp(val)
+        local fl = getFlex()
+        local pos = fl.props.position
+        if not pos then return end
+
+        fl.props.position = util.vector2(0, math.min(32, pos.y + val))
+        params.updateFunc()
+    end
+
+    local function scrollDown(val)
+        local fl = getFlex()
+        local pos = fl.props.position
+        if not pos then return end
+
+        fl.props.position = util.vector2(0, pos.y - val)
+        params.updateFunc()
+    end
+
+    local lockEvent = false
+    local timer
+    local function stopScrollTimer()
+        if timer then
+            timer()
+            timer = nil
+            lockEvent = false
+        end
+    end
+
+    local function startScrollTimer(type, value)
+        stopScrollTimer()
+        -- TODO implement real timer
+        -- timer = time.runRepeatedly(function ()
+        --     if type == 0 then
+        --         scrollUp(value)
+        --     else
+        --         scrollDown(value)
+        --     end
+        --     lockEvent = true
+        -- end, time.second * 0.5, { initialDelay = 1 * time.second })
+    end
+
     local contentData
     contentData = {
         template = templates.boxTransparent,
@@ -64,29 +108,39 @@ return function(params)
             button{
                 position = util.vector2(params.size.x - 4, 4),
                 anchor = util.vector2(1, 0),
-                text = "<",
+                icon = iconUp,
+                iconSize = util.vector2(16, 16),
+                text = "",
                 updateFunc = params.updateFunc,
                 event = function (layout)
-                    local fl = getFlex()
-                    local pos = fl.props.position
-                    if not pos then return end
-
-                    fl.props.position = util.vector2(0, math.min(0, pos.y + 24))
-                    params.updateFunc()
+                    if not lockEvent then
+                        scrollUp(24)
+                    end
                 end,
+                mousePress = function (layout)
+                    startScrollTimer(0, 12)
+                end,
+                mouseRelease = function (layout)
+                    stopScrollTimer()
+                end
             },
             button{
                 position = util.vector2(params.size.x - 4, params.size.y - 4),
                 anchor = util.vector2(1, 1),
-                text = ">",
+                icon = iconDown,
+                iconSize = util.vector2(16, 16),
+                text = "",
                 updateFunc = params.updateFunc,
                 event = function (layout)
-                    local fl = getFlex()
-                    local pos = fl.props.position
-                    if not pos then return end
-
-                    fl.props.position = util.vector2(0, pos.y - 24)
-                    params.updateFunc()
+                    if not lockEvent then
+                        scrollDown(24)
+                    end
+                end,
+                mousePress = function (layout)
+                    startScrollTimer(1, 12)
+                end,
+                mouseRelease = function (layout)
+                    stopScrollTimer()
                 end
             },
         },

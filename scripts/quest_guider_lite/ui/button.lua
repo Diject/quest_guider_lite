@@ -10,6 +10,9 @@ local tooltip = require("scripts.proximityTool.ui.tooltip")
 ---@field textSize integer?
 ---@field textColor any?
 ---@field size any? util.vector2
+---@field icon string?
+---@field iconSize any? util.vector2
+---@field iconColor any?
 ---@field event fun(layout : any)?
 ---@field mousePress fun(layout : any)?
 ---@field mouseRelease fun(layout : any)?
@@ -22,6 +25,31 @@ local tooltip = require("scripts.proximityTool.ui.tooltip")
 ---@param params questGuider.ui.button.params
 return function (params)
     if not params then return end
+
+    local buttonContent = ui.content {}
+    if params.icon then
+        local texture = ui.texture{ path = params.icon }
+        buttonContent:add{
+            type = ui.TYPE.Image,
+            props = {
+                resource = texture,
+                size = params.iconSize,
+                color = params.iconColor,
+            },
+        }
+    end
+    buttonContent:add{
+        template = templates.textNormal,
+        type = ui.TYPE.Text,
+        props = {
+            text = params.text or "Ok",
+            textSize = params.textSize or 18,
+            multiline = false,
+            wordWrap = false,
+            textAlignH = ui.ALIGNMENT.Start,
+        },
+    }
+
     local content
     content = {
         template = templates.boxSolidThick,
@@ -80,19 +108,7 @@ return function (params)
                     horizontal = true,
                     align = ui.ALIGNMENT.Center,
                 },
-                content = ui.content {
-                    {
-                        template = templates.textNormal,
-                        type = ui.TYPE.Text,
-                        props = {
-                            text = params.text or "Ok",
-                            textSize = params.textSize or 18,
-                            multiline = false,
-                            wordWrap = false,
-                            textAlignH = ui.ALIGNMENT.Start,
-                        },
-                    }
-                }
+                content = ui.content(buttonContent)
             }
         },
     }
