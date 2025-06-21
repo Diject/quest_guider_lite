@@ -10,6 +10,7 @@ local button = require("scripts.quest_guider_lite.ui.button")
 ---@field content any
 ---@field updateFunc fun()
 ---@field thisElementInContent fun() : any
+---@field arrange any?
 
 
 ---@param params questGuider.ui.scrollBox.params
@@ -33,6 +34,7 @@ return function(params)
                             autoSize = true,
                             horizontal = false,
                             position = util.vector2(0, 0),
+                            arrange = params.arrange,
                         },
                         content = params.content,
                     }
