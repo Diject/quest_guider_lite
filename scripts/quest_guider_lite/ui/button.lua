@@ -3,7 +3,36 @@ local util = require('openmw.util')
 local async = require('openmw.async')
 local input = require('openmw.input')
 local templates = require('openmw.interfaces').MWUI.templates
+
+local consts = require("scripts.quest_guider_lite.common")
+
 local tooltip = require("scripts.proximityTool.ui.tooltip")
+local interval = require("scripts.quest_guider_lite.ui.interval")
+
+
+---@class questGuider.ui.buttonMeta
+local buttonMeta = {}
+buttonMeta.__index = buttonMeta
+
+function buttonMeta.getButtonTextElement(self, thisElementInContent)
+    if not self.params.text then return end
+    local thisElem = thisElementInContent or (self.thisElementInContent and self.thisElementInContent())
+    if not thisElem then return end
+    if self.params.icon then
+        return thisElem.content[1].content[3]
+    else
+        return thisElem.content[1].content[1]
+    end
+end
+
+
+function buttonMeta.getButtonIconElement(self, thisElementInContent)
+    if not self.params.icon then return end
+    local thisElem = thisElementInContent or (self.thisElementInContent and self.thisElementInContent())
+    if not thisElem then return end
+    return thisElem.content[1].content[1]
+end
+
 
 ---@class questGuider.ui.button.params
 ---@field text string?
@@ -21,10 +50,18 @@ local tooltip = require("scripts.proximityTool.ui.tooltip")
 ---@field position any? util.vector2
 ---@field anchor any? util.vector2
 ---@field updateFunc fun()
+---@field thisElementInContent any
 
 ---@param params questGuider.ui.button.params
 return function (params)
     if not params then return end
+
+    ---@class questGuider.ui.buttonMeta
+    local meta = setmetatable({}, buttonMeta)
+
+    meta.params = params
+
+    meta.thisElementInContent = params.thisElementInContent
 
     local buttonContent = ui.content {}
     if params.icon then
@@ -37,18 +74,24 @@ return function (params)
                 color = params.iconColor,
             },
         }
+        if params.text then
+            buttonContent:add(interval(4, 0))
+        end
     end
-    buttonContent:add{
-        template = templates.textNormal,
-        type = ui.TYPE.Text,
-        props = {
-            text = params.text or "Ok",
-            textSize = params.textSize or 18,
-            multiline = false,
-            wordWrap = false,
-            textAlignH = ui.ALIGNMENT.Start,
-        },
-    }
+
+    if params.text then
+        buttonContent:add{
+            type = ui.TYPE.Text,
+            props = {
+                text = params.text or "Ok",
+                textSize = params.textSize or 18,
+                multiline = false,
+                wordWrap = false,
+                textAlignH = ui.ALIGNMENT.Start,
+                textColor = params.textColor or consts.defaultColor
+            },
+        }
+    end
 
     local content
     content = {
@@ -98,6 +141,7 @@ return function (params)
         },
         userData = {
             pressed = false,
+            meta = meta,
         },
         content = ui.content {
             {

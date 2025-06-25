@@ -1,6 +1,7 @@
 local async = require('openmw.async')
 local ui = require('openmw.ui')
 local util = require('openmw.util')
+local core = require('openmw.core')
 local templates = require('openmw.interfaces').MWUI.templates
 
 local commonData = require("scripts.quest_guider_lite.common")
@@ -29,13 +30,17 @@ journalMeta.getQuestMain = function (self)
     return self.menu.layout.content[2].content[1].content[2]
 end
 
+journalMeta.getQuestScrollBox = function (self)
+    return self:getQuestMain().content[1]
+end
+
 journalMeta.update = function(self)
     self.menu:update()
 end
 
 
 ---@param params questGuider.ui.customJournal.params
-function journalMeta.__fillQuestsContent(self, content, params)
+function journalMeta._fillQuestsContent(self, content, params)
     ---@type questGuider.playerQuest.storageData
     local playerData = playerQuests.getStorageData()
 
@@ -71,6 +76,10 @@ function journalMeta.__fillQuestsContent(self, content, params)
                         }
                     }
                     self:update()
+
+                    ---@type questGuider.ui.questBoxMeta
+                    local questBoxMeta = self:getQuestScrollBox().userData.meta
+                    core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", questBoxMeta.dialogueInfo)
                 end),
             },
             content = ui.content {
@@ -188,7 +197,7 @@ local function create(params)
     }
 
     local questsContent = ui.content{}
-    meta:__fillQuestsContent(questsContent, params)
+    meta:_fillQuestsContent(questsContent, params)
 
     local questListBox = scrollBox{
         updateFunc = updateFunc,

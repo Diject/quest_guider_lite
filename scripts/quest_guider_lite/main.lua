@@ -14,6 +14,16 @@ local questGivers = require("scripts.quest_guider_lite.questGiverTracking")
 local trackingGlobal = require("scripts.quest_guider_lite.trackingGlobal")
 
 
+---@class questGuider.main.fillQuestBoxQuestInfo.returnFieldDt
+---@field requirements questGuider.quest.getDescriptionDataFromBlock.return[]
+---@field index integer
+
+---@alias questGuider.main.fillQuestBoxQuestInfo.returnDt table<string, questGuider.main.fillQuestBoxQuestInfo.returnFieldDt[]> by dia id, sorted by index
+---@alias questGuider.main.fillQuestBoxQuestInfo.returnBlock {next : questGuider.main.fillQuestBoxQuestInfo.returnDt?, linked : questGuider.main.fillQuestBoxQuestInfo.returnDt?}
+
+---@alias questGuider.main.fillQuestBoxQuestInfo.return table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock> by content id
+
+
 local function onInit()
     dataHandler.init()
     -- testing.descriptionLines()
@@ -72,6 +82,119 @@ local function addMarkersForQuest(qId, qIndex)
     end
 
     return objects
+end
+
+
+---@param data table<string, {diaId : string, index : integer, contentIndex : integer}>
+local function fillQuestBoxQuestInfo(data)
+    ---@type questGuider.main.fillQuestBoxQuestInfo.return
+    local out = {}
+
+    local function getDtArr(t, diaId, index)
+        if not t[diaId] then t[diaId] = {} end
+        local isNew = false
+        local indexStr = tostring(index)
+        if not t[diaId][indexStr] then
+            t[diaId][indexStr] = {
+                requirements = {},
+            }
+            isNew = true
+        end
+        return t[diaId][indexStr], isNew
+    end
+
+    local function removeDtArr(t, diaId, index)
+        local indexStr = tostring(index)
+        if t[diaId][indexStr] then
+            t[diaId][indexStr] = nil
+        end
+        if not next(t[diaId]) then
+            t[diaId] = nil
+        end
+    end
+
+    for diaId, diaInfo in pairs(data) do
+        local qData = questLib.getQuestData(diaId)
+        if not qData then goto continue end
+
+        local questNextIndexes, linkedIndexData = questLib.getNextIndexes(qData, diaId, diaInfo.index, {findCompleted = false, findInLinked = true})
+        if not questNextIndexes and not linkedIndexData then goto continue end
+
+        local function getData(qData, index, arr)
+            local indexStr = tostring(index)
+            local indexData = qData[indexStr]
+            if not indexData then return end
+
+            arr.index = tonumber(index)
+
+            for i, reqDataBlock in pairs(indexData.requirements or {}) do
+                local requirementData = questLib.getDescriptionDataFromDataBlock(reqDataBlock)
+                if not requirementData then goto continue end
+
+                table.insert(arr.requirements, requirementData)
+
+                ::continue::
+            end
+        end
+
+        local res = out[diaInfo.contentIndex] or {
+            next = {},
+            linked = {},
+        }
+
+        local function fillRes(tb, index)
+            local arr, created = getDtArr(res.next, diaId, index)
+            if created then
+                getData(qData, index, arr)
+
+                if not next(arr.requirements) then
+                    removeDtArr(res.next, diaId, index)
+                end
+            end
+        end
+
+        if questNextIndexes then
+            for _, index in pairs(questNextIndexes) do
+                fillRes(res.next, index)
+            end
+
+            if not next(res.next) then
+                res.next = nil
+            else
+                for dId, dt in pairs(res.next) do
+                    res.next[dId] = tableLib.values(dt, function (a, b)
+                        return a.index > b.index
+                    end)
+                end
+            end
+        end
+
+        if linkedIndexData then
+            for dId, dt in pairs(linkedIndexData) do
+                fillRes(res.linked, dt.index)
+            end
+
+            if not next(res.linked) then
+                res.linked = nil
+            else
+                for dId, dt in pairs(res.linked) do
+                    res.linked[dId] = tableLib.values(dt, function (a, b)
+                        return a.index > b.index
+                    end)
+                end
+            end
+        end
+
+        if next(res) then
+            out[diaInfo.contentIndex] = res
+        end
+
+        ::continue::
+    end
+
+    if next(out) then
+        world.players[1]:sendEvent("QGL:fillQuestBoxQuestInfo", out)
+    end
 end
 
 
@@ -148,6 +271,10 @@ return {
 
         ["QGL:addMarkersForInteriorCell"] = function (data)
             trackingGlobal.addMarkersForInteriorCell(data.cellId, data.markerByObjectId)
-        end
+        end,
+
+        ["QGL:fillQuestBoxQuestInfo"] = function (data)
+            fillQuestBoxQuestInfo(data)
+        end,
     },
 }

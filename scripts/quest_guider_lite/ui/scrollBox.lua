@@ -8,6 +8,34 @@ local button = require("scripts.quest_guider_lite.ui.button")
 local iconUp = "textures/omw_menu_scroll_up.dds"
 local iconDown = "textures/omw_menu_scroll_down.dds"
 
+
+---@class questGuider.ui.scrollBox
+local scrollBoxMeta = {}
+scrollBoxMeta.__index = scrollBoxMeta
+
+scrollBoxMeta.getMainFlex = function (self)
+    return self:thisElementInContent().content[1].content[1].content[1]
+end
+
+scrollBoxMeta.scrollUp = function(self, val)
+    local fl = self:getMainFlex()
+    local pos = fl.props.position
+    if not pos then return end
+
+    fl.props.position = util.vector2(0, math.min(32, pos.y + val))
+    self:update()
+end
+
+scrollBoxMeta.scrollDown = function(self, val)
+    local fl = self:getMainFlex()
+    local pos = fl.props.position
+    if not pos then return end
+
+    fl.props.position = util.vector2(0, pos.y - val)
+    self:update()
+end
+
+
 ---@class questGuider.ui.scrollBox.params
 ---@field size any -- util.vector2
 ---@field content any
@@ -19,6 +47,9 @@ local iconDown = "textures/omw_menu_scroll_down.dds"
 ---@param params questGuider.ui.scrollBox.params
 return function(params)
     if not params then return end
+
+    ---@class questGuider.ui.scrollBox
+    local meta = setmetatable({}, scrollBoxMeta)
 
     local flex = {
         type = ui.TYPE.Flex,
@@ -46,26 +77,12 @@ return function(params)
         }
     }
 
-    local function getFlex()
-        return params.thisElementInContent().content[1].content[1].content[1]
-    end
-
-    local function scrollUp(val)
-        local fl = getFlex()
-        local pos = fl.props.position
-        if not pos then return end
-
-        fl.props.position = util.vector2(0, math.min(32, pos.y + val))
+    meta.update = function (self)
         params.updateFunc()
     end
 
-    local function scrollDown(val)
-        local fl = getFlex()
-        local pos = fl.props.position
-        if not pos then return end
-
-        fl.props.position = util.vector2(0, pos.y - val)
-        params.updateFunc()
+    meta.thisElementInContent = function (self)
+        return params.thisElementInContent()
     end
 
     local lockEvent = false
@@ -101,7 +118,7 @@ return function(params)
 
         },
         userData = {
-
+            meta = meta,
         },
         content = ui.content {
             flex,
@@ -110,11 +127,10 @@ return function(params)
                 anchor = util.vector2(1, 0),
                 icon = iconUp,
                 iconSize = util.vector2(16, 16),
-                text = "",
                 updateFunc = params.updateFunc,
                 event = function (layout)
                     if not lockEvent then
-                        scrollUp(24)
+                        meta:scrollUp(24)
                     end
                 end,
                 mousePress = function (layout)
@@ -129,11 +145,10 @@ return function(params)
                 anchor = util.vector2(1, 1),
                 icon = iconDown,
                 iconSize = util.vector2(16, 16),
-                text = "",
                 updateFunc = params.updateFunc,
                 event = function (layout)
                     if not lockEvent then
-                        scrollDown(24)
+                        meta:scrollDown(24)
                     end
                 end,
                 mousePress = function (layout)

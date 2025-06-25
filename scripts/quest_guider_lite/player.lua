@@ -3,6 +3,11 @@ local self = require('openmw.self')
 local async = require('openmw.async')
 local time = require('openmw_aux.time')
 local ui = require('openmw.ui')
+local input = require('openmw.input')
+local I = require('openmw.interfaces')
+local util = require('openmw.util')
+
+local log = require("scripts.quest_guider_lite.utils.log")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -13,6 +18,11 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
+local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
+local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
+
+---@type questGuider.ui.customJournal?
+local questMenu
 
 local function onInit()
     if not localStorage.isPlayerStorageReady() then
@@ -44,6 +54,28 @@ local function teleportedCallback()
 end
 
 
+local function onKeyRelease(key)
+    if key.withShift and key.code == input.KEY.H then
+        local isMenuMode = core.isWorldPaused()
+        if questMenu then
+            questMenu.menu:destroy()
+            questMenu = nil
+            I.UI.removeMode("Journal")
+        elseif not isMenuMode then
+            I.UI.setMode("Journal", { windows = {} })
+            questMenu = createQuestMenu{
+                fontSize = 20,
+                size = util.vector2(1000, 700),
+                relativePosition = util.vector2(0.5, 0.0),
+            }
+        end
+    elseif questMenu and not core.isWorldPaused() then
+        questMenu.menu:destroy()
+        questMenu = nil
+    end
+end
+
+
 time.runRepeatedly(function()
     if tracking.handlePlayerInventory() then
         tracking.updateMarkers()
@@ -66,6 +98,7 @@ return {
         onSave = onSave,
         onLoad = onLoad,
         onInit = onInit,
+        onKeyRelease = onKeyRelease,
     },
     eventHandlers = {
         ["QGL:addMarker"] = function(data)
@@ -108,5 +141,37 @@ return {
         ["QGL:updateTime"] = function (data)
             timeLib.time = data.time
         end,
+
+        ---@param data questGuider.main.fillQuestBoxQuestInfo.return
+        ["QGL:fillQuestBoxQuestInfo"] = function (data)
+            if not questMenu then return end
+            ---@type questGuider.ui.questBoxMeta
+            local questBox = questMenu:getQuestScrollBox().userData.meta
+            ---@type questGuider.ui.scrollBox
+            local scrollBox = questBox:getScrollBox().userData.meta
+
+            local scrollBoxContent = scrollBox:getMainFlex()
+
+            for contentIndex, dt in pairs(data) do
+                local element = scrollBoxContent.content[contentIndex]
+                if not element then goto continue end
+
+                element.content:add(
+                    nextStagesBlock.create{
+                        data = dt,
+                        fontSize = 18,
+                        updateFunc = function ()
+                            questMenu:update()
+                        end,
+                        thisElementInContent = function ()
+                            return scrollBox:getMainFlex().content[contentIndex].content[#element.content]
+                        end
+                    }
+                )
+
+                ::continue::
+            end
+            questMenu:update()
+        end
     },
 }
