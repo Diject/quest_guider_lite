@@ -120,7 +120,7 @@ function this.getCellData(cell)
 		gridX = cell.isExterior and cell.gridX or nil,
 		gridY = cell.isExterior and cell.gridY or nil,
 		id = not cell.isExterior and cell.id or nil,
-		name = cell.name,
+		name = cell.isExterior and string.format("%s (%d, %d)", cell.region, cell.gridX, cell.gridY) or cell.name,
 	}
 	return dt
 end

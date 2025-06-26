@@ -41,7 +41,7 @@ function this.findExitPos(cell, path, checked, cellPath)
         local cellPathCopy = tableLib.copy(cellPath)
         table.insert(cellPathCopy, destCellData)
 
-        if cell.isExterior or cell:hasTag("QuasiExterior") then
+        if destCell.isExterior or destCell:hasTag("QuasiExterior") then
             return utils.copyVector3(destPos), pathCopy, cellPathCopy, destCell.isExterior
         else
             local out, destPath, cPath, isEx = this.findExitPos(destCell, pathCopy, checked, cellPathCopy)

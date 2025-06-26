@@ -938,8 +938,8 @@ function this.getRequirementPositionData(requirement, customConfig)
                             local descr
                             if cellPath then
                                 for i = #cellPath, 1, -1 do
-                                    descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].id) or
-                                        string.format("\"%s\"", cellPath[i].id)
+                                    descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].name) or
+                                        string.format("\"%s\"", cellPath[i].name)
                                 end
                             end
 
@@ -1022,8 +1022,8 @@ function this.getRequirementPositionData(requirement, customConfig)
                 local descr
                 if cellPath then
                     for i = #cellPath, 1, -1 do
-                        descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].id) or
-                            string.format("\"%s\"", cellPath[i].id)
+                        descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].name) or
+                            string.format("\"%s\"", cellPath[i].name)
                     end
                 end
 
