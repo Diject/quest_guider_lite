@@ -138,6 +138,7 @@ local function create(params)
         userData = {},
         events = {
             mousePress = async:callback(function(coord, layout)
+                meta:getQuestMain().content = ui.content{}
                 layout.userData.doDrag = true
                 local screenSize = ui.screenSize()
                 layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
