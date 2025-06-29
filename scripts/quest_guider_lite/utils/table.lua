@@ -216,4 +216,19 @@ function this.contains(tb, val)
 end
 
 
+function this.getFirst(tb, num)
+    if not num then num = 1 end
+    local res = {}
+    for _, v in ipairs(tb) do
+        if num > 0 then
+            table.insert(res, v)
+            num = num - 1
+        else
+            break
+        end
+    end
+    return res
+end
+
+
 return this

@@ -189,4 +189,71 @@ function this.findNearestDoor(position, cell)
 end
 
 
+---@return table<string, {position : any, distance : number}> ret by lowercase cell id. __world__ - for exterior
+function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked)
+    if not checked then checked = {} end
+    if not distance then distance = 0 end
+
+    local cellId = cell.id
+    if checked[cellId] then return checked end
+
+    if cell.isExterior then
+        local exData = checked["__world__"]
+        if not exData or distance < exData.distance then
+            checked["__world__"] = {
+                position = pos,
+                distance = distance,
+            }
+        end
+        return checked
+    else
+        checked[cellId] = {
+            position = pos,
+            distance = distance,
+        }
+    end
+
+    for _, door in pairs(cell:getAll(types.Door)) do
+        if not types.Door.isTeleport(door) or not door.enabled then goto continue end
+
+        local destCell = types.Door.destCell(door)
+        local destPos = types.Door.destPosition(door)
+        if not destCell or not destPos then goto continue end
+
+        this.getInteriorCellApproxDistancesToPos(destCell, destPos, distance + (pos - door.position):length(), checked)
+
+        ::continue::
+    end
+
+    return checked
+end
+
+
+---@param posData questGuider.quest.getRequirementPositionData.positionData[]
+function this.fillDistanceToPlayer(posData, playerRef)
+    local plPos = playerRef.position
+    local plCell = playerRef.cell
+
+    local interiorCellDistance = this.getInteriorCellApproxDistancesToPos(plCell, plPos)
+    local worldPlPosData = interiorCellDistance["__world__"]
+
+    for _, pos in pairs(posData) do
+        if not pos.id and worldPlPosData then
+            pos.distanceToPlayer = utils.distance2D(worldPlPosData.position, pos.position)
+        elseif pos.id then
+            local distData = interiorCellDistance[pos.id:lower()]
+            if distData then
+                pos.distanceToPlayer = distData.distance + utils.distance2D(distData.position, pos.position)
+            elseif pos.exitPos and pos.isExitEx then
+                pos.distanceToPlayer = utils.distance2D(plPos, pos.exitPos)
+            else
+                pos.distanceToPlayer = math.huge
+            end
+        else
+            pos.distanceToPlayer = math.huge
+        end
+    end
+end
+
+
 return this

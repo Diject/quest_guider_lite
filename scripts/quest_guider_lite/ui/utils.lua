@@ -1,10 +1,12 @@
 local this = {}
 
 
-function this.getTextHeight(text, fontSize, width)
+function this.getTextHeight(text, fontSize, width, mul)
+    if not mul then mul = 0.7 end
     if #text == 0 then return 0 end
     local words = {}
-    local rowMaxSize = math.floor(width / fontSize)
+    local charWidth = fontSize * mul
+    local rowMaxSize = math.floor(width / charWidth)
     local rowCount = 1
     local currentRowSize = 0
     for word in text:gmatch("%S+") do

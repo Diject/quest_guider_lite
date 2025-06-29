@@ -85,6 +85,10 @@ return function(params)
         return params.thisElementInContent()
     end
 
+    meta.innnerSize = util.vector2(params.size.x - 8, params.size.y - 8)
+
+    meta.params = params
+
     local lockEvent = false
     local timer
     local function stopScrollTimer()

@@ -12,6 +12,7 @@ local questLib = require("scripts.quest_guider_lite.quest")
 local testing = require("scripts.quest_guider_lite.testing.tests")
 local questGivers = require("scripts.quest_guider_lite.questGiverTracking")
 local trackingGlobal = require("scripts.quest_guider_lite.trackingGlobal")
+local cellLib = require("scripts.quest_guider_lite.cell")
 
 
 ---@class questGuider.main.fillQuestBoxQuestInfo.returnFieldDt
@@ -19,7 +20,7 @@ local trackingGlobal = require("scripts.quest_guider_lite.trackingGlobal")
 ---@field index integer
 
 ---@alias questGuider.main.fillQuestBoxQuestInfo.returnDt table<string, questGuider.main.fillQuestBoxQuestInfo.returnFieldDt[]> by dia id, sorted by index
----@alias questGuider.main.fillQuestBoxQuestInfo.returnBlock {next : questGuider.main.fillQuestBoxQuestInfo.returnDt?, linked : questGuider.main.fillQuestBoxQuestInfo.returnDt?}
+---@alias questGuider.main.fillQuestBoxQuestInfo.returnBlock {next : questGuider.main.fillQuestBoxQuestInfo.returnDt?, linked : questGuider.main.fillQuestBoxQuestInfo.returnDt?, objectPositions : table<string, questGuider.quest.getRequirementPositionData.returnData>}
 
 ---@alias questGuider.main.fillQuestBoxQuestInfo.return table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock> by content id
 
@@ -142,20 +143,20 @@ local function fillQuestBoxQuestInfo(data)
             linked = {},
         }
 
-        local function fillRes(tb, index)
-            local arr, created = getDtArr(res.next, diaId, index)
+        local function fillRes(qData, tb, diaId, index)
+            local arr, created = getDtArr(tb, diaId, index)
             if created then
                 getData(qData, index, arr)
 
                 if not next(arr.requirements) then
-                    removeDtArr(res.next, diaId, index)
+                    removeDtArr(tb, diaId, index)
                 end
             end
         end
 
         if questNextIndexes then
             for _, index in pairs(questNextIndexes) do
-                fillRes(res.next, index)
+                fillRes(qData, res.next, diaId, index)
             end
 
             if not next(res.next) then
@@ -171,7 +172,10 @@ local function fillQuestBoxQuestInfo(data)
 
         if linkedIndexData then
             for dId, dt in pairs(linkedIndexData) do
-                fillRes(res.linked, dt.index)
+                local linkedQuestData = questLib.getQuestData(dId)
+                if linkedIndexData then
+                    fillRes(linkedQuestData, res.linked, dId, dt.index)
+                end
             end
 
             if not next(res.linked) then
@@ -190,6 +194,37 @@ local function fillQuestBoxQuestInfo(data)
         end
 
         ::continue::
+    end
+
+    ---@type table<string, questGuider.quest.getRequirementPositionData.returnData>
+    local objectPositions = {}
+    local function processPosData(posData)
+        for _, diaDt in pairs(posData or {}) do
+            for _, reqsDt in pairs(diaDt) do
+                for _, reqs in pairs(reqsDt.requirements or {}) do
+                    for _, reqDt in pairs(reqs) do
+                        if reqDt.positionData then
+                            tableLib.copy(reqDt.positionData, objectPositions)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    for id, dt in pairs(out) do
+        processPosData(dt.next)
+        processPosData(dt.linked)
+
+        out[id].objectPositions = objectPositions
+    end
+
+    for _, dt in pairs(objectPositions) do
+        cellLib.fillDistanceToPlayer(dt.positions, world.players[1])
+
+        table.sort(dt.positions, function (a, b)
+            return a.distanceToPlayer < b.distanceToPlayer
+        end)
     end
 
     if next(out) then

@@ -156,7 +156,7 @@ function this.getNextIndexes(questData, quesId, questIndex, params)
             local linkRequirements = linkData[tostring(firstIndex)]
             if not linkRequirements then goto continue end
 
-            if params.findCompleted == false and playerQuests.getCurrentIndex(linkedId) ~= 0 then
+            if params.findCompleted == false and (playerQuests.getCurrentIndex(linkedId) or 0) ~= 0 then
                 goto continue
             end
 
@@ -748,9 +748,11 @@ end
 
 
 ---@class questGuider.quest.getRequirementPositionData.positionData
----@field description string
+---@field description string?
+---@field descriptionBackward string?
 ---@field id string? cell id of the position
 ---@field position tes3vector3? coordinates of the position
+---@field distanceToPlayer number?
 ---@field exitPos tes3vector3? coordinates in the game world of the entrance to the exterior cell that leads to the position
 ---@field entrances tes3vector3[]?
 ---@field doorPath tes3travelDestinationNode[]? list of doors to exit from the position
@@ -935,13 +937,13 @@ function this.getRequirementPositionData(requirement, customConfig)
                         local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
                         if exCellPos then
 
-                            local descr
-                            if cellPath then
-                                for i = #cellPath, 1, -1 do
-                                    descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].name) or
-                                        string.format("\"%s\"", cellPath[i].name)
-                                end
-                            end
+                            -- local descr
+                            -- if cellPath then
+                            --     for i = #cellPath, 1, -1 do
+                            --         descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].name) or
+                            --             string.format("\"%s\"", cellPath[i].name)
+                            --     end
+                            -- end
 
                             local exits = {}
                             local exitPositions = cellLib.findExitPositions(cell)
@@ -952,7 +954,7 @@ function this.getRequirementPositionData(requirement, customConfig)
                                 end
                             end
 
-                            add(id, object, {description = descr, id = posDt.name, position = util.vector3(x, y, z), entrances = exits,
+                            add(id, object, {id = posDt.name, position = util.vector3(x, y, z), entrances = exits,
                                 exitPos = exCellPos, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath, rawData = newPosData})
 
                         else
@@ -973,7 +975,7 @@ function this.getRequirementPositionData(requirement, customConfig)
                 elseif posDt.grid then
                     local cell = tes.getCell{x = posDt.grid[1], y = posDt.grid[2]}
                     if cell then
-                        local descr = cell.editorName
+                        local descr = tes.getCellData(cell).name
                         local pos = util.vector3(x, y, z)
                         local newPosData = tableLib.copy(posDt)
                         if ownerId then
@@ -1019,15 +1021,15 @@ function this.getRequirementPositionData(requirement, customConfig)
             local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
             if exCellPos then
 
-                local descr
-                if cellPath then
-                    for i = #cellPath, 1, -1 do
-                        descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].name) or
-                            string.format("\"%s\"", cellPath[i].name)
-                    end
-                end
+                -- local descr
+                -- if cellPath then
+                --     for i = #cellPath, 1, -1 do
+                --         descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].name) or
+                --             string.format("\"%s\"", cellPath[i].name)
+                --     end
+                -- end
 
-                add(id, cell, {description = descr, id = cell.name, exitPos = exCellPos, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath})
+                add(id, cell, {id = cell.name, exitPos = exCellPos, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath})
 
             else
                 local descr

@@ -159,6 +159,7 @@ return {
                 element.content:add(
                     nextStagesBlock.create{
                         data = dt,
+                        size = scrollBox.innnerSize,
                         fontSize = 18,
                         updateFunc = function ()
                             questMenu:update()

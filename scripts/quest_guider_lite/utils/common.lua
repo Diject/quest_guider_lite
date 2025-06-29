@@ -7,4 +7,9 @@ function this.copyVector3(vector)
 end
 
 
+function this.distance2D(vector1, vector2)
+    return math.sqrt((vector1.x - vector2.x)^2 + (vector1.y - vector2.y)^2)
+end
+
+
 return this
