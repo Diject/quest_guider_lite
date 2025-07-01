@@ -13,6 +13,7 @@ local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
 local playerQuests = require('scripts.quest_guider_lite.playerQuests')
+local tracking = require("scripts.quest_guider_lite.trackingLocal")
 
 local log = require("scripts.quest_guider_lite.utils.log")
 
@@ -28,13 +29,19 @@ local this = {}
 local nextStagesMeta = {}
 nextStagesMeta.__index = nextStagesMeta
 
+nextStagesMeta.type = consts.elementMetatableTypes.nextStages
+
 
 function nextStagesMeta.getRequirementsFlex(self)
-    return self:thisElementInContent().content[2].content[2]
+    return self:getLayout().content[2].content[3]
 end
 
 function nextStagesMeta.getRequirementsHeader(self)
-    return self:thisElementInContent().content[2].content[1]
+    return self:getLayout().content[2].content[1]
+end
+
+function nextStagesMeta.getObjectsFlex(self)
+    return self:getLayout().content[2].content[2]
 end
 
 function nextStagesMeta.getHeaderNextBtnsFlex(self)
@@ -43,6 +50,30 @@ end
 
 function nextStagesMeta.getHeaderVariantBtnsFlex(self)
     return self:getRequirementsHeader().content[3]
+end
+
+function nextStagesMeta.updateObjectElements(self)
+    local flex = self:getObjectsFlex()
+
+    for _, elem in pairs(flex.content) do
+        if not elem.userData or not elem.userData.diaId or not elem.userData.objectId then goto continue end
+
+        local disabledState = tracking.getDisabledState{objectId = elem.userData.objectId, questId = elem.userData.diaId}
+        local trackedState = tracking.isObjectTracked{diaId = elem.userData.diaId, objectId = elem.userData.objectId}
+        local trackingData = tracking.markerByObjectId[elem.userData.objectId]
+
+        local textElem = elem.content[1].content[1].content[1]
+        if not trackedState or not trackingData then
+            textElem.props.textColor = consts.defaultColor
+        elseif not disabledState then
+            textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
+                or consts.defaultColor
+        elseif disabledState then
+            textElem.props.textColor = consts.disabledColor
+        end
+
+        ::continue::
+    end
 end
 
 
@@ -75,7 +106,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
     end
 
     ---@param requirements questGuider.quest.getDescriptionDataFromBlock.returnArr[]
-    local function addObjectPositionInfo(content, requirements)
+    local function addObjectPositionInfo(content, requirements, diaId, diaIndex)
         ---@type table<string, {name : string, descr : string, descrBackward : string, positions : questGuider.quest.getRequirementPositionData.positionData[]}>
         local objectPosInfo = {}
         for _, req in pairs(requirements) do
@@ -102,6 +133,14 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
         end
 
         for objId, objData in pairs(objectPosInfo) do
+            local trackingData = tracking.markerByObjectId[objId]
+
+            local objectColor = consts.defaultColor
+            if trackingData then
+                if trackingData.color then
+                    objectColor = util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
+                end
+            end
 
             local header = {
                 type = ui.TYPE.Container,
@@ -124,9 +163,10 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 props = {
                                     text = objData.name,
                                     autoSize = true,
-                                    textSize = (self.params.fontSize or 18) * 1.1,
+                                    textSize = (self.params.fontSize or 18) * 1.2,
                                     multiline = false,
                                     wordWrap = false,
+                                    textColor = tracking.getDisabledState{objectId = objId, questId = diaId} and consts.disabledColor or objectColor,
                                 },
                             },
                         }
@@ -140,11 +180,58 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             position = util.vector2(self.params.size.x, 0)
                         },
                         content = ui.content {
+                            button{
+                                updateFunc = self.update,
+                                text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and "Untrack" or "Track",
+                                textSize = (self.params.fontSize or 18) * 0.9,
+                                event = function (layout)
+                                    local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
+                                    if trackedState then
+                                        tracking.removeMarker{objectId = objId, questId = diaId}
+                                    else
+                                        tracking.trackObject{diaId = diaId, objectId = objId, index = diaIndex}
+                                    end
+
+                                    ---@type questGuider.ui.buttonMeta
+                                    local btnMeta = layout.userData.meta
+                                    local btn = btnMeta:getButtonTextElement()
+                                    if btn then
+                                        btn.props.text = not trackedState and "Untrack" or "Track"
+                                    end
+                                    self:updateObjectElements()
+                                end
+                            },
+                            interval((self.params.fontSize or 18) * 2, 0),
+                            button{
+                                updateFunc = self.update,
+                                text = tracking.getDisabledState{objectId = objId, questId = diaId} and "Show" or "Hide",
+                                textSize = (self.params.fontSize or 18) * 0.9,
+                                event = function (layout)
+                                    tracking.setDisableMarkerState{
+                                        objectId = objId,
+                                        questId = diaId,
+                                        toggle = true,
+                                        isUserDisabled = true,
+                                    }
+
+                                    local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
+
+                                    ---@type questGuider.ui.buttonMeta
+                                    local btnMeta = layout.userData.meta
+                                    local btn = btnMeta:getButtonTextElement()
+                                    if btn then
+                                        btn.props.text = disabledState and "Show" or "Hide"
+                                    end
+
+                                    self:updateObjectElements()
+                                end
+                            },
+                            interval((self.params.fontSize or 18) * 2, 0),
                             {
                                 template = templates.textNormal,
                                 type = ui.TYPE.Text,
                                 props = {
-                                    text = "Closest position:",
+                                    text = "Closest:",
                                     autoSize = true,
                                     textSize = (self.params.fontSize or 18) * 0.9,
                                     textAlignH = ui.ALIGNMENT.End,
@@ -196,10 +283,13 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                     horizontal = false,
                 },
                 userData = {
+                    objectId = objId,
+                    diaId = diaId,
                     positions = objData.positions,
                 },
                 content = ui.content {
                     header,
+                    interval(self.params.fontSize / 2),
                     position,
                 }
             }
@@ -239,7 +329,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             ---@type questGuider.ui.buttonMeta
             local meta = elem.userData and elem.userData.meta
             if meta then
-                local textElem = meta:getButtonTextElement(elem)
+                local textElem = meta:getButtonTextElement()
                 if textElem then
                     textElem.props.textColor = consts.defaultColor
                 end
@@ -276,10 +366,12 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             }
                             local reqFlex = self:getRequirementsFlex()
                             reqFlex.content = ui.content{}
+                            local posFlex = self:getObjectsFlex()
+                            posFlex.content = ui.content{}
 
                             ---@type questGuider.ui.buttonMeta
                             local btnMeta = layout.userData.meta
-                            local btn = btnMeta:getButtonTextElement(layout)
+                            local btn = btnMeta:getButtonTextElement()
                             if btn then
                                 resetColorOfButtons(self:getHeaderNextBtnsFlex())
                                 btn.props.textColor = consts.selectedColor
@@ -294,19 +386,22 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                         event = function (layout)
                                             local reqFlex = self:getRequirementsFlex()
                                             reqFlex.content = ui.content{
-                                                interval(0, self.params.fontSize)
+                                                interval(0, self.params.fontSize / 2)
+                                            }
+                                            local posFlex = self:getObjectsFlex()
+                                            posFlex.content = ui.content{
+                                                interval(0, self.params.fontSize / 2)
                                             }
 
                                             ---@type questGuider.ui.buttonMeta
                                             local btnMeta = layout.userData.meta
-                                            local btn = btnMeta:getButtonTextElement(layout)
+                                            local btn = btnMeta:getButtonTextElement()
                                             if btn then
                                                 resetColorOfButtons(self:getHeaderVariantBtnsFlex())
                                                 btn.props.textColor = consts.selectedColor
                                             end
 
-                                            addObjectPositionInfo(reqFlex.content, reqs)
-                                            reqFlex.content:add(interval(0, self.params.fontSize))
+                                            addObjectPositionInfo(posFlex.content, reqs, diaId, nextData.index)
                                             addRequirements(reqFlex.content, reqs)
                                         end,
                                     }
@@ -334,7 +429,6 @@ end
 ---@field fontSize integer
 ---@field data questGuider.main.fillQuestBoxQuestInfo.returnBlock
 ---@field updateFunc function
----@field thisElementInContent any
 
 
 ---@param params questGuider.ui.nextStages.params
@@ -342,10 +436,6 @@ function this.create(params)
 
     ---@class questGuider.ui.nextStagesMeta
     local meta = setmetatable({}, nextStagesMeta)
-
-    meta.thisElementInContent = function (self)
-        return params.thisElementInContent()
-    end
 
     meta.update = function (self)
         params.updateFunc()
@@ -415,6 +505,17 @@ function this.create(params)
         }
     }
 
+    local objectsFlex = {
+        type = ui.TYPE.Flex,
+        props = {
+            autoSize = true,
+            horizontal = false,
+        },
+        content = ui.content {
+
+        }
+    }
+
     local mainFlex = {
         type = ui.TYPE.Flex,
         props = {
@@ -434,11 +535,16 @@ function this.create(params)
                 },
                 content = ui.content {
                     header,
+                    objectsFlex,
                     requirementFlex,
                 }
             }
         }
     }
+
+    meta.getLayout = function (self)
+        return mainFlex
+    end
 
     return mainFlex
 end

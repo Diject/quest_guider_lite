@@ -173,6 +173,13 @@ return {
                 ::continue::
             end
             questMenu:update()
-        end
+        end,
+
+        ["QGL:updateQuestMenu"] = function (data)
+            if not questMenu then return end
+
+            questMenu:updateNextStageBlocks()
+            questMenu:update()
+        end,
     },
 }

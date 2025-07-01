@@ -2,6 +2,10 @@ local util = require('openmw.util')
 
 local this = {}
 
+this.elementMetatableTypes = {
+    ["nextStages"] = "nextStages",
+}
+
 this.dataStorageName = "QuestGuider:dataStorage"
 this.localDataName = "QuestGuider:playerData"
 
@@ -13,6 +17,9 @@ this.selectedColor = util.color.rgb(this.selectedColorData[1], this.selectedColo
 
 this.journalDateColorData = {0.8, 0.2, 0.2}
 this.journalDateColor = util.color.rgb(this.journalDateColorData[1], this.journalDateColorData[2], this.journalDateColorData[3])
+
+this.disabledColorData = {0.5, 0.5, 0.5}
+this.disabledColor = util.color.rgb(this.disabledColorData[1], this.disabledColorData[2], this.disabledColorData[3])
 
 this.playerQuestDataLabel = "playerQuests"
 

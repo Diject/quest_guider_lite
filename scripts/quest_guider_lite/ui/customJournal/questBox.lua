@@ -27,7 +27,7 @@ questBoxMeta.__index = questBoxMeta
 questBoxMeta.dialogueInfo = {}
 
 function questBoxMeta.getScrollBox(self)
-    return self:thisElementInContent().content[1].content[2]
+    return self:getLayout().content[1].content[2]
 end
 
 
@@ -127,7 +127,6 @@ end
 ---@field questName string,
 ---@field playerQuestData questGuider.playerQuest.storageQuestData
 ---@field updateFunc function
----@field thisElementInContent any
 
 
 ---@param params questGuider.ui.questBox.params
@@ -135,10 +134,6 @@ function this.create(params)
 
     ---@class questGuider.ui.questBoxMeta
     local meta = setmetatable({}, questBoxMeta)
-
-    meta.thisElementInContent = function (self)
-        return params.thisElementInContent()
-    end
 
     local headerSize = util.vector2(params.size.x, params.fontSize * 3)
     local header = {
@@ -172,9 +167,6 @@ function this.create(params)
 
     local journalEntries = scrollBox{
         updateFunc = params.updateFunc,
-        thisElementInContent = function ()
-            return meta:thisElementInContent().content[1].content[2]
-        end,
         size = journalContentSize,
         content = journalContent
     }
@@ -205,6 +197,10 @@ function this.create(params)
             mainFlex,
         }
     }
+
+    meta.getLayout = function (self)
+        return mainPart
+    end
 
     return mainPart
 end

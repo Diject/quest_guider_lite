@@ -42,12 +42,13 @@ local function onObjectActive(ref)
 end
 
 
-local function addMarkersForQuest(qId, qIndex)
+---@param params {diaId : string, diaIndex : number|string, objectId : string?}
+local function addMarkersForQuest(params)
 
-    local questData = questLib.getQuestData(qId)
+    local questData = questLib.getQuestData(params.diaId)
     if not questData then return end
 
-    local indexStr = tostring(qIndex)
+    local indexStr = tostring(params.diaIndex)
     local indexData = questData[indexStr]
     if not indexData then return end
 
@@ -59,23 +60,26 @@ local function addMarkersForQuest(qId, qIndex)
         if not requirementData then goto continue end
 
         for _, requirement in ipairs(requirementData) do
-            for objId, objName in pairs(requirement.objects or {}) do
-                local posData = requirement.positionData and requirement.positionData[objId]
+            for objId, posData in pairs(requirement.positionData or {}) do
+                if params.objectId and params.objectId ~= objId then goto continue end
+
                 if posData then
                     ---@type questGuider.tracking.addMarker
-                    local params = {
-                        questId = qId,
+                    local eventParams = {
+                        questId = params.diaId,
                         objectId = objId,
-                        objectName = objName,
+                        objectName = posData.name,
                         positionData = posData,
                         questData = questData,
-                        questStage = qIndex,
+                        questStage = params.diaIndex,
                         reqData = requirement,
                     }
-                    world.players[1]:sendEvent("QGL:addMarker", params)
+                    world.players[1]:sendEvent("QGL:addMarker", eventParams)
 
-                    objects[objId] = objName
+                    objects[objId] = posData.name
                 end
+
+                ::continue::
             end
         end
 
@@ -233,6 +237,29 @@ local function fillQuestBoxQuestInfo(data)
 end
 
 
+local function showTrackingMessage(objects)
+    if tableLib.size(objects) > 0 then
+        local names = {}
+        for id, name in pairs(objects) do
+            if name and name ~= "" then
+                table.insert(names, name)
+            end
+        end
+
+        if #names > 0 then
+                world.players[1]:sendEvent("QGL:showTrackingMessage", {message = stringLib.getValueEnumString(names, 3, "Started tracking %s.")})
+        end
+
+        world.players[1]:sendEvent("QGL:updateMarkers", {})
+    end
+end
+
+
+local function updateQuestMenu()
+    world.players[1]:sendEvent("QGL:updateQuestMenu", {})
+end
+
+
 time.runRepeatedly(function ()
     world.players[1]:sendEvent("QGL:updateTime", {time = world.getGameTime()})
 end, time.minute, {type = time.GameTime})
@@ -253,7 +280,7 @@ return {
 
             if questNextIndexes and not data.finished then
                 for _, indexStr in pairs(questNextIndexes) do
-                    local objs = addMarkersForQuest(data.questId, indexStr)
+                    local objs = addMarkersForQuest{diaId = data.questId, diaIndex = indexStr}
                     tableLib.copy(objs, objects)
                 end
                 data.shouldUpdate = true
@@ -261,26 +288,20 @@ return {
 
             if linkedIndexData then
                 for qId, dt in pairs(linkedIndexData) do
-                    local objs = addMarkersForQuest(qId, dt.index)
+                    local objs = addMarkersForQuest{diaId = qId, diaIndex = dt.index}
                     tableLib.copy(objs, objects)
                 end
                 data.shouldUpdate = true
             end
 
-            if tableLib.size(objects) > 0 then
-                local names = {}
-                for id, name in pairs(objects) do
-                    if name and name ~= "" then
-                        table.insert(names, name)
-                    end
-                end
+            showTrackingMessage(objects)
+            updateQuestMenu()
+        end,
 
-                if #names > 0 then
-                     world.players[1]:sendEvent("QGL:showTrackingMessage", {message = stringLib.getValueEnumString(names, 3, "Started tracking %s.")})
-                end
-
-                world.players[1]:sendEvent("QGL:updateMarkers", {})
-            end
+        ["QGL:trackObject"] = function (data)
+            local objects = addMarkersForQuest{diaId = data.diaId, diaIndex = data.index, objectId = data.objectId}
+            showTrackingMessage(objects)
+            updateQuestMenu()
         end,
 
         ["QGL:drawQuestBlockInJournalMenu"] = function (data)

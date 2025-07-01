@@ -5,6 +5,7 @@ local input = require('openmw.input')
 local templates = require('openmw.interfaces').MWUI.templates
 
 local consts = require("scripts.quest_guider_lite.common")
+local tableLib = require("scripts.quest_guider_lite.utils.table")
 
 local tooltip = require("scripts.proximityTool.ui.tooltip")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -14,24 +15,68 @@ local interval = require("scripts.quest_guider_lite.ui.interval")
 local buttonMeta = {}
 buttonMeta.__index = buttonMeta
 
-function buttonMeta.getButtonTextElement(self, thisElementInContent)
+function buttonMeta.getButtonTextElement(self)
     if not self.params.text then return end
-    local thisElem = thisElementInContent or (self.thisElementInContent and self.thisElementInContent())
-    if not thisElem then return end
     if self.params.icon then
-        return thisElem.content[1].content[3]
+        return self.layout.content[1].content[3]
     else
-        return thisElem.content[1].content[1]
+        return self.layout.content[1].content[1]
     end
 end
 
 
-function buttonMeta.getButtonIconElement(self, thisElementInContent)
+function buttonMeta.getButtonIconElement(self)
     if not self.params.icon then return end
-    local thisElem = thisElementInContent or (self.thisElementInContent and self.thisElementInContent())
-    if not thisElem then return end
-    return thisElem.content[1].content[1]
+    return self.layout.content[1].content[1]
 end
+
+
+local mousePress = async:callback(function(e, layout)
+    if e.button ~= 1 then return end
+
+    local uData = layout.userData
+    local params = uData.params
+
+    layout.template = templates.boxSolid
+
+    uData.pressed = true
+    if params.mousePress then
+        params.mousePress(layout)
+    end
+
+    layout.userData.params.updateFunc()
+end)
+
+local mouseRelease = async:callback(function(e, layout)
+    if e.button ~= 1 then return end
+
+    layout.template = templates.boxSolidThick
+
+    if layout.userData.params.mouseRelease then
+        layout.userData.params.mouseRelease(layout)
+    end
+
+    if layout.userData.pressed and layout.userData.params.event then
+        layout.userData.params.event(layout)
+    end
+
+    layout.userData.pressed = false
+    layout.userData.params.updateFunc()
+end)
+
+local focusLoss = async:callback(function(e, layout)
+    if layout.userData.pressed and layout.userData.params.mouseRelease then
+        layout.userData.params.mouseRelease(layout)
+    end
+    layout.userData.pressed = false
+    tooltip.destroy(layout)
+end)
+
+local mouseMove = async:callback(function(coord, layout)
+    if not layout.userData.params.tooltipContent then return end
+    tooltip.createOrMove(coord, layout, layout.userData.params.tooltipContent)
+end)
+
 
 
 ---@class questGuider.ui.button.params
@@ -49,6 +94,7 @@ end
 ---@field relativePosition any? util.vector2
 ---@field position any? util.vector2
 ---@field anchor any? util.vector2
+---@field userData table?
 ---@field updateFunc fun()
 ---@field thisElementInContent any
 
@@ -60,8 +106,6 @@ return function (params)
     local meta = setmetatable({}, buttonMeta)
 
     meta.params = params
-
-    meta.thisElementInContent = params.thisElementInContent
 
     local buttonContent = ui.content {}
     if params.icon then
@@ -93,8 +137,8 @@ return function (params)
         }
     end
 
-    local content
-    content = {
+    local layout
+    layout = {
         template = templates.boxSolidThick,
         props = {
             propagateEvents = false,
@@ -103,43 +147,13 @@ return function (params)
             anchor = params.anchor,
         },
         events = {
-            mousePress = async:callback(function(e, layout)
-                if e.button ~= 1 then return end
-                content.template = templates.boxSolid
-                layout.userData.pressed = true
-                if params.mousePress then
-                    params.mousePress(layout)
-                end
-                params.updateFunc()
-            end),
-
-            mouseRelease = async:callback(function(e, layout)
-                if e.button ~= 1 then return end
-                content.template = templates.boxSolidThick
-                if params.mouseRelease then
-                    params.mouseRelease(layout)
-                end
-                if layout.userData.pressed and params.event then
-                    params.event(layout)
-                end
-                layout.userData.pressed = false
-                params.updateFunc()
-            end),
-
-            focusLoss = async:callback(function(e, layout)
-                if layout.userData.pressed and params.mouseRelease then
-                    params.mouseRelease(layout)
-                end
-                layout.userData.pressed = false
-                tooltip.destroy(layout)
-            end),
-
-            mouseMove = async:callback(function(coord, layout)
-                if not params.tooltipContent then return end
-                tooltip.createOrMove(coord, layout, params.tooltipContent)
-            end),
+            mousePress = mousePress,
+            mouseRelease = mouseRelease,
+            focusLoss = focusLoss,
+            mouseMove = mouseMove,
         },
         userData = {
+            params = params,
             pressed = false,
             meta = meta,
         },
@@ -157,5 +171,11 @@ return function (params)
         },
     }
 
-    return content
+    meta.layout = layout
+
+    if params.userData then
+        tableLib.copy(params.userData, layout.userData)
+    end
+
+    return layout
 end

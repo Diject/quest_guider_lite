@@ -31,7 +31,6 @@ local lastInteriorMarkers = {}
 ---@class questGuider.tracking.markerRecord
 ---@field localMarkerId string|nil
 ---@field localDoorMarkerId string|nil
----@field worldMarkerId string|nil
 ---@field disabled boolean?
 ---@field userDisabled boolean?
 
@@ -45,7 +44,8 @@ local lastInteriorMarkers = {}
 ---@type table<string, questGuider.tracking.objectRecord>
 this.markerByObjectId = {}
 
-this.trackedObjectsByQuestId = {}
+---@type table<string, {objects : table<string, string[]>}>
+this.trackedObjectsByDiaId = {}
 
 ---@type table<string, boolean>
 this.disabledQuests = {}
@@ -71,7 +71,7 @@ function this.init()
     this.storageData.trackedObjectsByQuestId = this.storageData.trackedObjectsByQuestId or {}
 
     this.markerByObjectId = this.storageData.markerByObjectId
-    this.trackedObjectsByQuestId = this.storageData.trackedObjectsByQuestId
+    this.trackedObjectsByDiaId = this.storageData.trackedObjectsByQuestId
 
     this.scannedCellsForTemporaryMarkers = {}
 
@@ -106,8 +106,8 @@ function this.addMarker(params)
     if params.reqData and params.reqData.data.type == "DIAO" then return end
 
     local qTrackingInfo
-    if this.trackedObjectsByQuestId[params.questId] then
-        qTrackingInfo = this.trackedObjectsByQuestId[params.questId]
+    if this.trackedObjectsByDiaId[params.questId] then
+        qTrackingInfo = this.trackedObjectsByDiaId[params.questId]
     else
         qTrackingInfo = {objects = {}}
     end
@@ -275,7 +275,7 @@ function this.addMarker(params)
 
     qTrackingInfo.objects[objectId] = listOfObjects
 
-    this.trackedObjectsByQuestId[params.questId] = qTrackingInfo
+    this.trackedObjectsByDiaId[params.questId] = qTrackingInfo
 
     if positionData.itemCount then
         this.handlePlayerInventory()
@@ -352,6 +352,23 @@ function this.setDisableMarkerState(params)
     for markerData, _ in pairs(markerDataHashTable) do
         setDisabledState(markerData)
     end
+end
+
+
+---@class questGuider.tracking.getDisabledState
+---@field questId string should be lowercase
+---@field objectId string should be lowercase
+
+---@param params questGuider.tracking.getDisabledState
+---@return boolean?
+function this.getDisabledState(params)
+    if not params or not params.objectId or not params.questId then return end
+
+    local objData = this.markerByObjectId[params.objectId]
+    local objQuestTrackingData = objData and objData.markers[params.questId]
+    local disabledState = objQuestTrackingData and objQuestTrackingData.data.disabled
+
+    return disabledState or false
 end
 
 
@@ -457,7 +474,7 @@ local function removeMarker(params)
         ::continue::
     end
 
-    for qId, qData in pairs(this.trackedObjectsByQuestId) do
+    for qId, qData in pairs(this.trackedObjectsByDiaId) do
         if params.questId and params.questId ~= qId then goto continue end
 
         for objId, _ in pairs(qData.objects) do
@@ -469,7 +486,7 @@ local function removeMarker(params)
         end
 
         if tableLib.size(qData.objects) == 0 then
-            this.trackedObjectsByQuestId[qId] = nil
+            this.trackedObjectsByDiaId[qId] = nil
         end
 
         ::continue::
@@ -553,6 +570,18 @@ function this.trackQuest(questId, index)
 end
 
 
+---@param params {objectId : string, diaId : string, index : integer}
+function this.trackObject(params)
+    this.removeMarker{ questId = params.diaId, objectId = params.objectId}
+
+    core.sendGlobalEvent("QGL:trackObject", {
+        diaId = params.diaId,
+        objectId = params.objectId,
+        index = params.index,
+    })
+end
+
+
 function this.addTrackingMarker(recordData, markerData)
     if not recordData or not markerData then return end
 
@@ -599,6 +628,18 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     if not id or not groupId then return end
 
     lastInteriorMarkers[id] = { id = id, groupId = groupId }
+end
+
+
+---@param params {diaId : string, objectId : string}
+---@return boolean
+function this.isObjectTracked(params)
+    local dt = this.trackedObjectsByDiaId[params.diaId]
+    if not dt then return false end
+
+    if not dt.objects[params.objectId] then return false end
+
+    return true
 end
 
 

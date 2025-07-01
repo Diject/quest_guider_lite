@@ -35,7 +35,29 @@ journalMeta.getQuestScrollBox = function (self)
 end
 
 journalMeta.update = function(self)
+    print(1)
     self.menu:update()
+end
+
+
+function journalMeta.updateNextStageBlocks(self)
+    ---@type questGuider.ui.questBoxMeta
+    local qBox = self:getQuestScrollBox().userData.meta
+    ---@type questGuider.ui.scrollBox
+    local scrlBox = qBox:getScrollBox().userData.meta
+
+    for _, scrollContentElement in pairs(scrlBox:getMainFlex().content) do
+        for _, nextStagesBlock in pairs(scrollContentElement.content or {}) do
+            if not nextStagesBlock.userData or not nextStagesBlock.userData or not nextStagesBlock.userData.meta
+                    or nextStagesBlock.userData.meta.type ~= commonData.elementMetatableTypes.nextStages then
+                goto continue
+            end
+
+            nextStagesBlock.userData.meta:updateObjectElements()
+
+            ::continue::
+        end
+    end
 end
 
 
@@ -70,9 +92,6 @@ function journalMeta._fillQuestsContent(self, content, params)
                             updateFunc = function ()
                                 self:update()
                             end,
-                            thisElementInContent = function ()
-                                return lay.content[1]
-                            end
                         }
                     }
                     self:update()
@@ -202,9 +221,6 @@ local function create(params)
 
     local questListBox = scrollBox{
         updateFunc = updateFunc,
-        thisElementInContent = function ()
-            return meta.menu.layout.content[2].content[1].content[1].content[2]
-        end,
         size = util.vector2(questListSize.x - 4, questListSize.y - params.fontSize - 10),
         content = questsContent
     }

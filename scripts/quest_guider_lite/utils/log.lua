@@ -1,14 +1,6 @@
-local modLabel = ""
+local aux_util = require('openmw_aux.util')
 
-local function logTable(table, prefix)
-    for name, val in pairs(table) do
-        if type(val) == "table" then
-            logTable(val, "\t"..prefix..tostring(name).." ")
-        else
-            print(prefix..tostring(name).." "..tostring(val))
-        end
-    end
-end
+local modLabel = ""
 
 return function(...)
     local args = {...}
@@ -19,7 +11,9 @@ return function(...)
     print(s)
     for _, var in pairs(args) do
         if type(var) == "table" then
-            logTable(var, "\t"..tostring(var).." ")
+            print(aux_util.deepToString(var, 10))
+        else
+            print(var)
         end
     end
 end

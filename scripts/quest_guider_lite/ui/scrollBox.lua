@@ -14,7 +14,7 @@ local scrollBoxMeta = {}
 scrollBoxMeta.__index = scrollBoxMeta
 
 scrollBoxMeta.getMainFlex = function (self)
-    return self:thisElementInContent().content[1].content[1].content[1]
+    return self:getElement().content[1].content[1].content[1]
 end
 
 scrollBoxMeta.scrollUp = function(self, val)
@@ -40,7 +40,6 @@ end
 ---@field size any -- util.vector2
 ---@field content any
 ---@field updateFunc fun()
----@field thisElementInContent fun() : any
 ---@field arrange any?
 
 
@@ -79,10 +78,6 @@ return function(params)
 
     meta.update = function (self)
         params.updateFunc()
-    end
-
-    meta.thisElementInContent = function (self)
-        return params.thisElementInContent()
     end
 
     meta.innnerSize = util.vector2(params.size.x - 8, params.size.y - 8)
@@ -164,6 +159,10 @@ return function(params)
             },
         },
     }
+
+    meta.getElement = function (self)
+        return contentData
+    end
 
     return contentData
 end
