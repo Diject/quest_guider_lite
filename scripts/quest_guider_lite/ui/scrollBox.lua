@@ -14,7 +14,7 @@ local scrollBoxMeta = {}
 scrollBoxMeta.__index = scrollBoxMeta
 
 scrollBoxMeta.getMainFlex = function (self)
-    return self:getElement().content[1].content[1].content[1]
+    return self:getLayout().content[1].content[1].content[1]
 end
 
 scrollBoxMeta.scrollUp = function(self, val)
@@ -160,7 +160,7 @@ return function(params)
         },
     }
 
-    meta.getElement = function (self)
+    meta.getLayout = function (self)
         return contentData
     end
 
