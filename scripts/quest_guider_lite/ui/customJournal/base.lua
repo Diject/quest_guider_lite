@@ -35,7 +35,6 @@ journalMeta.getQuestScrollBox = function (self)
 end
 
 journalMeta.update = function(self)
-    print(1)
     self.menu:update()
 end
 
