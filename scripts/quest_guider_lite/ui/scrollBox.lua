@@ -3,6 +3,8 @@ local util = require('openmw.util')
 local time = require('openmw_aux.time')
 local templates = require('openmw.interfaces').MWUI.templates
 
+local tableLib = require("scripts.quest_guider_lite.utils.table")
+
 local button = require("scripts.quest_guider_lite.ui.button")
 
 local iconUp = "textures/omw_menu_scroll_up.dds"
@@ -14,7 +16,7 @@ local scrollBoxMeta = {}
 scrollBoxMeta.__index = scrollBoxMeta
 
 scrollBoxMeta.getMainFlex = function (self)
-    return self:getElement().content[1].content[1].content[1]
+    return self:getLayout().content[1]
 end
 
 scrollBoxMeta.scrollUp = function(self, val)
@@ -41,6 +43,7 @@ end
 ---@field content any
 ---@field updateFunc fun()
 ---@field arrange any?
+---@field userData table?
 
 
 ---@param params questGuider.ui.scrollBox.params
@@ -53,27 +56,13 @@ return function(params)
     local flex = {
         type = ui.TYPE.Flex,
         props = {
-            autoSize = false,
+            autoSize = true,
             horizontal = false,
             size = params.size,
+            position = util.vector2(0, 0),
+            arrange = params.arrange,
         },
-        content = ui.content {
-            {
-                type = ui.TYPE.Container,
-                content = ui.content {
-                    {
-                        type = ui.TYPE.Flex,
-                        props = {
-                            autoSize = true,
-                            horizontal = false,
-                            position = util.vector2(0, 0),
-                            arrange = params.arrange,
-                        },
-                        content = params.content,
-                    }
-                },
-            }
-        }
+        content = params.content,
     }
 
     meta.update = function (self)
@@ -117,7 +106,7 @@ return function(params)
 
         },
         userData = {
-            meta = meta,
+            scrollBoxMeta = meta,
         },
         content = ui.content {
             flex,
@@ -160,7 +149,11 @@ return function(params)
         },
     }
 
-    meta.getElement = function (self)
+    if params.userData then
+        tableLib.copy(params.userData, contentData.userData)
+    end
+
+    meta.getLayout = function (self)
         return contentData
     end
 

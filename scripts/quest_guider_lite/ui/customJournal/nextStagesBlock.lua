@@ -247,33 +247,19 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             local posTextShift = self.params.fontSize / 2
             local posHeight = uiUtils.getTextHeight(objData.descr, self.params.fontSize, self.params.size.x - posTextShift, 0.5)
             local position = {
-                type = ui.TYPE.Flex,
+                template = templates.textNormal,
+                type = ui.TYPE.Text,
                 props = {
-                    autoSize = true,
+                    text = objData.descr,
+                    autoSize = false,
+                    textSize = self.params.fontSize or 18,
                     size = util.vector2(
                         self.params.size.x,
-                        math.min(self.params.fontSize * 2, posHeight)
+                        posHeight
                     ),
-                    horizontal = true,
+                    multiline = true,
+                    wordWrap = true,
                 },
-                content = ui.content {
-                    interval(posTextShift, 0),
-                    {
-                        template = templates.textNormal,
-                        type = ui.TYPE.Text,
-                        props = {
-                            text = objData.descr,
-                            autoSize = false,
-                            textSize = self.params.fontSize or 18,
-                            size = util.vector2(
-                                self.params.size.x,
-                                posHeight
-                            ),
-                            multiline = true,
-                            wordWrap = true,
-                        },
-                    }
-                }
             }
 
             content:add{
@@ -285,7 +271,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                 userData = {
                     objectId = objId,
                     diaId = diaId,
-                    positions = objData.positions,
+                    -- positions = objData.positions,
                 },
                 content = ui.content {
                     header,
@@ -299,29 +285,21 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
 
     ---@param requirements questGuider.quest.getDescriptionDataFromBlock.returnArr[]
     local function addRequirements(content, requirements)
+        local text = ""
         for _, req in ipairs(requirements) do
-            content:add{
-                type = ui.TYPE.Flex,
-                props = {
-                    autoSize = true,
-                    horizontal = false,
-                },
-                userData = {
-                    requirement = req,
-                },
-                content = ui.content {
-                    {
-                        template = templates.textNormal,
-                        type = ui.TYPE.Text,
-                        props = {
-                            text = req.str,
-                            autoSize = true,
-                            textSize = params.fontSize or 18,
-                        },
-                    }
-                }
-            }
+            text = string.format("%s  %s\n", text, req.str)
         end
+        content:add{
+            template = templates.textNormal,
+            type = ui.TYPE.Text,
+            props = {
+                text = text,
+                autoSize = true,
+                textSize = params.fontSize or 18,
+                multiline = true,
+                wordWrap = true,
+            },
+        }
     end
 
     local function resetColorOfButtons(flex)
@@ -545,6 +523,8 @@ function this.create(params)
     meta.getLayout = function (self)
         return mainFlex
     end
+
+    meta.data = nil
 
     return mainFlex
 end
