@@ -27,7 +27,7 @@ questBoxMeta.__index = questBoxMeta
 questBoxMeta.dialogueInfo = {}
 
 function questBoxMeta.getScrollBox(self)
-    return self:getLayout().content[1].content[2]
+    return self:getLayout()
 end
 
 
@@ -48,7 +48,7 @@ function questBoxMeta._fillJournal(self, content, params)
             self.dialogueInfo[qInfo.diaId] = {
                 diaId = qInfo.diaId,
                 index = qInfo.index,
-                contentIndex = contentIndex,
+                contentIndex = contentIndex + 1,
             }
         end
 
@@ -162,47 +162,25 @@ function this.create(params)
 
     local journalContentSize = util.vector2(params.size.x - 6, params.size.y - headerSize.y - 6)
 
-    local journalContent = ui.content{}
+    local journalContent = ui.content{
+        header,
+    }
     meta:_fillJournal(journalContent, params)
 
     local journalEntries = scrollBox{
         updateFunc = params.updateFunc,
-        size = journalContentSize,
-        content = journalContent
-    }
-
-    local mainFlex = {
-        type = ui.TYPE.Flex,
-        props = {
-            autoSize = false,
-            horizontal = false,
-            size = params.size
-        },
-        content = ui.content {
-            header,
-            journalEntries,
-        }
-    }
-
-    local mainPart = {
-        template = templates.boxTransparent,
-        props = {
-            autoSize = false,
-            size = params.size,
-        },
+        size = params.size,
+        content = journalContent,
         userData = {
-            meta = meta,
-        },
-        content = ui.content {
-            mainFlex,
+            questBoxMeta = meta,
         }
     }
 
     meta.getLayout = function (self)
-        return mainPart
+        return journalEntries
     end
 
-    return mainPart
+    return journalEntries
 end
 
 

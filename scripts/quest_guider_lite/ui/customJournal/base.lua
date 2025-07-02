@@ -84,7 +84,7 @@ function journalMeta._fillQuestsContent(self, content, params)
                     local lay = self:getQuestMain()
                     lay.content = ui.content{
                         questBox.create{
-                            fontSize = 18,
+                            fontSize = params.fontSize or 18,
                             playerQuestData = layout.userData.playerQuestData,
                             questName = layout.userData.questName,
                             size = lay.userData.size,
@@ -96,7 +96,7 @@ function journalMeta._fillQuestsContent(self, content, params)
                     self:update()
 
                     ---@type questGuider.ui.questBoxMeta
-                    local questBoxMeta = self:getQuestScrollBox().userData.meta
+                    local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
                     core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", questBoxMeta.dialogueInfo)
                 end),
             },
