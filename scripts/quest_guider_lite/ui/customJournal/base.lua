@@ -41,9 +41,9 @@ end
 
 function journalMeta.updateNextStageBlocks(self)
     ---@type questGuider.ui.questBoxMeta
-    local qBox = self:getQuestScrollBox().userData.meta
+    local qBox = self:getQuestScrollBox().userData.questBoxMeta
     ---@type questGuider.ui.scrollBox
-    local scrlBox = qBox:getScrollBox().userData.meta
+    local scrlBox = qBox:getScrollBox().userData.scrollBoxMeta
 
     for _, scrollContentElement in pairs(scrlBox:getMainFlex().content) do
         for _, nextStagesBlock in pairs(scrollContentElement.content or {}) do
