@@ -36,6 +36,18 @@ journalMeta.getQuestScrollBox = function (self)
     return self:getQuestMain().content[1]
 end
 
+journalMeta.resetQuestListColors = function (self)
+    local getQuestList = self:getQuestList()
+
+    ---@type questGuider.ui.scrollBox
+    local questBoxMeta = getQuestList.userData.scrollBoxMeta
+    local layout = questBoxMeta:getMainFlex()
+
+    for _, elem in ipairs(layout.content) do
+        elem.content[3].props.textShadow = false
+    end
+end
+
 journalMeta.update = function(self)
     self.menu:update()
 end
@@ -113,6 +125,11 @@ function journalMeta._fillQuestsContent(self, content, params)
                             end,
                         }
                     }
+
+                    self:resetQuestListColors()
+                    layout.content[3].props.textShadow = true
+                    layout.content[3].props.textShadowColor = commonData.selectedShadowColor
+
                     self:update()
 
                     ---@type questGuider.ui.questBoxMeta
@@ -177,6 +194,8 @@ local function create(params)
         events = {
             mousePress = async:callback(function(coord, layout)
                 meta:getQuestMain().content = ui.content{}
+                meta:resetQuestListColors()
+
                 layout.userData.doDrag = true
                 local screenSize = ui.screenSize()
                 layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)

@@ -21,6 +21,9 @@ this.journalDateColor = util.color.rgb(this.journalDateColorData[1], this.journa
 this.disabledColorData = {0.5, 0.5, 0.5}
 this.disabledColor = util.color.rgb(this.disabledColorData[1], this.disabledColorData[2], this.disabledColorData[3])
 
+this.selectedShadowColorData = {1, 1, 1}
+this.selectedShadowColor = util.color.rgb(this.selectedShadowColorData[1], this.selectedShadowColorData[2], this.selectedShadowColorData[3])
+
 this.playerQuestDataLabel = "playerQuests"
 
 return this
