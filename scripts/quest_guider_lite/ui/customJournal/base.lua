@@ -7,10 +7,12 @@ local templates = require('openmw.interfaces').MWUI.templates
 local commonData = require("scripts.quest_guider_lite.common")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
+local tableLib = require("scripts.quest_guider_lite.utils.table")
 local log = require("scripts.quest_guider_lite.utils.log")
 
 local button = require("scripts.quest_guider_lite.ui.button")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
+local interval = require("scripts.quest_guider_lite.ui.interval")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
 
@@ -65,7 +67,25 @@ function journalMeta._fillQuestsContent(self, content, params)
     ---@type questGuider.playerQuest.storageData
     local playerData = playerQuests.getStorageData()
 
-    for qName, dt in pairs(playerData.questData) do
+    ---@type questGuider.playerQuest.storageQuestData[]
+    local sortedData = tableLib.values(playerData.questData, function (a, b)
+        return (a.finished and -2 or a.disabled and -1 or a.timestamp or 0) > (b.finished and -2 or b.disabled and -1 or b.timestamp or 0)
+    end)
+
+    local disabledColor = commonData.disabledColor
+    local finishedColor = commonData.disabledColor
+
+    for _, dt in pairs(sortedData) do
+        local qName = dt.name or ""
+
+        local qNameText = qName == "" and "Other" or qName or "???"
+
+        if dt.finished then
+            qNameText = string.format("(F) %s", qNameText)
+        end
+
+        local flagsContent = ui.content{}
+
         content:add{
             type = ui.TYPE.Flex,
             props = {
@@ -107,16 +127,16 @@ function journalMeta._fillQuestsContent(self, content, params)
                         autoSize = true,
                         horizontal = true,
                     },
-                    content = ui.content {
-
-                    }
+                    content = flagsContent,
                 },
+                interval(0, params.fontSize / 4),
                 {
                     template = templates.textNormal,
                     type = ui.TYPE.Text,
                     props = {
-                        text = qName,
+                        text = qNameText,
                         textSize = params.fontSize or 18,
+                        textColor = dt.disabled and disabledColor or dt.finished and finishedColor or commonData.defaultColor,
                         multiline = false,
                         wordWrap = false,
                         textAlignH = ui.ALIGNMENT.Start,

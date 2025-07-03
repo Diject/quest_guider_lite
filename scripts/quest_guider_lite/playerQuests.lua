@@ -25,6 +25,10 @@ local this = {}
 ---@field timestamp number
 
 ---@class questGuider.playerQuest.storageQuestData
+---@field name string
+---@field disabled boolean
+---@field finished boolean
+---@field timestamp number
 ---@field list questGuider.playerQuest.storageQuestInfo[]
 
 ---@class questGuider.playerQuest.storageData
@@ -54,7 +58,12 @@ local function initStorageQuestData(qName)
 
     local questData = storageData.questData[qName]
     if not questData then
-        local arr = {}
+        local arr = {
+            name = qName,
+            disabled = false,
+            finished = false,
+            timestamp = 0,
+        }
         storageData.questData[qName] = arr
         questData = arr
     end
@@ -86,7 +95,7 @@ function this.init()
 
     for _, dia in pairs(core.dialogue.journal.records) do
         local qName = dia.questName
-        if qName and qName ~= "" then
+        if qName then
             if not this.questData[qName] then this.questData[qName] = {records = {}} end
             this.questData[qName].records[dia.id] = dia
         end
@@ -106,6 +115,7 @@ function this.init()
         if storageData and not storageData.questData[dia.questName] then
             local storageQuestData = initStorageQuestData(dia.questName)
             if storageQuestData then
+                storageQuestData.finished = storageQuestData.finished or q.finished
                 table.insert(storageQuestData.list, {
                     diaId = q.id,
                     index = q.stage,
@@ -208,6 +218,8 @@ function this.update(diaId, index)
 
     local questData = initStorageQuestData(dia.questName)
     if questData then
+        questData.finished = questData.finished or qDia.finished
+        questData.timestamp = timeLib.time
         table.insert(questData.list, {
             diaId = diaId,
             index = index,
