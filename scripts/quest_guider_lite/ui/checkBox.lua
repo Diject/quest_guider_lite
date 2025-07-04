@@ -18,7 +18,7 @@ local interval = require("scripts.quest_guider_lite.ui.interval")
 ---@param params questGuider.ui.checkBox.params
 return function(params)
     if not params then return end
-    local size = util.vector2(params.textSize or 18, params.textSize or 18)
+    local boxSize = util.vector2((params.textSize or 18) - 10, (params.textSize or 18) - 10)
     local texture = ui.texture { path = "white" }
 
     local contentData = {
@@ -33,11 +33,8 @@ return function(params)
         events = {
             mouseRelease = async:callback(function(e, layout)
                 if e.button ~= 1 then return end
-                if layout.userData then
-                    layout.userData.checked = not layout.userData.checked
-                else
-                    return
-                end
+
+                layout.userData.checked = not layout.userData.checked
 
                 if layout.userData.checked then
                     layout.content[1].content[1].props.alpha = 1
@@ -54,14 +51,14 @@ return function(params)
         },
         content = ui.content {
             {
-                template = templates.box,
+                template = templates.boxThick,
                 type = ui.TYPE.Container,
                 content = ui.content {
                     {
                         type = ui.TYPE.Image,
                         props = {
                             resource = texture,
-                            size = size,
+                            size = boxSize,
                             inheritAlpha = false,
                             alpha = params.checked and 1 or 0,
                             color = commonData.defaultColor,

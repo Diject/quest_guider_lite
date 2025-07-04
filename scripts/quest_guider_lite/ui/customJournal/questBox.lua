@@ -168,6 +168,7 @@ function this.create(params)
     meta:_fillJournal(journalContent, params)
 
     local journalEntries = scrollBox{
+        name = params.questName,
         updateFunc = params.updateFunc,
         size = params.size,
         content = journalContent,

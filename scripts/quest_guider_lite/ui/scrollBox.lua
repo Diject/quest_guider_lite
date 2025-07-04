@@ -37,8 +37,14 @@ scrollBoxMeta.scrollDown = function(self, val)
     self:update()
 end
 
+scrollBoxMeta.clearContent = function (self)
+    local mainFlex = self:getMainFlex()
+    mainFlex.content = ui.content{}
+end
+
 
 ---@class questGuider.ui.scrollBox.params
+---@field name string?
 ---@field size any -- util.vector2
 ---@field content any
 ---@field updateFunc fun()
@@ -102,6 +108,7 @@ return function(params)
         props = {
             size = params.size,
         },
+        name = params.name,
         events = {
 
         },

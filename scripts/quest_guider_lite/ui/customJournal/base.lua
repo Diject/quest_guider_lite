@@ -13,6 +13,7 @@ local log = require("scripts.quest_guider_lite.utils.log")
 local button = require("scripts.quest_guider_lite.ui.button")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
+local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
 
@@ -25,7 +26,7 @@ journalMeta.menu = nil
 
 
 journalMeta.getQuestList = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[2]
+    return self.menu.layout.content[2].content[1].content[1].content[3]
 end
 
 journalMeta.getQuestMain = function (self)
@@ -36,16 +37,103 @@ journalMeta.getQuestScrollBox = function (self)
     return self:getQuestMain().content[1]
 end
 
+journalMeta.getQuestListCheckBoxFlex = function (self)
+    return self.menu.layout.content[2].content[1].content[1].content[2]
+end
+
+journalMeta.getQuestListFinishedCheckBox = function (self)
+    return self:getQuestListCheckBoxFlex().content[1]
+end
+
+journalMeta.getQuestListHiddenCheckBox = function (self)
+    return self:getQuestListCheckBoxFlex().content[3]
+end
+
 journalMeta.resetQuestListColors = function (self)
-    local getQuestList = self:getQuestList()
+    local questList = self:getQuestList()
 
     ---@type questGuider.ui.scrollBox
-    local questBoxMeta = getQuestList.userData.scrollBoxMeta
+    local questBoxMeta = questList.userData.scrollBoxMeta
     local layout = questBoxMeta:getMainFlex()
 
     for _, elem in ipairs(layout.content) do
         elem.content[3].props.textShadow = false
     end
+end
+
+journalMeta.setQuestListSelectedFlad = function (self, value)
+    self:getQuestList().userData.selected = value
+end
+
+journalMeta.getQuestListSelectedFladValue = function (self)
+    return self:getQuestList().userData.selected
+end
+
+journalMeta.resetQuestListSelection = function (self)
+    self:resetQuestListColors()
+    self:setQuestListSelectedFlad(nil)
+end
+
+journalMeta.clearQuestInfo = function (self)
+    local qInfoScrollBox = self:getQuestScrollBox()
+    if not qInfoScrollBox then return end
+
+    ---@type questGuider.ui.scrollBox
+    local sBoxMeta = qInfoScrollBox.userData.scrollBoxMeta
+    sBoxMeta:clearContent()
+end
+
+journalMeta.selectQuest = function (self, qName)
+    if qName == nil then
+        self:resetQuestListSelection()
+        self:clearQuestInfo()
+        return
+    end
+
+    ---@type questGuider.ui.scrollBox
+    local scrollBoxMeta = self:getQuestList().userData.scrollBoxMeta
+    local qListLayout = scrollBoxMeta:getMainFlex()
+
+    local qMainLay = self:getQuestMain()
+
+    local succ, selectedLayout = pcall(function() return qListLayout.content[qName] end)
+    if not succ or not selectedLayout then
+        self:clearQuestInfo()
+        self:setQuestListSelectedFlad(nil)
+        return
+    end
+
+    local function applyTextShadow()
+        selectedLayout.content[3].props.textShadow = true
+        selectedLayout.content[3].props.textShadowColor = commonData.selectedShadowColor
+    end
+
+    if self:getQuestScrollBox() and self:getQuestScrollBox().name == qName then
+        applyTextShadow()
+        return
+    end
+
+    qMainLay.content = ui.content{
+        questBox.create{
+            fontSize = self.params.fontSize or 18,
+            playerQuestData = selectedLayout.userData.playerQuestData,
+            questName = selectedLayout.userData.questName,
+            size = qMainLay.userData.size,
+            updateFunc = function ()
+                self:update()
+            end,
+        }
+    }
+
+    self:resetQuestListSelection()
+    self:setQuestListSelectedFlad(qName)
+    applyTextShadow()
+
+    self:update()
+
+    ---@type questGuider.ui.questBoxMeta
+    local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
+    core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", questBoxMeta.dialogueInfo)
 end
 
 journalMeta.update = function(self)
@@ -74,8 +162,18 @@ function journalMeta.updateNextStageBlocks(self)
 end
 
 
----@param params questGuider.ui.customJournal.params
-function journalMeta._fillQuestsContent(self, content, params)
+function journalMeta.fillQuestsContent(self, content)
+    local params = self.params
+
+    if not content then
+        local qList = self:getQuestList()
+        ---@type questGuider.ui.scrollBox
+        local sBoxMeta = qList.userData.scrollBoxMeta
+        sBoxMeta:clearContent()
+
+        content = sBoxMeta:getMainFlex().content
+    end
+
     ---@type questGuider.playerQuest.storageData
     local playerData = playerQuests.getStorageData()
 
@@ -84,10 +182,18 @@ function journalMeta._fillQuestsContent(self, content, params)
         return (a.finished and -2 or a.disabled and -1 or a.timestamp or 0) > (b.finished and -2 or b.disabled and -1 or b.timestamp or 0)
     end)
 
+    local showFinished = self:getQuestListFinishedCheckBox().userData.checked
+    local showHidden = self:getQuestListHiddenCheckBox().userData.checked
+
     local disabledColor = commonData.disabledColor
     local finishedColor = commonData.disabledColor
 
     for _, dt in pairs(sortedData) do
+        if dt.disabled and not showHidden
+                or dt.finished and not showFinished then
+            goto continue
+        end
+
         local qName = dt.name or ""
 
         local qNameText = qName == "" and "Other" or qName or "???"
@@ -113,28 +219,7 @@ function journalMeta._fillQuestsContent(self, content, params)
                 mouseRelease = async:callback(function(e, layout)
                     if e.button ~= 1 then return end
 
-                    local lay = self:getQuestMain()
-                    lay.content = ui.content{
-                        questBox.create{
-                            fontSize = params.fontSize or 18,
-                            playerQuestData = layout.userData.playerQuestData,
-                            questName = layout.userData.questName,
-                            size = lay.userData.size,
-                            updateFunc = function ()
-                                self:update()
-                            end,
-                        }
-                    }
-
-                    self:resetQuestListColors()
-                    layout.content[3].props.textShadow = true
-                    layout.content[3].props.textShadowColor = commonData.selectedShadowColor
-
-                    self:update()
-
-                    ---@type questGuider.ui.questBoxMeta
-                    local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
-                    core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", questBoxMeta.dialogueInfo)
+                    self:selectQuest(qName)
                 end),
             },
             content = ui.content {
@@ -161,6 +246,8 @@ function journalMeta._fillQuestsContent(self, content, params)
                 }
             }
         }
+
+        ::continue::
     end
 end
 
@@ -180,6 +267,8 @@ local function create(params)
         if not meta.menu then return end
         meta:update()
     end
+
+    meta.params = params
 
     local mainHeader = {
         template = templates.textNormal,
@@ -240,7 +329,7 @@ local function create(params)
                         props = {
                             autoSize = false,
                             textSize = params.fontSize,
-                            size = util.vector2(params.size.x * 0.2, params.fontSize),
+                            size = util.vector2(params.size.x * 0.2, params.fontSize + 4),
                         },
                     },
                 }
@@ -254,12 +343,48 @@ local function create(params)
         }
     }
 
+    local checkBoxes = {
+        type = ui.TYPE.Flex,
+        props = {
+            autoSize = true,
+            horizontal = true,
+        },
+        content = ui.content {
+            checkBox{
+                updateFunc = function ()
+                    meta:update()
+                end,
+                checked = true,
+                text = "Finished",
+                textSize = params.fontSize or 18,
+                event = function (checked, layout)
+                    local selectedQuest = meta:getQuestListSelectedFladValue()
+                    meta:fillQuestsContent()
+                    meta:selectQuest(selectedQuest)
+                end
+            },
+            interval(params.fontSize / 2, 0),
+            checkBox{
+                updateFunc = function ()
+                    meta:update()
+                end,
+                checked = true,
+                text = "Hidden",
+                textSize = params.fontSize or 18,
+                event = function (checked, layout)
+                    local selectedQuest = meta:getQuestListSelectedFladValue()
+                    meta:fillQuestsContent()
+                    meta:selectQuest(selectedQuest)
+                end
+            },
+        }
+    }
+
     local questsContent = ui.content{}
-    meta:_fillQuestsContent(questsContent, params)
 
     local questListBox = scrollBox{
         updateFunc = updateFunc,
-        size = util.vector2(questListSize.x - 4, questListSize.y - params.fontSize - 10),
+        size = util.vector2(questListSize.x - 4, questListSize.y - params.fontSize * 2 - 14),
         content = questsContent
     }
 
@@ -272,6 +397,7 @@ local function create(params)
         },
         content = ui.content {
             searchBar,
+            checkBoxes,
             questListBox,
         }
     }
@@ -332,6 +458,8 @@ local function create(params)
     }
 
     meta.menu = ui.create(mainFlex)
+
+    meta:fillQuestsContent(questsContent)
 
     return meta
 end
