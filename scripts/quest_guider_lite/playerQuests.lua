@@ -3,6 +3,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local commonData = require("scripts.quest_guider_lite.common")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
+local cellData = require("scripts.quest_guider_lite.core.cellData")
 
 local playerFunc = require('openmw.types').Player
 local core = require('openmw.core')
@@ -23,6 +24,7 @@ local this = {}
 ---@field diaId string
 ---@field index integer
 ---@field timestamp number
+---@field cellData tes3cellData?
 
 ---@class questGuider.playerQuest.storageQuestData
 ---@field name string
@@ -224,6 +226,7 @@ function this.update(diaId, index)
             diaId = diaId,
             index = index,
             timestamp = timeLib.time,
+            cellData = cellData.getCellData(playerRef.cell) ---@diagnostic disable-line: need-check-nil
         })
     end
 
