@@ -37,7 +37,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
     self.dialogueInfo = {}
 
-    local contentIndex = 1
+    local contentIndex = 2
     for i = #params.playerQuestData.list, 1, -1 do
         local qInfo = params.playerQuestData.list[i]
         if not qInfo then goto continue end
@@ -49,7 +49,7 @@ function questBoxMeta._fillJournal(self, content, params)
             self.dialogueInfo[qInfo.diaId] = {
                 diaId = qInfo.diaId,
                 index = qInfo.index,
-                contentIndex = contentIndex + 1,
+                contentIndex = contentIndex,
             }
         end
 
