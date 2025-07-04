@@ -14,6 +14,7 @@ local common = require('scripts.quest_guider_lite.common')
 
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
+local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
 
 
 local this = {}
@@ -156,7 +157,39 @@ function this.create(params)
                     wordWrap = false,
                     textAlignH = ui.ALIGNMENT.Center,
                 },
-            }
+            },
+            {
+                type = ui.TYPE.Flex,
+                props = {
+                    autoSize = true,
+                    horizontal = true,
+                },
+                content = ui.content {
+                    checkBox{
+                        updateFunc = function ()
+                            params.updateFunc()
+                        end,
+                        checked = params.playerQuestData.finished,
+                        text = "Finished",
+                        textSize = params.fontSize or 18,
+                        event = function (checked, layout)
+                            params.playerQuestData.finished = checked
+                        end
+                    },
+                    interval(params.fontSize / 2, 0),
+                    checkBox{
+                        updateFunc = function ()
+                            params.updateFunc()
+                        end,
+                        checked = params.playerQuestData.disabled,
+                        text = "Hidden",
+                        textSize = params.fontSize or 18,
+                        event = function (checked, layout)
+                            params.playerQuestData.disabled = checked
+                        end
+                    },
+                }
+            },
         }
     }
 
