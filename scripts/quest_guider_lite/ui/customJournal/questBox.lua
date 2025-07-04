@@ -152,7 +152,7 @@ function this.create(params)
                     text = params.questName,
                     autoSize = false,
                     size = util.vector2(params.size.x, params.fontSize),
-                    textSize = params.fontSize or 18,
+                    textSize = (params.fontSize or 18) + 4,
                     multiline = false,
                     wordWrap = false,
                     textAlignH = ui.ALIGNMENT.Center,
