@@ -7,6 +7,7 @@ local templates = require('openmw.interfaces').MWUI.templates
 local commonData = require("scripts.quest_guider_lite.common")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
+local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local log = require("scripts.quest_guider_lite.utils.log")
 
@@ -162,6 +163,33 @@ function journalMeta.updateNextStageBlocks(self)
 end
 
 
+---@param questData questGuider.playerQuest.storageQuestData
+---@param text string
+---@return boolean
+local function hasText(questData, text)
+    text = text:lower()
+    if questData.name:lower():find(text) then
+        return true
+    end
+
+    for _, dt in pairs(questData.list) do
+        if dt.diaId:find(text) then return true end
+
+        local journalText = playerQuests.getJournalText(dt.diaId, dt.index)
+        if journalText and journalText:lower():find(text) then
+            return true
+        end
+
+        local dateStr = timeLib.getDateByTime(dt.timestamp or 0)
+        if dateStr:lower():find(text) then
+            return true
+        end
+    end
+
+    return false
+end
+
+
 function journalMeta.fillQuestsContent(self, content)
     local params = self.params
 
@@ -191,6 +219,10 @@ function journalMeta.fillQuestsContent(self, content)
     for _, dt in pairs(sortedData) do
         if dt.disabled and not showHidden
                 or dt.finished and not showFinished then
+            goto continue
+        end
+
+        if self.textFilter ~= "" and not hasText(dt, self.textFilter) then
             goto continue
         end
 
@@ -270,6 +302,8 @@ local function create(params)
 
     meta.params = params
 
+    meta.textFilter = ""
+
     local mainHeader = {
         template = templates.textNormal,
         type = ui.TYPE.Text,
@@ -310,7 +344,8 @@ local function create(params)
     }
 
     local questListSize = util.vector2(params.size.x * 0.3, params.size.y)
-    local searchBar = {
+    local searchBar
+    searchBar = {
         type = ui.TYPE.Container,
         props = {
             autoSize = false,
@@ -331,6 +366,14 @@ local function create(params)
                             textSize = params.fontSize,
                             size = util.vector2(params.size.x * 0.2, params.fontSize + 4),
                         },
+                        events = {
+                            textChanged = async:callback(function(text, layout)
+                                meta.textFilter = text
+                            end),
+                            focusLoss = async:callback(function(layout)
+                                searchBar.content[1].content[1].props.text = meta.textFilter
+                            end),
+                        },
                     },
                 }
             },
@@ -339,6 +382,11 @@ local function create(params)
                 text = "Search",
                 position = util.vector2(questListSize.x - 2, 3),
                 anchor = util.vector2(1, 0),
+                event = function (layout)
+                    local selectedQuest = meta:getQuestListSelectedFladValue()
+                    meta:fillQuestsContent()
+                    meta:selectQuest(selectedQuest)
+                end
             },
         }
     }
