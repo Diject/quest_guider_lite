@@ -2,7 +2,11 @@ local util = require('openmw.util')
 
 local this = {}
 
-this.storageSectionName = "QuestGuiderLite:Config"
+this.l10nKey = "quest_guider_lite"
+
+this.settingPage = "QuestGuiderLite:Settings"
+
+this.storageSectionName = "Settings:QuestGuiderLite"
 
 this.elementMetatableTypes = {
     ["nextStages"] = "nextStages",

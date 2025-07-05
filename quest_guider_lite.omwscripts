@@ -1,2 +1,5 @@
 GLOBAL: scripts/quest_guider_lite/main.lua
 PLAYER: scripts/quest_guider_lite/player.lua
+MENU: scripts/quest_guider_lite/ui/renderers/label.lua
+MENU: scripts/quest_guider_lite/ui/renderers/text.lua
+MENU: scripts/quest_guider_lite/settings.lua

@@ -15,6 +15,7 @@ local stringLib = require("scripts.quest_guider_lite.utils.string")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local configLib = require("scripts.quest_guider_lite.configLib")
 
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
@@ -23,6 +24,10 @@ local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.next
 
 ---@type questGuider.ui.customJournal?
 local questMenu
+
+
+configLib.loadFromStorage()
+
 
 local function onInit()
     if not localStorage.isPlayerStorageReady() then
