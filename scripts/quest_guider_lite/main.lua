@@ -20,7 +20,7 @@ local cellLib = require("scripts.quest_guider_lite.cell")
 ---@field index integer
 
 ---@alias questGuider.main.fillQuestBoxQuestInfo.returnDt table<string, questGuider.main.fillQuestBoxQuestInfo.returnFieldDt[]> by dia id, sorted by index
----@alias questGuider.main.fillQuestBoxQuestInfo.returnBlock {next : questGuider.main.fillQuestBoxQuestInfo.returnDt?, linked : questGuider.main.fillQuestBoxQuestInfo.returnDt?, objectPositions : table<string, questGuider.quest.getRequirementPositionData.returnData>}
+---@alias questGuider.main.fillQuestBoxQuestInfo.returnBlock {next : questGuider.main.fillQuestBoxQuestInfo.returnDt?, linked : questGuider.main.fillQuestBoxQuestInfo.returnDt?, objectPositions : table<string, questGuider.quest.getRequirementPositionData.returnData>, diaId : string, diaIndex : integer}
 
 ---@alias questGuider.main.fillQuestBoxQuestInfo.return table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock> by content id
 
@@ -142,7 +142,10 @@ local function fillQuestBoxQuestInfo(data)
             end
         end
 
+        ---@type questGuider.main.fillQuestBoxQuestInfo.returnBlock
         local res = out[diaInfo.contentIndex] or {
+            diaId = diaId,
+            diaIndex = diaInfo.index,
             next = {},
             linked = {},
         }

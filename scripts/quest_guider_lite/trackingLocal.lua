@@ -643,6 +643,17 @@ function this.isObjectTracked(params)
 end
 
 
+---@param params {diaId : string}
+---@return boolean
+function this.isDialogueHasTracked(params)
+    local dia = this.trackedObjectsByDiaId[params.diaId]
+    if not dia then return false end
+    if not next(dia.objects) then return false end
+
+    return true
+end
+
+
 function this.removeProximityRecord(id)
     proximityTool.removeRecord(id)
 end

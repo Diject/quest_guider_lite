@@ -145,8 +145,12 @@ return {
         ---@param data questGuider.main.fillQuestBoxQuestInfo.return
         ["QGL:fillQuestBoxQuestInfo"] = function (data)
             if not questMenu then return end
-            ---@type questGuider.ui.questBoxMeta
+            ---@class questGuider.ui.questBoxMeta
             local questBox = questMenu:getQuestScrollBox().userData.questBoxMeta
+
+            questBox.questInfo = data
+            questBox:addTrackButtons()
+
             ---@type questGuider.ui.scrollBox
             local scrollBox = questBox:getScrollBox().userData.scrollBoxMeta
 
