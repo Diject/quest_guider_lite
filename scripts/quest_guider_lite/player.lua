@@ -66,7 +66,11 @@ local function onKeyRelease(key)
             questMenu = createQuestMenu{
                 fontSize = 20,
                 size = util.vector2(1000, 700),
-                relativePosition = util.vector2(0.5, 0.0),
+                relativePosition = util.vector2(0.25, 0.2),
+                onClose = function ()
+                    questMenu = nil
+                    I.UI.removeMode("Journal")
+                end
             }
         end
     elseif questMenu and not core.isWorldPaused() then

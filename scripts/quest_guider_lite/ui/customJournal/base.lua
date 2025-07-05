@@ -288,6 +288,7 @@ end
 ---@field size any
 ---@field fontSize integer
 ---@field relativePosition any?
+---@field onClose function?
 
 ---@param params questGuider.ui.customJournal.params
 local function create(params)
@@ -305,42 +306,74 @@ local function create(params)
     meta.textFilter = ""
 
     local mainHeader = {
-        template = templates.textNormal,
-        type = ui.TYPE.Text,
+        type = ui.TYPE.Widget,
         props = {
-            text = "Journal",
-            textSize = 30,
-            autoSize = true,
-            textAlignH = ui.ALIGNMENT.Center,
+            size = util.vector2(params.size.x, params.fontSize * 1.5),
         },
         userData = {},
-        events = {
-            mousePress = async:callback(function(coord, layout)
-                meta:getQuestMain().content = ui.content{}
-                meta:resetQuestListColors()
+        content = ui.content{
+            {
+                template = templates.textNormal,
+                type = ui.TYPE.Text,
+                props = {
+                    text = "Journal",
+                    textSize = params.fontSize * 1.5,
+                    autoSize = true,
+                    textColor = commonData.defaultColor,
+                    textShadow = true,
+                    textShadowColor = util.color.rgb(0, 0, 0),
+                },
+                userData = {},
+                events = {
+                    mousePress = async:callback(function(coord, layout)
+                        meta:getQuestMain().content = ui.content{}
+                        meta:resetQuestListColors()
 
-                layout.userData.doDrag = true
-                local screenSize = ui.screenSize()
-                layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
-            end),
+                        layout.userData.doDrag = true
+                        local screenSize = ui.screenSize()
+                        layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
+                    end),
 
-            mouseRelease = async:callback(function(_, layout)
-                layout.userData.lastMousePos = nil
-            end),
+                    mouseRelease = async:callback(function(_, layout)
+                        layout.userData.lastMousePos = nil
+                    end),
 
-            mouseMove = async:callback(function(coord, layout)
-                if not layout.userData.lastMousePos then return end
+                    mouseMove = async:callback(function(coord, layout)
+                        if not layout.userData.lastMousePos then return end
 
-                local screenSize = ui.screenSize()
-                local props = meta.menu.layout.props
-                local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
+                        local screenSize = ui.screenSize()
+                        local props = meta.menu.layout.props
+                        local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
 
-                props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
-                meta:update()
+                        props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
+                        meta:update()
 
-                layout.userData.lastMousePos = relativePos
-            end),
-        }
+                        layout.userData.lastMousePos = relativePos
+                    end),
+                }
+            },
+            {
+                template = templates.textNormal,
+                type = ui.TYPE.Text,
+                props = {
+                    text = "Close",
+                    textSize = params.fontSize * 1.25,
+                    autoSize = true,
+                    anchor = util.vector2(1, 1),
+                    relativePosition = util.vector2(1, 1),
+                    textColor = commonData.defaultColor,
+                    textShadow = true,
+                    textShadowColor = util.color.rgb(0, 0, 0),
+                },
+                userData = {},
+                events = {
+                    mouseRelease = async:callback(function(_, layout)
+                        if params.onClose then params.onClose() end
+                        meta.menu:destroy()
+                    end),
+                }
+            },
+        },
     }
 
     local questListSize = util.vector2(params.size.x * 0.3, params.size.y)
