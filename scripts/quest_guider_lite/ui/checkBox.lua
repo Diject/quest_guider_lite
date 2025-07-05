@@ -11,6 +11,9 @@ local interval = require("scripts.quest_guider_lite.ui.interval")
 ---@field text string?
 ---@field checked boolean?
 ---@field textSize integer?
+---@field position any? util.vector2
+---@field relativePosition any? util.vector2
+---@field anchor any? util.vector2
 ---@field event fun(checked : boolean, layout : any)?
 ---@field updateFunc fun()
 
@@ -25,6 +28,9 @@ return function(params)
         type = ui.TYPE.Flex,
         props = {
             autoSize = true,
+            position = params.position,
+            relativePosition = params.relativePosition,
+            anchor = params.anchor,
             horizontal = true,
         },
         userData = {
