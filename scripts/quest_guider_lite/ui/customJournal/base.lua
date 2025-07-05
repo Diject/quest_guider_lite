@@ -79,6 +79,8 @@ journalMeta.clearQuestInfo = function (self)
     local qInfoScrollBox = self:getQuestScrollBox()
     if not qInfoScrollBox then return end
 
+    qInfoScrollBox.name = nil
+
     ---@type questGuider.ui.scrollBox
     local sBoxMeta = qInfoScrollBox.userData.scrollBoxMeta
     sBoxMeta:clearContent()
