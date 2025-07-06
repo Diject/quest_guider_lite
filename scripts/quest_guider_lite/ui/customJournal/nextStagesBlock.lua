@@ -70,7 +70,7 @@ function nextStagesMeta.updateObjectElements(self)
             textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
                 or config.data.ui.defaultColor
         elseif disabledState then
-            textElem.props.textColor = consts.disabledColor
+            textElem.props.textColor = config.data.ui.disabledColor
         end
 
         ::continue::
@@ -167,7 +167,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     textSize = (self.params.fontSize or 18) * 1.2,
                                     multiline = false,
                                     wordWrap = false,
-                                    textColor = tracking.getDisabledState{objectId = objId, questId = diaId} and consts.disabledColor or objectColor,
+                                    textColor = tracking.getDisabledState{objectId = objId, questId = diaId} and config.data.ui.disabledColor or objectColor,
                                 },
                             },
                         }
@@ -358,7 +358,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             local btn = btnMeta:getButtonTextElement()
                             if btn then
                                 resetColorOfButtons(self:getHeaderNextBtnsFlex())
-                                btn.props.textColor = consts.selectedColor
+                                btn.props.textColor = config.data.ui.selectionColor
                             end
 
                             for i, reqs in ipairs(nextData.requirements) do
@@ -383,7 +383,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                             local btn = btnMeta:getButtonTextElement()
                                             if btn then
                                                 resetColorOfButtons(self:getHeaderVariantBtnsFlex())
-                                                btn.props.textColor = consts.selectedColor
+                                                btn.props.textColor = config.data.ui.selectionColor
                                             end
 
                                             addObjectPositionInfo(posFlex.content, reqs, diaId, nextData.index)

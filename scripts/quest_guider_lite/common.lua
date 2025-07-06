@@ -32,6 +32,9 @@ this.disabledColor = util.color.rgb(this.disabledColorData[1], this.disabledColo
 this.selectedShadowColorData = {1, 1, 1}
 this.selectedShadowColor = util.color.rgb(this.selectedShadowColorData[1], this.selectedShadowColorData[2], this.selectedShadowColorData[3])
 
+this.backgroundColorData = {0, 0, 0}
+this.backgroundColor = util.color.rgb(this.backgroundColorData[1], this.backgroundColorData[2], this.backgroundColorData[3])
+
 this.playerQuestDataLabel = "playerQuests"
 
 return this

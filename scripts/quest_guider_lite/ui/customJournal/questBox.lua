@@ -144,7 +144,7 @@ function questBoxMeta._fillJournal(self, content, params)
                                 text = dateStr,
                                 autoSize = true,
                                 textSize = (params.fontSize or 18) * 1.15,
-                                textColor = common.journalDateColor,
+                                textColor = config.data.ui.dateColor,
                             },
                         }
                     }

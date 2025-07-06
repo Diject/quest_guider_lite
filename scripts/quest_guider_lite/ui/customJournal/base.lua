@@ -217,8 +217,8 @@ function journalMeta.fillQuestsContent(self, content)
     local showFinished = self:getQuestListFinishedCheckBox().userData.checked
     local showHidden = self:getQuestListHiddenCheckBox().userData.checked
 
-    local disabledColor = commonData.disabledColor
-    local finishedColor = commonData.disabledColor
+    local disabledColor = config.data.ui.disabledColor
+    local finishedColor = config.data.ui.disabledColor
 
     for _, dt in pairs(sortedData) do
         if dt.disabled and not showHidden

@@ -26,7 +26,11 @@ this.default = {
     ui = {
         fontSize = 20,
         defaultColor = commonData.defaultColor,
-        backgroundColor = util.color.rgb(0, 0, 0),
+        backgroundColor = commonData.backgroundColor,
+        disabledColor = commonData.disabledColor,
+        dateColor = commonData.journalDateColor,
+        selectionColor = commonData.selectedColor,
+        shadowColor = commonData.selectedShadowColor,
     },
 }
 

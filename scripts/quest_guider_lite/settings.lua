@@ -179,5 +179,9 @@ I.Settings.registerGroup{
         numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
         color{key = "ui.defaultColor", name = "textColor", description = "textColorSettingDescription", default = config.data.ui.defaultColor},
         color{key = "ui.backgroundColor", name = "backgroudColor", description = "backgroudColorDescription", default = config.data.ui.backgroundColor},
+        color{key = "ui.disabledColor", name = "disabledColor", description = "disabledColorDescription", default = config.data.ui.disabledColor},
+        color{key = "ui.dateColor", name = "dateColor", description = "dateColorDescription", default = config.data.ui.dateColor},
+        color{key = "ui.selectionColor", name = "selectionColor", description = "selectionColorDescription", default = config.data.ui.selectionColor},
+        color{key = "ui.shadowColor", name = "shadowColor", description = "shadowColorDescription", default = config.data.ui.shadowColor},
     },
 }
