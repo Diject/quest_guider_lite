@@ -11,6 +11,8 @@ this.default = {
     },
     journal ={
         objectNames = 3,
+        width = 1100,
+        height = 700,
     },
     ui = {
         menuKey = "H",

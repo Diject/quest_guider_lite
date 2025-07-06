@@ -145,5 +145,7 @@ I.Settings.registerGroup{
     settings = {
         inputKey{key = "ui.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:ui.menuKey", default = config.default.ui.menuKey},
         numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
+        numberSetting{key = "journal.width", name = "width", description = "widthDescription", integer = true, min = 600, max = 20000, default = config.default.journal.width},
+        numberSetting{key = "journal.height", name = "height", description = "heightDescription", integer = true, min = 400, max = 20000, default = config.default.journal.height},
     },
 }
