@@ -6,6 +6,7 @@ local util = require('openmw.util')
 local playerRef = require('openmw.self')
 local templates = require('openmw.interfaces').MWUI.templates
 
+local config = require("scripts.quest_guider_lite.configLib")
 local commonUtils = require("scripts.quest_guider_lite.utils.common")
 local consts = require("scripts.quest_guider_lite.common")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
@@ -64,10 +65,10 @@ function nextStagesMeta.updateObjectElements(self)
 
         local textElem = elem.content[1].content[1].content[1]
         if not trackedState or not trackingData then
-            textElem.props.textColor = consts.defaultColor
+            textElem.props.textColor = config.data.ui.defaultColor
         elseif not disabledState then
             textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
-                or consts.defaultColor
+                or config.data.ui.defaultColor
         elseif disabledState then
             textElem.props.textColor = consts.disabledColor
         end
@@ -135,7 +136,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
         for objId, objData in pairs(objectPosInfo) do
             local trackingData = tracking.markerByObjectId[objId]
 
-            local objectColor = consts.defaultColor
+            local objectColor = config.data.ui.defaultColor
             if trackingData then
                 if trackingData.color then
                     objectColor = util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
@@ -232,6 +233,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 type = ui.TYPE.Text,
                                 props = {
                                     text = "Closest:",
+                                    textColor = config.data.ui.defaultColor,
                                     autoSize = true,
                                     textSize = (self.params.fontSize or 18) * 0.9,
                                     textAlignH = ui.ALIGNMENT.End,
@@ -251,6 +253,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                 type = ui.TYPE.Text,
                 props = {
                     text = objData.descr,
+                    textColor = config.data.ui.defaultColor,
                     autoSize = false,
                     textSize = self.params.fontSize or 18,
                     size = util.vector2(
@@ -294,6 +297,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             type = ui.TYPE.Text,
             props = {
                 text = text,
+                textColor = config.data.ui.defaultColor,
                 autoSize = true,
                 textSize = params.fontSize or 18,
                 multiline = true,
@@ -309,7 +313,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             if meta then
                 local textElem = meta:getButtonTextElement()
                 if textElem then
-                    textElem.props.textColor = consts.defaultColor
+                    textElem.props.textColor = config.data.ui.defaultColor
                 end
             end
         end
@@ -336,6 +340,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     type = ui.TYPE.Text,
                                     props = {
                                         text = "Variants:",
+                                        textColor = config.data.ui.defaultColor,
                                         autoSize = true,
                                         textSize = params.fontSize or 18,
                                         multiline = false,
@@ -453,6 +458,7 @@ function this.create(params)
                         type = ui.TYPE.Text,
                         props = {
                             text = "Next:",
+                            textColor = config.data.ui.defaultColor,
                             autoSize = true,
                             textSize = params.fontSize or 18,
                             multiline = false,

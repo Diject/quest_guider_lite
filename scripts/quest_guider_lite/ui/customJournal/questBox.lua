@@ -8,6 +8,7 @@ local playerRef = require('openmw.self')
 
 local log = require("scripts.quest_guider_lite.utils.log")
 
+local config = require("scripts.quest_guider_lite.configLib")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
@@ -161,6 +162,7 @@ function questBoxMeta._fillJournal(self, content, params)
                             type = ui.TYPE.Text,
                             props = {
                                 text = text,
+                                textColor = config.data.ui.defaultColor,
                                 autoSize = false,
                                 size = textElemSize,
                                 textSize = params.fontSize or 18,
@@ -216,6 +218,7 @@ function this.create(params)
                 type = ui.TYPE.Text,
                 props = {
                     text = params.questName,
+                    textColor = config.data.ui.defaultColor,
                     autoSize = false,
                     size = util.vector2(params.size.x, params.fontSize),
                     textSize = (params.fontSize or 18) + 4,

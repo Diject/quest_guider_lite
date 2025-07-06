@@ -4,6 +4,7 @@ local async = require('openmw.async')
 local input = require('openmw.input')
 local templates = require('openmw.interfaces').MWUI.templates
 
+local configData = require("scripts.quest_guider_lite.config")
 local consts = require("scripts.quest_guider_lite.common")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
@@ -132,7 +133,7 @@ return function (params)
                 multiline = false,
                 wordWrap = false,
                 textAlignH = ui.ALIGNMENT.Start,
-                textColor = params.textColor or consts.defaultColor
+                textColor = params.textColor or configData.data.ui.defaultColor
             },
         }
     end

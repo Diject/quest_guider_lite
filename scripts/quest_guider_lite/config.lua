@@ -1,3 +1,6 @@
+local util = require('openmw.util')
+
+local commonData = require("scripts.quest_guider_lite.common")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
 
@@ -22,6 +25,7 @@ this.default = {
     },
     ui = {
         fontSize = 20,
+        defaultColor = commonData.defaultColor
     },
 }
 

@@ -2,7 +2,9 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local async = require('openmw.async')
 local templates = require('openmw.interfaces').MWUI.templates
+
 local commonData = require("scripts.quest_guider_lite.common")
+local configData = require("scripts.quest_guider_lite.config")
 
 local interval = require("scripts.quest_guider_lite.ui.interval")
 
@@ -67,7 +69,7 @@ return function(params)
                             size = boxSize,
                             inheritAlpha = false,
                             alpha = params.checked and 1 or 0,
-                            color = commonData.defaultColor,
+                            color = configData.data.ui.defaultColor,
                         },
                     }
                 },
@@ -78,6 +80,7 @@ return function(params)
                 type = ui.TYPE.Text,
                 props = {
                     text = params.text or "Enable",
+                    textColor = configData.data.ui.defaultColor,
                     textSize = params.textSize or 18,
                     multiline = false,
                     wordWrap = false,
