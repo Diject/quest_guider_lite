@@ -143,6 +143,7 @@ I.Settings.registerGroup{
     permanentStorage = true,
     order = 0,
     settings = {
-        inputKey{key = "ui.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:ui.menuKey", default = config.default.ui.menuKey}
+        inputKey{key = "ui.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:ui.menuKey", default = config.default.ui.menuKey},
+        numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
     },
 }

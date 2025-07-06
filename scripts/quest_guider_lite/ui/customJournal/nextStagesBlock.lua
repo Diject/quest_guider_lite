@@ -326,6 +326,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                 nextBtnsFlexContent:add(
                     button{
                         text = string.format(format, tostring(nextData.index)),
+                        textSize = params.fontSize,
                         updateFunc = params.updateFunc,
                         event = function (layout)
                             local variantBtnFlex = self:getHeaderVariantBtnsFlex()
@@ -360,6 +361,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 variantBtnFlex.content:add(
                                     button{
                                         text = string.format("-%d-", i),
+                                        textSize = params.fontSize,
                                         updateFunc = params.updateFunc,
                                         event = function (layout)
                                             local reqFlex = self:getRequirementsFlex()

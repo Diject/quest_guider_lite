@@ -14,6 +14,7 @@ this.default = {
     },
     ui = {
         menuKey = "H",
+        fontSize = 20,
     },
 }
 

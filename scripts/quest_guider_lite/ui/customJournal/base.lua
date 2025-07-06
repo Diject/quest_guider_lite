@@ -415,6 +415,7 @@ local function create(params)
             button{
                 updateFunc = updateFunc,
                 text = "Search",
+                textSize = params.fontSize,
                 position = util.vector2(questListSize.x - 2, 3),
                 anchor = util.vector2(1, 0),
                 event = function (layout)

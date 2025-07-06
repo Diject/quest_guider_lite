@@ -14,6 +14,8 @@ local commonData = require("scripts.quest_guider_lite.common")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 
+local config = require("scripts.quest_guider_lite.config")
+
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
@@ -68,7 +70,7 @@ input.registerTriggerHandler("QGL:ui.menuKey", async:callback(function()
     else
         I.UI.setMode("Journal", { windows = {} })
         questMenu = createQuestMenu{
-            fontSize = 20,
+            fontSize = config.data.ui.fontSize,
             size = util.vector2(1000, 700),
             relativePosition = util.vector2(0.25, 0.2),
             onClose = function ()
@@ -175,7 +177,7 @@ return {
                     nextStagesBlock.create{
                         data = dt,
                         size = scrollBox.innnerSize,
-                        fontSize = 18,
+                        fontSize = config.data.ui.fontSize,
                         updateFunc = function ()
                             questMenu:update()
                         end,

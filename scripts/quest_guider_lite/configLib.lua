@@ -9,7 +9,7 @@ local this = {}
 
 this.data = require("scripts.quest_guider_lite.config").data
 
-this.storageSection = storage.globalSection(commonData.storageSectionName)
+this.storageSection = storage.playerSection(commonData.storageSectionName)
 this.storageSection:subscribe(async:callback(function(section, key)
     if key then
         tableLib.setValueByPath(this.data, key, this.storageSection:get(key))

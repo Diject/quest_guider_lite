@@ -46,6 +46,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     self:getButtonFlex().content = ui.content{}
     self:getButtonFlex().content:add(button{
         text = "Track objects",
+        textSize = self.params.fontSize,
         event = function (layout)
             self:addTrackButtons(true)
 
@@ -69,6 +70,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         self:getButtonFlex().content:add(interval(self.params.fontSize, 0))
         self:getButtonFlex().content:add(button{
             text = "Remove tracking",
+            textSize = self.params.fontSize,
             event = function (layout)
                 for _, info in pairs(self.questInfo) do
                     tracking.removeMarker{
