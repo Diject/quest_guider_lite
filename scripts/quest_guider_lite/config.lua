@@ -10,12 +10,12 @@ this.default = {
         maxPos = 20,
     },
     journal ={
+        menuKey = "H",
         objectNames = 3,
         width = 1100,
         height = 700,
     },
     ui = {
-        menuKey = "H",
         fontSize = 20,
     },
 }

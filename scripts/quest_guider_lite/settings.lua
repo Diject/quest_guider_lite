@@ -119,18 +119,18 @@ local function inputKey(args)
 end
 
 input.registerTrigger {
-    key = "QGL:ui.menuKey",
+    key = "QGL:journal.menuKey",
     l10n = commonData.l10nKey,
 }
 
 -- f this
 local bindingSection = storage.playerSection('OMWInputBindings')
-if bindingSection:get(config.default.ui.menuKey) == nil then
-    bindingSection:set(config.default.ui.menuKey, {
+if bindingSection:get(config.default.journal.menuKey) == nil then
+    bindingSection:set(config.default.journal.menuKey, {
         device = "keyboard",
-        button = input.KEY[config.default.ui.menuKey],
+        button = input.KEY[config.default.journal.menuKey],
         type = "trigger",
-        key = "QGL:ui.menuKey",
+        key = "QGL:journal.menuKey",
     })
 end
 
@@ -143,7 +143,7 @@ I.Settings.registerGroup{
     permanentStorage = true,
     order = 0,
     settings = {
-        inputKey{key = "ui.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:ui.menuKey", default = config.default.ui.menuKey},
+        inputKey{key = "journal.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:journal.menuKey", default = config.default.journal.menuKey},
         numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
         numberSetting{key = "journal.width", name = "width", description = "widthDescription", integer = true, min = 600, max = 20000, default = config.default.journal.width},
         numberSetting{key = "journal.height", name = "height", description = "heightDescription", integer = true, min = 400, max = 20000, default = config.default.journal.height},

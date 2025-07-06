@@ -62,7 +62,7 @@ local function teleportedCallback()
     end
 end
 
-input.registerTriggerHandler("QGL:ui.menuKey", async:callback(function()
+input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
     if questMenu then
         questMenu.menu:destroy()
         questMenu = nil
