@@ -4,6 +4,7 @@ local util = require('openmw.util')
 local core = require('openmw.core')
 local templates = require('openmw.interfaces').MWUI.templates
 
+local config = require("scripts.quest_guider_lite.configLib")
 local commonData = require("scripts.quest_guider_lite.common")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
@@ -337,6 +338,9 @@ local function create(params)
                     end),
 
                     mouseRelease = async:callback(function(_, layout)
+                        local relativePos = meta.menu.layout.props.relativePosition
+                        config.setValue("journal.position.x", relativePos.x)
+                        config.setValue("journal.position.y", relativePos.y)
                         layout.userData.lastMousePos = nil
                     end),
 

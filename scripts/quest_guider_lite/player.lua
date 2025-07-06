@@ -14,7 +14,7 @@ local commonData = require("scripts.quest_guider_lite.common")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 
-local config = require("scripts.quest_guider_lite.config")
+local config = require("scripts.quest_guider_lite.configLib")
 
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
@@ -72,7 +72,7 @@ input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
         questMenu = createQuestMenu{
             fontSize = config.data.ui.fontSize,
             size = util.vector2(config.data.journal.width, config.data.journal.height),
-            relativePosition = util.vector2(0.25, 0.2),
+            relativePosition = util.vector2(config.data.journal.position.x, config.data.journal.position.y),
             onClose = function ()
                 questMenu = nil
                 I.UI.removeMode("Journal")

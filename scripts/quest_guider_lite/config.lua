@@ -14,6 +14,10 @@ this.default = {
         objectNames = 3,
         width = 1100,
         height = 700,
+        position = {
+            x = 0.2,
+            y = 0.2,
+        },
     },
     ui = {
         fontSize = 20,
