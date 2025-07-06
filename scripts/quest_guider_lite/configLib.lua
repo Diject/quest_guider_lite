@@ -30,11 +30,12 @@ end
 this.loadFromStorage()
 
 
-function this.setValueByString(val, str)
+function this.setValue(str, val)
+    this.storageSection:set(str, val)
     return tableLib.setValueByPath(this.data, str, val)
 end
 
-function this.getValueByString(str)
+function this.getValue(str)
     return tableLib.getValueByPath(this.data, str)
 end
 
