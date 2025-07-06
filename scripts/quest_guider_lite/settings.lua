@@ -1,9 +1,8 @@
-local storage = require("openmw.storage")
-local async = require("openmw.async")
 local I = require("openmw.interfaces")
 local ui = require('openmw.ui')
-local core = require('openmw.core')
 local util = require('openmw.util')
+local input = require('openmw.input')
+local storage = require('openmw.storage')
 
 local config = require("scripts.quest_guider_lite.config")
 local commonData = require("scripts.quest_guider_lite.common")
@@ -51,9 +50,11 @@ local function boolSetting(args)
         name = args.name,
         description = args.description,
         default = args.default or false,
-        trueLabel = args.trueLabel,
-        falseLabel = args.falseLabel,
-        disabled = args.disabled,
+        argument = {
+            trueLabel = args.trueLabel,
+            falseLabel = args.falseLabel,
+            disabled = args.disabled,
+        }
     }
 end
 
@@ -65,10 +66,12 @@ local function numberSetting(args)
         name = args.name,
         description = args.description,
         default = args.default or 0,
-        min = args.min,
-        max = args.max,
-        integer = args.integer,
-        disabled = args.disabled,
+        argument = {
+            min = args.min,
+            max = args.max,
+            integer = args.integer,
+            disabled = args.disabled,
+        }
     }
     return data
 end
@@ -100,15 +103,46 @@ local function text(args)
     return data
 end
 
+local function inputKey(args)
+    local data = {
+        renderer = "inputBinding",
+        key = args.key,
+        name = args.name,
+        description = args.description,
+        default = args.default,
+        argument = {
+            key = args.argKey,
+            type = args.argType
+        }
+    }
+    return data
+end
+
+input.registerTrigger {
+    key = "QGL:ui.menuKey",
+    l10n = commonData.l10nKey,
+}
+
+-- f this
+local bindingSection = storage.playerSection('OMWInputBindings')
+if bindingSection:get(config.default.ui.menuKey) == nil then
+    bindingSection:set(config.default.ui.menuKey, {
+        device = "keyboard",
+        button = input.KEY[config.default.ui.menuKey],
+        type = "trigger",
+        key = "QGL:ui.menuKey",
+    })
+end
+
 
 I.Settings.registerGroup{
     key = commonData.storageSectionName,
     page = commonData.settingPage,
     l10n = commonData.l10nKey,
-    name = "empty",
+    name = "journal",
     permanentStorage = true,
     order = 0,
     settings = {
-        
+        inputKey{key = "ui.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:ui.menuKey", default = config.default.ui.menuKey}
     },
 }

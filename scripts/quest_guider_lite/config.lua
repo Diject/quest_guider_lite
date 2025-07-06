@@ -13,7 +13,7 @@ this.default = {
         objectNames = 3,
     },
     ui = {
-
+        menuKey = "H",
     },
 }
 

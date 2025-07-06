@@ -9,6 +9,8 @@ local util = require('openmw.util')
 
 local log = require("scripts.quest_guider_lite.utils.log")
 
+local commonData = require("scripts.quest_guider_lite.common")
+
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 
@@ -58,27 +60,27 @@ local function teleportedCallback()
     end
 end
 
+input.registerTriggerHandler("QGL:ui.menuKey", async:callback(function()
+    if questMenu then
+        questMenu.menu:destroy()
+        questMenu = nil
+        I.UI.removeMode("Journal")
+    else
+        I.UI.setMode("Journal", { windows = {} })
+        questMenu = createQuestMenu{
+            fontSize = 20,
+            size = util.vector2(1000, 700),
+            relativePosition = util.vector2(0.25, 0.2),
+            onClose = function ()
+                questMenu = nil
+                I.UI.removeMode("Journal")
+            end
+        }
+    end
+end))
 
 local function onKeyRelease(key)
-    if key.withShift and key.code == input.KEY.H then
-        local isMenuMode = core.isWorldPaused()
-        if questMenu then
-            questMenu.menu:destroy()
-            questMenu = nil
-            I.UI.removeMode("Journal")
-        elseif not isMenuMode then
-            I.UI.setMode("Journal", { windows = {} })
-            questMenu = createQuestMenu{
-                fontSize = 20,
-                size = util.vector2(1000, 700),
-                relativePosition = util.vector2(0.25, 0.2),
-                onClose = function ()
-                    questMenu = nil
-                    I.UI.removeMode("Journal")
-                end
-            }
-        end
-    elseif questMenu and not core.isWorldPaused() then
+    if questMenu and not core.isWorldPaused() then
         questMenu.menu:destroy()
         questMenu = nil
     end

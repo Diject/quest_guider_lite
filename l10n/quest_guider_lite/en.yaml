@@ -1,3 +1,6 @@
 empty: ""
 modName: "Quest Guider Lite"
 modDescription: "PH"
+journal: "Journal"
+customJournalKeyName: "Open Menu"
+customJournalKeyDescription: "Key to open menu"
