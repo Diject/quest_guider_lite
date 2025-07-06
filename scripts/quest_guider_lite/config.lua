@@ -25,7 +25,8 @@ this.default = {
     },
     ui = {
         fontSize = 20,
-        defaultColor = commonData.defaultColor
+        defaultColor = commonData.defaultColor,
+        backgroundColor = util.color.rgb(0, 0, 0),
     },
 }
 

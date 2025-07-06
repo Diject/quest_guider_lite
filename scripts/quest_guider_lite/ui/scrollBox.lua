@@ -104,7 +104,7 @@ return function(params)
 
     local contentData
     contentData = {
-        template = templates.boxTransparent,
+        template = templates.box,
         props = {
             size = params.size,
         },

@@ -3,6 +3,7 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local core = require('openmw.core')
 local templates = require('openmw.interfaces').MWUI.templates
+local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 
 local config = require("scripts.quest_guider_lite.configLib")
 local commonData = require("scripts.quest_guider_lite.common")
@@ -392,7 +393,7 @@ local function create(params)
         },
         content = ui.content {
             {
-                template = templates.boxTransparent,
+                template = templates.box,
                 props = {
                     position = util.vector2(2, 2),
                     anchor = util.vector2(0, 0),
@@ -508,7 +509,7 @@ local function create(params)
     }
 
     local mainWindow = {
-        template = templates.boxSolidThick,
+        template = customTemplates.boxSolidThick,
         props = {
 
         },

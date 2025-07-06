@@ -2,7 +2,7 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local async = require('openmw.async')
 local input = require('openmw.input')
-local templates = require('openmw.interfaces').MWUI.templates
+local templates = require("scripts.quest_guider_lite.ui.templates")
 
 local configData = require("scripts.quest_guider_lite.config")
 local consts = require("scripts.quest_guider_lite.common")
