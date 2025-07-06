@@ -30,8 +30,6 @@ local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.next
 local questMenu
 
 
-configLib.loadFromStorage()
-
 
 local function onInit()
     if not localStorage.isPlayerStorageReady() then

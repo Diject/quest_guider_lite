@@ -6,7 +6,9 @@ this.l10nKey = "quest_guider_lite"
 
 this.settingPage = "QuestGuiderLite:Settings"
 
-this.storageSectionName = "Settings:QuestGuiderLite"
+this.configJournalSectionName = "Settings:QGL:Journal"
+this.configUISectionName = "Settings:QGL:UI"
+this.configTrackingSectionName = "Settings:QGL:Tracking"
 
 this.elementMetatableTypes = {
     ["nextStages"] = "nextStages",

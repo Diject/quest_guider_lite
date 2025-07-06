@@ -151,7 +151,7 @@ end
 
 
 I.Settings.registerGroup{
-    key = commonData.storageSectionName,
+    key = commonData.configJournalSectionName,
     page = commonData.settingPage,
     l10n = commonData.l10nKey,
     name = "journal",
@@ -159,12 +159,24 @@ I.Settings.registerGroup{
     order = 0,
     settings = {
         inputKey{key = "journal.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:journal.menuKey", default = config.default.journal.menuKey},
-        numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
         numberSetting{key = "journal.width", name = "width", description = "widthDescription", integer = true, min = 600, max = 20000, default = config.default.journal.width},
         numberSetting{key = "journal.height", name = "height", description = "heightDescription", integer = true, min = 400, max = 20000, default = config.default.journal.height},
         numberSetting{key = "journal.position.x", name = "positionX", description = "journalWindowPositionNote", integer = false, min = 0, max = 1, default = config.default.journal.position.x},
         numberSetting{key = "journal.position.y", name = "positionY", description = "journalWindowPositionNote", integer = false, min = 0, max = 1, default = config.default.journal.position.y},
         numberSetting{key = "journal.listRelativeSize", name = "questListRelativeSize", description = "questListRelativeSizeDescription", integer = false, min = 0.05, max = 0.5, default = config.default.journal.listRelativeSize},
+    },
+}
+
+
+I.Settings.registerGroup{
+    key = commonData.configUISectionName,
+    page = commonData.settingPage,
+    l10n = commonData.l10nKey,
+    name = "UI",
+    permanentStorage = true,
+    order = 1,
+    settings = {
+        numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
         color{key = "ui.defaultColor", name = "textColor", description = "textColorSettingDescription", default = config.data.ui.defaultColor},
         color{key = "ui.backgroundColor", name = "backgroudColor", description = "backgroudColorDescription", default = config.data.ui.backgroundColor},
     },
