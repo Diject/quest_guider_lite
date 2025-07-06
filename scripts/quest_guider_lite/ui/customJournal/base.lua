@@ -382,7 +382,7 @@ local function create(params)
         },
     }
 
-    local questListSize = util.vector2(params.size.x * 0.3, params.size.y)
+    local questListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize, params.size.y)
     local searchBar
     searchBar = {
         type = ui.TYPE.Container,
@@ -491,7 +491,7 @@ local function create(params)
     }
 
 
-    local questInfoSize = util.vector2(params.size.x * 0.7, params.size.y)
+    local questInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize), params.size.y)
     local questInfo = {
         type = ui.TYPE.Flex,
         props = {
