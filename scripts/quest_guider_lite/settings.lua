@@ -169,12 +169,26 @@ I.Settings.registerGroup{
 
 
 I.Settings.registerGroup{
+    key = commonData.configTrackingSectionName,
+    page = commonData.settingPage,
+    l10n = commonData.l10nKey,
+    name = "tracking",
+    permanentStorage = true,
+    order = 1,
+    settings = {
+        numberSetting{key = "tracking.minChance", name = "minDropchance", description = "minDropchanceDescription", integer = false, min = 0, max = 1, default = config.default.tracking.minChance},
+        numberSetting{key = "tracking.maxPos", name = "maxPositionNumberToNotTrackEntrances", description = "maxPositionNumberToNotTrackEntrancesDescription", integer = true, min = 0, default = config.default.tracking.maxPos},
+    },
+}
+
+
+I.Settings.registerGroup{
     key = commonData.configUISectionName,
     page = commonData.settingPage,
     l10n = commonData.l10nKey,
     name = "UI",
     permanentStorage = true,
-    order = 1,
+    order = 2,
     settings = {
         numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
         color{key = "ui.defaultColor", name = "textColor", description = "textColorSettingDescription", default = config.data.ui.defaultColor},
