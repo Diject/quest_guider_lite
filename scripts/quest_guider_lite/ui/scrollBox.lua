@@ -78,7 +78,7 @@ return function(params)
         params.updateFunc()
     end
 
-    meta.innnerSize = util.vector2(params.size.x - 8, params.size.y - 8)
+    meta.innnerSize = util.vector2(params.size.x - 4, params.size.y - 4)
 
     meta.params = params
 

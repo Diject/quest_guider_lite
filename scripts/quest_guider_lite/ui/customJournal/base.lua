@@ -254,17 +254,15 @@ function journalMeta._addFlags(self, content, storageData)
 end
 
 
-function journalMeta.fillQuestsContent(self, content)
+function journalMeta.fillQuestsContent(self)
     local params = self.params
 
-    if not content then
-        local qList = self:getQuestList()
-        ---@type questGuider.ui.scrollBox
-        local sBoxMeta = qList.userData.scrollBoxMeta
-        sBoxMeta:clearContent()
+    local qList = self:getQuestList()
+    ---@type questGuider.ui.scrollBox
+    local sBoxMeta = qList.userData.scrollBoxMeta
+    sBoxMeta:clearContent()
 
-        content = sBoxMeta:getMainFlex().content
-    end
+    local content = sBoxMeta:getMainFlex().content
 
     ---@type questGuider.playerQuest.storageData
     local playerData = playerQuests.getStorageData()
@@ -304,7 +302,8 @@ function journalMeta.fillQuestsContent(self, content)
         content:add{
             type = ui.TYPE.Flex,
             props = {
-                autoSize = true,
+                autoSize = false,
+                size = util.vector2(sBoxMeta.innnerSize.x, self.params.fontSize),
                 horizontal = true,
             },
             name = qName,
@@ -610,7 +609,7 @@ local function create(params)
 
     meta.menu = ui.create(mainFlex)
 
-    meta:fillQuestsContent(questsContent)
+    meta:fillQuestsContent()
 
     return meta
 end

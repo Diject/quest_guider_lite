@@ -50,7 +50,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     self:getButtonFlex().content = ui.content{}
     self:getButtonFlex().content:add(button{
         text = "Track objects",
-        textSize = self.params.fontSize,
+        textSize = self.params.fontSize * 0.8,
         event = function (layout)
             self:addTrackButtons(true)
 
@@ -74,7 +74,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         self:getButtonFlex().content:add(interval(self.params.fontSize, 0))
         self:getButtonFlex().content:add(button{
             text = "Remove tracking",
-            textSize = self.params.fontSize,
+            textSize = self.params.fontSize * 0.8,
             event = function (layout)
                 for _, info in pairs(self.questInfo) do
                     tracking.removeMarker{
@@ -238,7 +238,7 @@ function this.create(params)
                     text = params.questName,
                     textColor = config.data.ui.defaultColor,
                     autoSize = false,
-                    size = util.vector2(params.size.x, params.fontSize),
+                    size = util.vector2(params.size.x, (params.fontSize or 18) * 1.2),
                     textSize = (params.fontSize or 18) * 1.2,
                     multiline = false,
                     wordWrap = false,
@@ -313,7 +313,7 @@ function this.create(params)
     local journalEntries = scrollBox{
         name = params.questName,
         updateFunc = params.updateFunc,
-        size = params.size,
+        size = util.vector2(params.size.x - 2, params.size.y - 2),
         scrollAmount = params.fontSize * 6,
         content = journalContent,
         userData = {
