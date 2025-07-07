@@ -110,7 +110,7 @@ journalMeta.selectQuest = function (self, qName)
 
     local function applyTextShadow()
         selectedLayout.content[3].props.textShadow = true
-        selectedLayout.content[3].props.textShadowColor = commonData.selectedShadowColor
+        selectedLayout.content[3].props.textShadowColor = config.data.ui.shadowColor
     end
 
     if self:getQuestScrollBox() and self:getQuestScrollBox().name == qName then
@@ -325,7 +325,7 @@ local function create(params)
                     autoSize = true,
                     textColor = config.data.ui.defaultColor,
                     textShadow = true,
-                    textShadowColor = util.color.rgb(0, 0, 0),
+                    textShadowColor = config.data.ui.shadowColor,
                 },
                 userData = {},
                 events = {
@@ -370,7 +370,7 @@ local function create(params)
                     relativePosition = util.vector2(1, 1),
                     textColor = config.data.ui.defaultColor,
                     textShadow = true,
-                    textShadowColor = util.color.rgb(0, 0, 0),
+                    textShadowColor = config.data.ui.shadowColor,
                 },
                 userData = {},
                 events = {
