@@ -26,7 +26,7 @@ scrollBoxMeta.scrollUp = function(self, val)
     local pos = fl.props.position
     if not pos then return end
 
-    fl.props.position = util.vector2(0, math.min(32, pos.y + val))
+    fl.props.position = util.vector2(0, math.min(self.params.maxNegativeShift or config.data.ui.scrollArrowSize * 2 or 32, pos.y + val))
     self:update()
 end
 
@@ -49,6 +49,7 @@ end
 ---@field name string?
 ---@field size any -- util.vector2
 ---@field scrollAmount integer?
+---@field maxNegativeShift integer?
 ---@field content any
 ---@field updateFunc fun()
 ---@field arrange any?
