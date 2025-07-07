@@ -48,6 +48,7 @@ end
 ---@class questGuider.ui.scrollBox.params
 ---@field name string?
 ---@field size any -- util.vector2
+---@field scrollAmount integer?
 ---@field content any
 ---@field updateFunc fun()
 ---@field arrange any?
@@ -127,7 +128,7 @@ return function(params)
                 updateFunc = params.updateFunc,
                 event = function (layout)
                     if not lockEvent then
-                        meta:scrollUp(24)
+                        meta:scrollUp(meta.params.scrollAmount or 24)
                     end
                 end,
                 mousePress = function (layout)
@@ -145,11 +146,11 @@ return function(params)
                 updateFunc = params.updateFunc,
                 event = function (layout)
                     if not lockEvent then
-                        meta:scrollDown(24)
+                        meta:scrollDown(meta.params.scrollAmount or 24)
                     end
                 end,
                 mousePress = function (layout)
-                    startScrollTimer(1, 12)
+                    startScrollTimer(1, meta.params.scrollAmount / 2 or 12)
                 end,
                 mouseRelease = function (layout)
                     stopScrollTimer()

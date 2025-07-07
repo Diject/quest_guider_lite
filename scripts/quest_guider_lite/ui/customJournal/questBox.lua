@@ -286,6 +286,7 @@ function this.create(params)
         name = params.questName,
         updateFunc = params.updateFunc,
         size = params.size,
+        scrollAmount = params.fontSize * 6,
         content = journalContent,
         userData = {
             questBoxMeta = meta,
