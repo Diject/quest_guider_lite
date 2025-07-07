@@ -295,13 +295,15 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
         for _, req in ipairs(requirements) do
             text = string.format("%s  %s\n", text, req.str)
         end
+        local textHeight = uiUtils.getTextHeight(text, params.fontSize or 18, self.params.size.x, 0.5)
         content:add{
             template = templates.textNormal,
             type = ui.TYPE.Text,
             props = {
                 text = text,
                 textColor = config.data.ui.defaultColor,
-                autoSize = true,
+                autoSize = false,
+                size = util.vector2(self.params.size.x, textHeight),
                 textSize = params.fontSize or 18,
                 multiline = true,
                 wordWrap = true,
