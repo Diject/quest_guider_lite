@@ -105,6 +105,14 @@ function this.addMarker(params)
 
     if params.reqData and params.reqData.data.type == "DIAO" then return end
 
+    local playerQuestData = playerQuests.getQuestStorageData(questData.name)
+
+    if playerQuestData then
+        if not config.data.tracking.trackDisabled and playerQuestData.disabled then
+            return
+        end
+    end
+
     local qTrackingInfo
     if this.trackedObjectsByDiaId[params.questId] then
         qTrackingInfo = this.trackedObjectsByDiaId[params.questId]
@@ -151,7 +159,7 @@ function this.addMarker(params)
         name = positionData.name,
         description = {string.format("Quest: \"%s\"", questData.name or ""), ""},
         nameColor = objectTrackingData.color,
-        proximity = 24576,
+        proximity = config.data.tracking.proximity,
         priority = 10,
     }
 
@@ -163,7 +171,7 @@ function this.addMarker(params)
         iconRatio = 1.6,
         iconColor = common.defaultColorData,
         nameColor = objectTrackingData.color,
-        proximity = 24576,
+        proximity = config.data.tracking.proximity,
         priority = 0,
     }
 

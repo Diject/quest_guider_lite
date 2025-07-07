@@ -60,7 +60,7 @@ function this.createQuestGiverMarker(ref)
         iconRatio = 2,
         iconColor = commonInfo.defaultColorData,
         description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, "Starts %s"),
-        proximity = 4096,
+        proximity = config.data.tracking.questGiverProximity,
         priority = -100,
         temporary = true,
     }

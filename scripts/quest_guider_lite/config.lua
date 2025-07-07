@@ -9,8 +9,12 @@ local this = {}
 ---@class questGuider.config
 this.default = {
     tracking = {
+        autoTrack = true,
+        trackDisabled = false,
         minChance = 0.1,
         maxPos = 20,
+        proximity = 25000,
+        questGiverProximity = 8000,
     },
     journal ={
         menuKey = "H",

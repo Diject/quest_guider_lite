@@ -176,8 +176,12 @@ I.Settings.registerGroup{
     permanentStorage = true,
     order = 1,
     settings = {
+        boolSetting{key = "tracking.autoTrack", name = "autoTrack", description = "autoTrackDescription", default = config.data.tracking.autoTrack},
+        boolSetting{key = "tracking.trackDisabled", name = "trackDisabled", description = "trackDisabledDescription", default = config.data.tracking.trackDisabled},
         numberSetting{key = "tracking.minChance", name = "minDropchance", description = "minDropchanceDescription", integer = false, min = 0, max = 1, default = config.default.tracking.minChance},
         numberSetting{key = "tracking.maxPos", name = "maxPositionNumberToNotTrackEntrances", description = "maxPositionNumberToNotTrackEntrancesDescription", integer = true, min = 0, default = config.default.tracking.maxPos},
+        numberSetting{key = "tracking.proximity", name = "markerActivationDistance", description = "markerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.proximity},
+        numberSetting{key = "tracking.questGiverProximity", name = "questGiverMarkerActivationDistance", description = "questGiverMarkerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.questGiverProximity},
     },
 }
 

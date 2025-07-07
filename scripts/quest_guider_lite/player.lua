@@ -98,7 +98,9 @@ return {
     engineHandlers = {
         onQuestUpdate = function(questId, stage)
             playerQuests.update(questId, stage)
-            tracking.trackQuest(questId, stage)
+            if config.data.tracking.autoTrack then
+                tracking.trackQuest(questId, stage)
+            end
             core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
         end,
         onTeleported = function ()
