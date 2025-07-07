@@ -2,6 +2,7 @@ local types = require('openmw.types')
 local world = require('openmw.world')
 
 local stringLib = require("scripts.quest_guider_lite.utils.string")
+local tableLib = require("scripts.quest_guider_lite.utils.table")
 
 local commonInfo = require("scripts.quest_guider_lite.common")
 
@@ -47,10 +48,12 @@ function this.createQuestGiverMarker(ref)
             goto continue
         end
 
-        table.insert(questNames, questData.name)
+        questNames[questData.name] = questData.name
 
         ::continue::
     end
+
+    questNames = tableLib.values(questNames, true)
 
     if #questNames <= 0 then return end
 
