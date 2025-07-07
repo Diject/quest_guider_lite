@@ -183,5 +183,6 @@ I.Settings.registerGroup{
         color{key = "ui.dateColor", name = "dateColor", description = "dateColorDescription", default = config.data.ui.dateColor},
         color{key = "ui.selectionColor", name = "selectionColor", description = "selectionColorDescription", default = config.data.ui.selectionColor},
         color{key = "ui.shadowColor", name = "shadowColor", description = "shadowColorDescription", default = config.data.ui.shadowColor},
+        numberSetting{key = "ui.scrollArrowSize", name = "scrollButtonSize", description = "scrollButtonSizeDescription", integer = true, min = 12, max = 60, default = config.default.ui.scrollArrowSize},
     },
 }

@@ -3,6 +3,8 @@ local util = require('openmw.util')
 local time = require('openmw_aux.time')
 local templates = require('openmw.interfaces').MWUI.templates
 
+local config = require("scripts.quest_guider_lite.config")
+
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
 local button = require("scripts.quest_guider_lite.ui.button")
@@ -121,7 +123,7 @@ return function(params)
                 position = util.vector2(params.size.x - 4, 4),
                 anchor = util.vector2(1, 0),
                 icon = iconUp,
-                iconSize = util.vector2(16, 16),
+                iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
                 updateFunc = params.updateFunc,
                 event = function (layout)
                     if not lockEvent then
@@ -139,7 +141,7 @@ return function(params)
                 position = util.vector2(params.size.x - 4, params.size.y - 4),
                 anchor = util.vector2(1, 1),
                 icon = iconDown,
-                iconSize = util.vector2(16, 16),
+                iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
                 updateFunc = params.updateFunc,
                 event = function (layout)
                     if not lockEvent then
