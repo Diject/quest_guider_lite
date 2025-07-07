@@ -35,6 +35,12 @@ this.selectedShadowColor = util.color.rgb(this.selectedShadowColorData[1], this.
 this.backgroundColorData = {0, 0, 0}
 this.backgroundColor = util.color.rgb(this.backgroundColorData[1], this.backgroundColorData[2], this.backgroundColorData[3])
 
+this.whiteTexture = nil
+pcall(function ()
+    local constants = require('scripts.omw.mwui.constants')
+    this.whiteTexture = constants.whiteTexture
+end)
+
 this.playerQuestDataLabel = "playerQuests"
 
 return this

@@ -189,6 +189,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
                                     if trackedState then
                                         tracking.removeMarker{objectId = objId, questId = diaId}
+                                        playerRef:sendEvent("QGL:updateQuestMenu", {})
                                     else
                                         tracking.trackObject{diaId = diaId, objectId = objId, index = diaIndex}
                                     end

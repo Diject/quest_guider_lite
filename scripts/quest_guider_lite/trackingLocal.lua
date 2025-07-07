@@ -37,7 +37,7 @@ local lastInteriorMarkers = {}
 ---@alias questGuider.tracking.markerData {id : string, index : integer, groupName : string, data : questGuider.tracking.markerRecord, parentObject: string?, itemCount : integer?, actorCount : integer?, handledRequirements : table<string, questDataGenerator.requirementBlock>?}
 
 ---@class questGuider.tracking.objectRecord
----@field color number[]
+---@field color number[]?
 ---@field markers table<string, questGuider.tracking.markerData> by quest id
 ---@field targetCells table<string, string>? parent cell editor name by editor name of cell that have access to the parent
 
@@ -124,7 +124,7 @@ function this.addMarker(params)
     if not objectTrackingData then
         local colorId = math.min(this.storageData.colorId, #colors)
 
-        objectTrackingData = { markers = {}, color = colors[colorId] } ---@diagnostic disable-line: missing-fields
+        objectTrackingData = { markers = {}, color = config.data.tracking.colored and colors[colorId] } ---@diagnostic disable-line: missing-fields
 
         this.storageData.colorId = colorId < #colors and colorId + 1 or 1
     end
@@ -158,7 +158,7 @@ function this.addMarker(params)
     local markerRecordParams = {
         name = positionData.name,
         description = {string.format("Quest: \"%s\"", questData.name or ""), ""},
-        nameColor = objectTrackingData.color,
+        nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity,
         priority = 10,
     }
@@ -170,7 +170,7 @@ function this.addMarker(params)
         icon = "textures/icons/quest_guider/toDoorIcon.dds",
         iconRatio = 1.6,
         iconColor = common.defaultColorData,
-        nameColor = objectTrackingData.color,
+        nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity,
         priority = 0,
     }
@@ -659,6 +659,22 @@ function this.isDialogueHasTracked(params)
     if not next(dia.objects) then return false end
 
     return true
+end
+
+
+---@return table<string, string[]>?
+function this.getDiaTrackedObjects(diaId)
+    if this.trackedObjectsByDiaId[diaId] then
+        return this.trackedObjectsByDiaId[diaId].objects or {}
+    end
+    return nil
+end
+
+
+---@param objId string
+---@return questGuider.tracking.objectRecord?
+function this.getTrackedObjectData(objId)
+    return this.markerByObjectId[objId]
 end
 
 

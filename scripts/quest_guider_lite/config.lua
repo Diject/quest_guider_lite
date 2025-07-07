@@ -11,12 +11,13 @@ this.default = {
     tracking = {
         autoTrack = true,
         trackDisabled = false,
+        colored = true,
         minChance = 0.1,
         maxPos = 20,
         proximity = 25000,
         questGiverProximity = 8000,
     },
-    journal ={
+    journal = {
         menuKey = "H",
         objectNames = 3,
         width = 1100,
@@ -26,6 +27,8 @@ this.default = {
             y = 0.2,
         },
         listRelativeSize = 0.3,
+        trackedColorMarks = true,
+        maxColorMarks = 10,
     },
     ui = {
         fontSize = 20,

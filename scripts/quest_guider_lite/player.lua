@@ -196,6 +196,7 @@ return {
             if not questMenu then return end
 
             questMenu:updateNextStageBlocks()
+            questMenu:updateQuestListTrackedColors()
             questMenu:update()
         end,
     },

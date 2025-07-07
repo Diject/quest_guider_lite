@@ -164,6 +164,7 @@ I.Settings.registerGroup{
         numberSetting{key = "journal.position.x", name = "positionX", description = "journalWindowPositionNote", integer = false, min = 0, max = 1, default = config.default.journal.position.x},
         numberSetting{key = "journal.position.y", name = "positionY", description = "journalWindowPositionNote", integer = false, min = 0, max = 1, default = config.default.journal.position.y},
         numberSetting{key = "journal.listRelativeSize", name = "questListRelativeSize", description = "questListRelativeSizeDescription", integer = false, min = 0.05, max = 0.5, default = config.default.journal.listRelativeSize},
+        boolSetting{key = "journal.trackedColorMarks", name = "colorFlags", description = "colorFlagsDescription", default = config.data.journal.trackedColorMarks},
     },
 }
 
@@ -182,6 +183,7 @@ I.Settings.registerGroup{
         numberSetting{key = "tracking.maxPos", name = "maxPositionNumberToNotTrackEntrances", description = "maxPositionNumberToNotTrackEntrancesDescription", integer = true, min = 0, default = config.default.tracking.maxPos},
         numberSetting{key = "tracking.proximity", name = "markerActivationDistance", description = "markerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.proximity},
         numberSetting{key = "tracking.questGiverProximity", name = "questGiverMarkerActivationDistance", description = "questGiverMarkerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.questGiverProximity},
+        boolSetting{key = "tracking.colored", name = "useColoredMarkers", description = "useColoredMarkersDescription", default = config.data.tracking.colored},
     },
 }
 

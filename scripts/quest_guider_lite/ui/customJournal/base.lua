@@ -8,6 +8,7 @@ local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 local config = require("scripts.quest_guider_lite.configLib")
 local commonData = require("scripts.quest_guider_lite.common")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local tracking = require("scripts.quest_guider_lite.trackingLocal")
 
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
@@ -61,6 +62,21 @@ journalMeta.resetQuestListColors = function (self)
 
     for _, elem in ipairs(layout.content) do
         elem.content[3].props.textShadow = false
+    end
+end
+
+journalMeta.updateQuestListTrackedColors = function (self)
+    local questList = self:getQuestList()
+
+    ---@type questGuider.ui.scrollBox
+    local questBoxMeta = questList.userData.scrollBoxMeta
+    local layout = questBoxMeta:getMainFlex()
+
+    for _, elem in ipairs(layout.content) do
+        if elem.userData and elem.userData.playerQuestData then
+            elem.content[1].content = ui.content{}
+            self:_addFlags(elem.content[1].content, elem.userData.playerQuestData)
+        end
     end
 end
 
@@ -120,6 +136,7 @@ journalMeta.selectQuest = function (self, qName)
 
     qMainLay.content = ui.content{
         questBox.create{
+            parent = self,
             fontSize = self.params.fontSize or 18,
             playerQuestData = selectedLayout.userData.playerQuestData,
             questName = selectedLayout.userData.questName,
@@ -194,6 +211,49 @@ local function hasText(questData, text)
 end
 
 
+---@param storageData questGuider.playerQuest.storageQuestData
+function journalMeta._addFlags(self, content, storageData)
+    if not commonData.whiteTexture then return end
+
+    ---@type table<string, string[]>
+    local objects = {}
+    for diaId, diaRecord in pairs((playerQuests.getQuestDataByName(storageData.name) or {}).records or {}) do
+        tableLib.copy(tracking.getDiaTrackedObjects(diaId) or {}, objects)
+    end
+
+    if not config.data.journal.trackedColorMarks and next(objects) then
+        content:add{
+            type = ui.TYPE.Image,
+            props = {
+                resource = commonData.whiteTexture,
+                size = util.vector2(self.params.fontSize / 3, self.params.fontSize),
+                color = commonData.defaultColor,
+            },
+        }
+    else
+        local maxMarks = config.data.journal.maxColorMarks
+        for objectId, _ in pairs(objects) do
+            local objData = tracking.getTrackedObjectData(objectId)
+            if objData and objData.color then
+                if maxMarks > 0 then
+                    maxMarks = maxMarks - 1
+                else
+                    break
+                end
+                content:add{
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = commonData.whiteTexture,
+                        size = util.vector2(self.params.fontSize / 4, self.params.fontSize),
+                        color = util.color.rgb(objData.color[1], objData.color[2], objData.color[3]),
+                    },
+                }
+            end
+        end
+    end
+end
+
+
 function journalMeta.fillQuestsContent(self, content)
     local params = self.params
 
@@ -239,6 +299,7 @@ function journalMeta.fillQuestsContent(self, content)
         end
 
         local flagsContent = ui.content{}
+        self:_addFlags(flagsContent, dt)
 
         content:add{
             type = ui.TYPE.Flex,
