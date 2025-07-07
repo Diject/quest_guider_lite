@@ -46,3 +46,26 @@ useColoredMarkers: "Colored markers"
 useColoredMarkersDescription: "When enabled, each tracked object is assigned a random color to help distinguish between them. Applies only to newly created."
 colorFlags: "Display color flags in quest list"
 colorFlagsDescription: "When enabled, colored flags appear before each quest name in the menu, matching the colors of the quest's tracked objects."
+
+hidden: "Hidden"
+finished: "Finished"
+filter: "Filter"
+close: "Close"
+miscellaneous: "Miscellaneous"
+nextColon: "Next:"
+variantsColon: "Variants:"
+closestColon: "Closest:"
+show: "Show"
+hide: "Hide"
+track: "Track"
+untrack: "Untrack"
+removeTracking: "Remove tracking"
+trackObjects: "Track objects"
+starts: "Starts"
+quest: "Quest"
+cellsAway: |-
+  {count, plural,
+    one {One cell away}
+    other {{count} cells away}
+  }
+startedTracking: "Started tracking"

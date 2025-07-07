@@ -11,6 +11,8 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
 local config = require("scripts.quest_guider_lite.config")
 
+local l10n = require('openmw.core').l10n(commonInfo.l10nKey)
+
 local this = {}
 
 this.trackedQuestGivers = {}
@@ -62,7 +64,7 @@ function this.createQuestGiverMarker(ref)
         icon = "textures/icons/quest_guider/exclamationMark.dds",
         iconRatio = 2,
         iconColor = commonInfo.defaultColorData,
-        description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, "Starts %s"),
+        description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("starts").." %s"),
         proximity = config.data.tracking.questGiverProximity,
         priority = -100,
         temporary = true,

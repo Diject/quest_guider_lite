@@ -16,6 +16,8 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
 local config = require("scripts.quest_guider_lite.config")
 
+local l10n = core.l10n(common.l10nKey)
+
 ---@type proximityTool
 local proximityTool = I.proximityTool
 
@@ -157,7 +159,7 @@ function this.addMarker(params)
     ---@type proximityTool.record
     local markerRecordParams = {
         name = positionData.name,
-        description = {string.format("Quest: \"%s\"", questData.name or ""), ""},
+        description = {string.format("%s: \"%s\"", l10n("quest"), questData.name or ""), ""},
         nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity,
         priority = 10,
@@ -166,7 +168,7 @@ function this.addMarker(params)
     ---@type proximityTool.record
     local doorMarkerRecordParams = {
         name = string.format("%s", positionData.name),
-        description = {string.format("Quest: \"%s\"", questData.name or ""), ""},
+        description = {string.format("%s: \"%s\"", l10n("quest"), questData.name or ""), ""},
         icon = "textures/icons/quest_guider/toDoorIcon.dds",
         iconRatio = 1.6,
         iconColor = common.defaultColorData,

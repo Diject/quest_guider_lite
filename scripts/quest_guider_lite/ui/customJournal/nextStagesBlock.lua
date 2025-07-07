@@ -22,6 +22,8 @@ local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local button = require("scripts.quest_guider_lite.ui.button")
 
+local l10n = core.l10n(consts.l10nKey)
+
 
 local this = {}
 
@@ -183,7 +185,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                         content = ui.content {
                             button{
                                 updateFunc = self.update,
-                                text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and "Untrack" or "Track",
+                                text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and l10n("untrack") or l10n("track"),
                                 textSize = (self.params.fontSize or 18) * 0.9,
                                 event = function (layout)
                                     local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
@@ -198,7 +200,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     local btnMeta = layout.userData.meta
                                     local btn = btnMeta:getButtonTextElement()
                                     if btn then
-                                        btn.props.text = not trackedState and "Untrack" or "Track"
+                                        btn.props.text = not trackedState and l10n("untrack") or l10n("track")
                                     end
                                     self:updateObjectElements()
                                 end
@@ -206,7 +208,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             interval((self.params.fontSize or 18) * 2, 0),
                             button{
                                 updateFunc = self.update,
-                                text = tracking.getDisabledState{objectId = objId, questId = diaId} and "Show" or "Hide",
+                                text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
                                 textSize = (self.params.fontSize or 18) * 0.9,
                                 event = function (layout)
                                     tracking.setDisableMarkerState{
@@ -222,7 +224,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     local btnMeta = layout.userData.meta
                                     local btn = btnMeta:getButtonTextElement()
                                     if btn then
-                                        btn.props.text = disabledState and "Show" or "Hide"
+                                        btn.props.text = disabledState and l10n("show") or l10n("hide")
                                     end
 
                                     self:updateObjectElements()
@@ -233,7 +235,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 template = templates.textNormal,
                                 type = ui.TYPE.Text,
                                 props = {
-                                    text = "Closest:",
+                                    text = l10n("closestColon"),
                                     textColor = config.data.ui.defaultColor,
                                     autoSize = true,
                                     textSize = (self.params.fontSize or 18) * 0.9,
@@ -340,7 +342,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     template = templates.textNormal,
                                     type = ui.TYPE.Text,
                                     props = {
-                                        text = "Variants:",
+                                        text = l10n("variantsColon"),
                                         textColor = config.data.ui.defaultColor,
                                         autoSize = true,
                                         textSize = params.fontSize or 18,
@@ -458,7 +460,7 @@ function this.create(params)
                         template = templates.textNormal,
                         type = ui.TYPE.Text,
                         props = {
-                            text = "Next:",
+                            text = l10n("nextColon"),
                             textColor = config.data.ui.defaultColor,
                             autoSize = true,
                             textSize = params.fontSize or 18,

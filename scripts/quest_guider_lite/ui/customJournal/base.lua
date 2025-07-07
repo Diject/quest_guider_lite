@@ -21,6 +21,8 @@ local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
 
+local l10n = core.l10n(commonData.l10nKey)
+
 
 ---@class questGuider.ui.customJournal
 local journalMeta = {}
@@ -290,7 +292,7 @@ function journalMeta.fillQuestsContent(self)
 
         local qName = dt.name or ""
 
-        local qNameText = qName == "" and "Other" or qName or "???"
+        local qNameText = qName == "" and l10n("miscellaneous") or qName or "???"
 
         if dt.finished then
             qNameText = string.format("(F) %s", qNameText)
@@ -380,7 +382,7 @@ local function create(params)
                 template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
-                    text = "Journal",
+                    text = l10n("journal"),
                     textSize = params.fontSize * 1.5,
                     autoSize = true,
                     textColor = config.data.ui.defaultColor,
@@ -423,7 +425,7 @@ local function create(params)
                 template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
-                    text = "Close",
+                    text = l10n("close"),
                     textSize = params.fontSize * 1.25,
                     autoSize = true,
                     anchor = util.vector2(1, 1),
@@ -479,7 +481,7 @@ local function create(params)
             },
             button{
                 updateFunc = updateFunc,
-                text = "Search",
+                text = l10n("filter"),
                 textSize = params.fontSize,
                 position = util.vector2(questListSize.x - 2, 3),
                 anchor = util.vector2(1, 0),
@@ -504,7 +506,7 @@ local function create(params)
                     meta:update()
                 end,
                 checked = true,
-                text = "Finished",
+                text = l10n("finished"),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
@@ -518,7 +520,7 @@ local function create(params)
                     meta:update()
                 end,
                 checked = true,
-                text = "Hidden",
+                text = l10n("hidden"),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()

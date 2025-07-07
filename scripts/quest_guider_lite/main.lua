@@ -13,6 +13,9 @@ local testing = require("scripts.quest_guider_lite.testing.tests")
 local questGivers = require("scripts.quest_guider_lite.questGiverTracking")
 local trackingGlobal = require("scripts.quest_guider_lite.trackingGlobal")
 local cellLib = require("scripts.quest_guider_lite.cell")
+local common = require("scripts.quest_guider_lite.common")
+
+local l10n = require('openmw.core').l10n(common.l10nKey)
 
 
 ---@class questGuider.main.fillQuestBoxQuestInfo.returnFieldDt
@@ -250,7 +253,7 @@ local function showTrackingMessage(objects)
         end
 
         if #names > 0 then
-                world.players[1]:sendEvent("QGL:showTrackingMessage", {message = stringLib.getValueEnumString(names, 3, "Started tracking %s.")})
+                world.players[1]:sendEvent("QGL:showTrackingMessage", {message = stringLib.getValueEnumString(names, 3, l10n("startedTracking").." %s.")})
         end
 
         world.players[1]:sendEvent("QGL:updateMarkers", {})

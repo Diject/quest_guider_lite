@@ -4,8 +4,12 @@ local util = require('openmw.util')
 
 local log = require("scripts.quest_guider_lite.utils.log")
 
+local common = require("scripts.quest_guider_lite.common")
+
 local cellLib = require("scripts.quest_guider_lite.cell")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
+
+local l10n = require('openmw.core').l10n(common.l10nKey)
 
 
 local depthConut = 2
@@ -121,7 +125,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
                                     groupName = markerInfo.groupName,
                                     shortTerm = true,
                                 },
-                                description = string.format("%d cell%s away", lowestDepth, lowestDepth == 1 and "" or "s"),
+                                description = string.format(l10n("cellsAway", {count = lowestDepth})),
                             }
                         end
 

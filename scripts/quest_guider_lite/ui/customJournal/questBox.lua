@@ -23,6 +23,8 @@ local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
 
 local dialogueIDTooltipLib = require("scripts.quest_guider_lite.ui.dialogueIdTooltip")
 
+local l10n = core.l10n(common.l10nKey)
+
 
 local this = {}
 
@@ -49,7 +51,7 @@ end
 function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     self:getButtonFlex().content = ui.content{}
     self:getButtonFlex().content:add(button{
-        text = "Track objects",
+        text = l10n("trackObjects"),
         textSize = self.params.fontSize * 0.8,
         event = function (layout)
             self:addTrackButtons(true)
@@ -73,7 +75,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     if hasTracked then
         self:getButtonFlex().content:add(interval(self.params.fontSize, 0))
         self:getButtonFlex().content:add(button{
-            text = "Remove tracking",
+            text = l10n("removeTracking"),
             textSize = self.params.fontSize * 0.8,
             event = function (layout)
                 for _, info in pairs(self.questInfo) do
@@ -269,7 +271,7 @@ function this.create(params)
                             params.updateFunc()
                         end,
                         checked = params.playerQuestData.finished,
-                        text = "Finished",
+                        text = l10n("finished"),
                         textSize = params.fontSize or 18,
                         relativePosition = util.vector2(0, 0.5),
                         anchor = util.vector2(0, 0.5),
@@ -282,7 +284,7 @@ function this.create(params)
                             params.updateFunc()
                         end,
                         checked = params.playerQuestData.disabled,
-                        text = "Hidden",
+                        text = l10n("hidden"),
                         relativePosition = util.vector2(0.25, 0.5),
                         anchor = util.vector2(0, 0.5),
                         textSize = params.fontSize or 18,
