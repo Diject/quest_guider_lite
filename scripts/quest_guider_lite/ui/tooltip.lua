@@ -1,8 +1,7 @@
-local I = require('openmw.interfaces')
 local ui = require('openmw.ui')
 local util = require('openmw.util')
-
-local safeContainers = require("scripts.proximityTool.ui.safeContainer")
+local async = require('openmw.async')
+local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 
 local this = {}
 
@@ -30,16 +29,13 @@ function this.createOrMove(coord, parent, layoutContent)
 
     local position, anchor = this.calcTooltipPosAnchor(coord.position)
 
-    if not parent.userData.tooltip or not parent.userData.tooltip.valid then
+    if not parent.userData.tooltip then
         if not layoutContent then return end
-        local tooltipHandler = safeContainers.new("tooltip")
-
-        parent.userData["tooltip"] = tooltipHandler
 
         local tooltipLayout = {
-            template = I.MWUI.templates.boxSolid,
+            template = customTemplates.boxSolid,
             layer = "Notification",
-            name = "proximityTool:tooltip",
+            name = "QGL:tooltip",
             props = {
                 position = position,
                 anchor = anchor,
@@ -55,20 +51,26 @@ function this.createOrMove(coord, parent, layoutContent)
             }
         }
 
-        tooltipHandler:create(tooltipLayout)
+        parent.userData["tooltip"] = ui.create(tooltipLayout)
+
+        local timer = async:newUnsavableSimulationTimer(0.1, function ()
+            if not parent.userData.tooltip then return end
+            local tooltipHandler = parent.userData.tooltip
+            parent.userData.tooltip = nil
+            tooltipHandler:destroy()
+        end)
+
         return
     end
 
 
     if not parent.userData.tooltip then return end
-    local tooltipHandler = parent.userData.tooltip
-    if not tooltipHandler.element then return end
 
-    local props = tooltipHandler.element.layout.props
+    local props = parent.userData.tooltip.layout.props
 
     props.position, props.anchor = position, anchor
 
-    tooltipHandler:update()
+    parent.userData.tooltip:update()
 end
 
 
@@ -76,7 +78,6 @@ function this.destroy(parent)
     if not parent.userData or not parent.userData.tooltip then return end
     local tooltipHandler = parent.userData.tooltip
     parent.userData.tooltip = nil
-    if not tooltipHandler.valid then return end
     tooltipHandler:destroy()
 end
 

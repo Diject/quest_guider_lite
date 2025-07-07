@@ -19,6 +19,9 @@ local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
 local button = require("scripts.quest_guider_lite.ui.button")
+local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
+
+local dialogueIDTooltipLib = require("scripts.quest_guider_lite.ui.dialogueIdTooltip")
 
 
 local this = {}
@@ -118,6 +121,8 @@ function questBoxMeta._fillJournal(self, content, params)
         local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12)
         local textElemSize = util.vector2(params.size.x - 12, height)
 
+        local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize}
+
         content:add{
             type = ui.TYPE.Flex,
             props = {
@@ -145,6 +150,16 @@ function questBoxMeta._fillJournal(self, content, params)
                                 autoSize = true,
                                 textSize = (params.fontSize or 18) * 1.15,
                                 textColor = config.data.ui.dateColor,
+                            },
+                            userData = {},
+                            events = {
+                                mouseMove = async:callback(function(coord, layout)
+                                    tooltip.createOrMove(coord, layout, tooltipContent)
+                                end),
+
+                                focusLoss = async:callback(function(e, layout)
+                                    tooltip.destroy(layout)
+                                end),
                             },
                         }
                     }
@@ -203,6 +218,9 @@ function this.create(params)
         params.updateFunc()
     end
 
+
+    local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{meta = meta}
+
     local headerSize = util.vector2(params.size.x, params.fontSize * 3)
     local checkBoxBlockSize = util.vector2(params.size.x, params.fontSize * 2)
     local header = {
@@ -221,10 +239,20 @@ function this.create(params)
                     textColor = config.data.ui.defaultColor,
                     autoSize = false,
                     size = util.vector2(params.size.x, params.fontSize),
-                    textSize = (params.fontSize or 18) + 4,
+                    textSize = (params.fontSize or 18) * 1.2,
                     multiline = false,
                     wordWrap = false,
                     textAlignH = ui.ALIGNMENT.Center,
+                },
+                userData = {},
+                events = {
+                    mouseMove = async:callback(function(coord, layout)
+                        tooltip.createOrMove(coord, layout, tooltipContent)
+                    end),
+
+                    focusLoss = async:callback(function(e, layout)
+                        tooltip.destroy(layout)
+                    end),
                 },
             },
             interval(0, params.fontSize / 3),
