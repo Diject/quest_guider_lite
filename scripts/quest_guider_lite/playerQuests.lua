@@ -96,7 +96,7 @@ function this.init()
     this.finished = {}
 
     for _, dia in pairs(core.dialogue.journal.records) do
-        local qName = dia.questName
+        local qName = dia.questName or ""
         if qName then
             if not this.questData[qName] then this.questData[qName] = {records = {}} end
             this.questData[qName].records[dia.id] = dia
@@ -109,13 +109,14 @@ function this.init()
         end
 
         local dia = core.dialogue.journal.records[q.id]
-        if not dia or not dia.questName then goto continue end
+        if not dia then goto continue end
+        local qName = dia.questName or ""
 
-        local qData = this.questData[dia.questName]
+        local qData = this.questData[qName]
         if not qData then goto continue end
 
-        if storageData and not storageData.questData[dia.questName] then
-            local storageQuestData = initStorageQuestData(dia.questName)
+        if storageData and not storageData.questData[qName] then
+            local storageQuestData = initStorageQuestData(qName)
             if storageQuestData then
                 storageQuestData.finished = storageQuestData.finished or q.finished
                 table.insert(storageQuestData.list, {
@@ -185,7 +186,7 @@ function this.getQuestDataByDiaId(diaId)
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
-    return this.questData[dia.questName]
+    return this.questData[dia.questName or ""]
 end
 
 
@@ -218,7 +219,7 @@ function this.update(diaId, index)
     local data = this.getQuestDataByName(dia.questName or "")
     if not data then return end
 
-    local questData = initStorageQuestData(dia.questName)
+    local questData = initStorageQuestData(dia.questName or "")
     if questData then
         questData.finished = questData.finished or qDia.finished
         questData.timestamp = timeLib.time
