@@ -273,7 +273,7 @@ function this.create(params)
                         checked = params.playerQuestData.finished,
                         text = l10n("finished"),
                         textSize = params.fontSize or 18,
-                        relativePosition = util.vector2(0, 0.5),
+                        relativePosition = util.vector2(0.01, 0.5),
                         anchor = util.vector2(0, 0.5),
                         event = function (checked, layout)
                             params.playerQuestData.finished = checked

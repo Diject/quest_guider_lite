@@ -238,7 +238,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     text = l10n("closestColon"),
                                     textColor = config.data.ui.defaultColor,
                                     autoSize = true,
-                                    textSize = (self.params.fontSize or 18) * 0.9,
+                                    textSize = (self.params.fontSize or 18) * 0.8,
                                     textAlignH = ui.ALIGNMENT.End,
                                     multiline = false,
                                     wordWrap = false,
