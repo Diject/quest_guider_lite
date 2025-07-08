@@ -392,6 +392,7 @@ local function create(params)
                 userData = {},
                 events = {
                     mousePress = async:callback(function(coord, layout)
+                        layout.userData.contentBackup = meta:getQuestMain().content
                         meta:getQuestMain().content = ui.content{}
                         meta:resetQuestListColors()
 
@@ -405,6 +406,10 @@ local function create(params)
                         config.setValue("journal.position.x", relativePos.x)
                         config.setValue("journal.position.y", relativePos.y)
                         layout.userData.lastMousePos = nil
+
+                        meta:getQuestMain().content = layout.userData.contentBackup
+                        layout.userData.contentBackup = nil
+                        meta:update()
                     end),
 
                     mouseMove = async:callback(function(coord, layout)
