@@ -69,3 +69,20 @@ cellsAway: |-
     other {{count} cells away}
   }
 startedTracking: "Started tracking"
+
+true_l: "true"
+false_l: "false"
+male_l: "male"
+female_l: "female"
+theActor_l: "the actor"
+theObject_l: "the object"
+thePlayer_l: "the player"
+before_l: "before"
+nt: "n't"
+reachableFrom: "Reachable from"
+equal: "equal"
+notEqual: "not equal"
+greater: "greater"
+greaterOrEqual: "greater or equal"
+less: "less"
+lessOrEqual: "less or equal"

@@ -20,6 +20,10 @@ local requirementChecker = require("scripts.quest_guider_lite.requirementChecker
 local tes = require("scripts.quest_guider_lite.core.tes3")
 local getObject = require("scripts.quest_guider_lite.core.getObject")
 
+local commonData = require("scripts.quest_guider_lite.common")
+local core = require('openmw.core')
+local l10n = core.l10n(commonData.l10nKey)
+
 local this = {}
 
 local weaponTypeNameById = otherTypes.weaponTypeNameById
@@ -278,7 +282,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
 
     local function getName(obj, default)
         if obj and obj.id == "player" then
-            return "the player"
+            return l10n("thePlayer_l")
         elseif obj and obj.name then
             return obj.name
         end
@@ -421,7 +425,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 elseif codeStr == "varQuestName" then
                     mapped[pattern] = environment.variableQuestName
                 elseif codeStr == "objectName" then
-                    mapped[pattern] = getName(environment.objectObj)
+                    mapped[pattern] = getName(environment.objectObj, l10n("theObject_l"))
                 elseif codeStr == "valueName" then
                     mapped[pattern] = getName(environment.valueObj)
                 elseif codeStr == "varName" then
@@ -445,9 +449,15 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 elseif codeStr == "weatherIdVal" then
                     mapped[pattern] = weatherById[environment.value] and weatherById[environment.value] or tostring(environment.value)
                 elseif codeStr == "varNameOrTheActor" then
-                    mapped[pattern] = getName(environment.variableObj, "the actor")
+                    mapped[pattern] = getName(environment.variableObj, l10n("theActor_l"))
                 elseif codeStr == "objNameOrTheActor" then
-                    mapped[pattern] = getName(environment.objectObj, "the actor")
+                    mapped[pattern] = getName(environment.objectObj, l10n("theActor_l"))
+                elseif codeStr == "maleFemaleValue" then
+                    mapped[pattern] = environment.value == 0 and l10n("male_l") or l10n("female_l")
+                elseif codeStr == "trueFalseValue" then
+                    mapped[pattern] = environment.value == 1 and l10n("true_l") or l10n("false_l")
+                elseif codeStr == "isBeforeValue" then
+                    mapped[pattern] = environment.value == 0 and l10n("before_l") or ""
                 elseif codeStr == "raceByIntValue" then
                     local race = types.NPC.races.record(environment.value) -- TODO: probably doesn't work
                     mapped[pattern] = race and race.name or "???"
@@ -967,7 +977,7 @@ function this.getRequirementPositionData(requirement, customConfig)
                                     count = count + 1
                                 end
                                 tableLib.shuffle(list, count)
-                                descr = stringLib.getValueEnumString(list, configData.journal.objectNames, "Reachable from %s")
+                                descr = stringLib.getValueEnumString(list, configData.journal.objectNames, l10n("reachableFrom").." %s")
                             end
                             add(id, object, {description = descr or posDt.name, id = posDt.name, position = util.vector3(x, y, z), rawData = newPosData})
                         end
@@ -1041,7 +1051,7 @@ function this.getRequirementPositionData(requirement, customConfig)
                         count = count + 1
                     end
                     tableLib.shuffle(list, count)
-                    descr = stringLib.getValueEnumString(list, configData.journal.objectNames, "Reachable from %s")
+                    descr = stringLib.getValueEnumString(list, configData.journal.objectNames, l10n("reachableFrom").." %s")
                 end
 
                 add(id, cell, {description = descr or cell.name, id = cell.name, })
@@ -1181,7 +1191,7 @@ function this.getObjectPositionDescription(objData, maxNames)
                                 count = count + 1
                             end
                             tableLib.shuffle(list, count)
-                            descr = string.format("\"%s\", %s", cell.displayName, stringLib.getValueEnumString(list, maxNames, "Reachable from %s"))
+                            descr = string.format("\"%s\", %s", cell.displayName, stringLib.getValueEnumString(list, maxNames, l10n("reachableFrom").." %s"))
                         else
                             descr = string.format("\"%s\"", cell.displayName)
                         end

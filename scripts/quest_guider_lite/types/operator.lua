@@ -1,3 +1,7 @@
+local commonData = require("scripts.quest_guider_lite.common")
+local core = require('openmw.core')
+local l10n = core.l10n(commonData.l10nKey)
+
 local this = {}
 
 this.value = {
@@ -10,12 +14,12 @@ this.value = {
 }
 
 this.name = {
-    [48] = "equal",
-    [49] = "not equal",
-    [50] = "greater",
-    [51] = "greater or equal",
-    [52] = "less",
-    [53] = "less or equal",
+    [48] = l10n("equal"),
+    [49] = l10n("notEqual"),
+    [50] = l10n("greater"),
+    [51] = l10n("greaterOrEqual"),
+    [52] = l10n("less"),
+    [53] = l10n("lessOrEqual"),
 }
 
 ---@param a any
