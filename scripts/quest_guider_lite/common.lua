@@ -42,5 +42,6 @@ pcall(function ()
 end)
 
 this.playerQuestDataLabel = "playerQuests"
+this.killCounterDataLabel = "killCounter"
 
 return this

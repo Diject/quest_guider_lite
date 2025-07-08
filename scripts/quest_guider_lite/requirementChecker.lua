@@ -6,6 +6,7 @@ local stringLib = require("scripts.quest_guider_lite.utils.string")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local reqTypes = require("scripts.quest_guider_lite.types")
 local operator = reqTypes.operator
+local killCounter = require("scripts.quest_guider_lite.killCounter")
 
 local this = {}
 
@@ -53,17 +54,17 @@ local dataFuncs = {
         return operator.check(rank, req.value, req.operator)
     end,
 
-    -- [reqTypes.requirementType.Dead] = function (req)
-    --     if not req.variable then return end
-    --     local kilCount = tes3.getKillCount{ actor = req.variable }
-    --     return operator.check(kilCount, req.value, req.operator)
-    -- end,
+    [reqTypes.requirementType.Dead] = function (req)
+        if not req.variable then return end
+        local kilCount = killCounter.getKillCount(req.variable)
+        return operator.check(kilCount, req.value, req.operator)
+    end,
 
-    -- [reqTypes.requirementType.CustomOnDeath] = function (req, obj)
-    --     if not req.object and not obj then return end
-    --     local kilCount = tes3.getKillCount{ actor = obj and obj.id or req.object }
-    --     return operator.check(kilCount, req.value, req.operator)
-    -- end,
+    [reqTypes.requirementType.CustomOnDeath] = function (req, obj)
+        if not req.object and not obj then return end
+        local kilCount = killCounter.getKillCount(obj and obj.id or req.object)
+        return operator.check(kilCount, req.value, req.operator)
+    end,
 
     [reqTypes.requirementType.Item] = function (req, ref)
         if not req.variable and not ref then return end

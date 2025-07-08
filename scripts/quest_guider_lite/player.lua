@@ -20,6 +20,7 @@ local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local configLib = require("scripts.quest_guider_lite.configLib")
+local killCounter = require("scripts.quest_guider_lite.killCounter")
 
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
@@ -35,12 +36,14 @@ local function onInit()
     if not localStorage.isPlayerStorageReady() then
         localStorage.initPlayerStorage()
     end
+    killCounter.initByStorageData(localStorage.data)
     tracking.init()
 end
 
 
 local function onLoad(data)
     localStorage.initPlayerStorage(data)
+    killCounter.initByStorageData(localStorage.data)
     tracking.init()
     playerQuests.init()
 end
@@ -199,5 +202,9 @@ return {
             questMenu:updateQuestListTrackedColors()
             questMenu:update()
         end,
+
+        ["QGL:registerActorDeath"] = function (data)
+            killCounter.registerKill(data.object)
+        end
     },
 }

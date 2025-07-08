@@ -14,6 +14,7 @@ local questGivers = require("scripts.quest_guider_lite.questGiverTracking")
 local trackingGlobal = require("scripts.quest_guider_lite.trackingGlobal")
 local cellLib = require("scripts.quest_guider_lite.cell")
 local common = require("scripts.quest_guider_lite.common")
+local killCounter = require("scripts.quest_guider_lite.killCounter")
 
 local l10n = require('openmw.core').l10n(common.l10nKey)
 
@@ -337,6 +338,15 @@ return {
 
         ["QGL:fillQuestBoxQuestInfo"] = function (data)
             fillQuestBoxQuestInfo(data)
+        end,
+
+        ["QGL:registerActorDeath"] = function (data)
+            killCounter.registerKill(data.object)
+            world.players[1]:sendEvent("QGL:registerActorDeath", data)
+        end,
+
+        ["QGL:updateKillCounter"] = function (data)
+            killCounter.init(data)
         end,
     },
 }
