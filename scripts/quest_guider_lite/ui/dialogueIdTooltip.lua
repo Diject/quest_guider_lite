@@ -58,8 +58,8 @@ function this.getContentForTooltip(params)
 
     local width = config.data.journal.width / 3
     local fontSize = params.fontSize or (meta and meta.params.fontSize) or 18
-    local idTextHeight = uiUtils.getTextHeight(idStr, fontSize, width, 0.5)
-    local startedInHeight = uiUtils.getTextHeight(startedInStr, fontSize, width, 0.5)
+    local idTextHeight = uiUtils.getTextHeight(idStr, fontSize, width, config.data.journal.textHeightMul)
+    local startedInHeight = uiUtils.getTextHeight(startedInStr, fontSize, width, config.data.journal.textHeightMul)
 
     return ui.content{
         {

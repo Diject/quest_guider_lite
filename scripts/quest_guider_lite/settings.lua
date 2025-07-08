@@ -165,6 +165,8 @@ I.Settings.registerGroup{
         numberSetting{key = "journal.position.y", name = "positionY", description = "journalWindowPositionNote", integer = false, min = 0, max = 1, default = config.default.journal.position.y},
         numberSetting{key = "journal.listRelativeSize", name = "questListRelativeSize", description = "questListRelativeSizeDescription", integer = false, min = 0.05, max = 0.5, default = config.default.journal.listRelativeSize},
         boolSetting{key = "journal.trackedColorMarks", name = "colorFlags", description = "colorFlagsDescription", default = config.data.journal.trackedColorMarks},
+        numberSetting{key = "journal.textHeightMul", name = "textHeightMul", description = "textHeightMulDescription", integer = false, min = 0.1, max = 2, default = config.default.journal.textHeightMul},
+        numberSetting{key = "journal.textHeightMulRecord", name = "textHeightMulJournal", integer = false, min = 0.1, max = 2, default = config.default.journal.textHeightMulRecord},
     },
 }
 

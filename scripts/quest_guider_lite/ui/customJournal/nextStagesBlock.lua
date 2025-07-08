@@ -250,7 +250,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             }
 
             local posTextShift = self.params.fontSize / 2
-            local posHeight = uiUtils.getTextHeight(objData.descr, self.params.fontSize, self.params.size.x - posTextShift, 0.5)
+            local posHeight = uiUtils.getTextHeight(objData.descr, self.params.fontSize, self.params.size.x - posTextShift, config.data.journal.textHeightMul)
             local position = {
                 template = templates.textNormal,
                 type = ui.TYPE.Text,
@@ -295,7 +295,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
         for _, req in ipairs(requirements) do
             text = string.format("%s  %s\n", text, req.str)
         end
-        local textHeight = uiUtils.getTextHeight(text, params.fontSize or 18, self.params.size.x, 0.5)
+        local textHeight = uiUtils.getTextHeight(text, params.fontSize or 18, self.params.size.x, config.data.journal.textHeightMul)
         content:add{
             template = templates.textNormal,
             type = ui.TYPE.Text,

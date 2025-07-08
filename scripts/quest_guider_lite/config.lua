@@ -29,6 +29,8 @@ this.default = {
         listRelativeSize = 0.3,
         trackedColorMarks = true,
         maxColorMarks = 10,
+        textHeightMul = 0.5,
+        textHeightMulRecord = 0.7,
     },
     ui = {
         fontSize = 20,

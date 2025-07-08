@@ -120,7 +120,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
         local dateStr = timeLib.getDateByTime(qInfo.timestamp or 0)
 
-        local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12)
+        local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12, config.data.journal.textHeightMulRecord)
         local textElemSize = util.vector2(params.size.x - 12, height)
 
         local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize}
