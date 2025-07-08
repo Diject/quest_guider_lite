@@ -13,6 +13,7 @@ local common = require("scripts.quest_guider_lite.common")
 local storage = require("scripts.quest_guider_lite.storage.localStorage")
 
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local killCounter = require("scripts.quest_guider_lite.killCounter")
 
 local config = require("scripts.quest_guider_lite.config")
 
@@ -287,16 +288,21 @@ function this.addMarker(params)
 
     this.trackedObjectsByDiaId[params.questId] = qTrackingInfo
 
+    local updateMarkers = false
     if positionData.itemCount then
-        this.handlePlayerInventory()
+        updateMarkers = updateMarkers or this.handlePlayerInventory()
     end
-    -- if positionData.actorCount then
-    --     this.handleDeath(objectId)
-    -- end
+    if positionData.actorCount then
+        updateMarkers = updateMarkers or this.handleDeath(objectId)
+    end
 
     -- if this.disabledQuests[params.questId] then
     --     this.setDisableMarkerState{ questId = params.questId, value = true }
     -- end
+
+    if updateMarkers then
+        this.updateMarkers()
+    end
 
     return objectTrackingData
 end
@@ -446,10 +452,61 @@ function this.handlePlayerInventory()
         end
     end
 
-    -- TODO
-    -- if changed and tes3.player.cell.isInterior then
-    --     this.addMarkersForInteriorCell(tes3.player.cell)
-    -- end
+    if changed and not playerRef.cell.isExterior then
+        this.addMarkersForInteriorCell(playerRef.cell)
+    end
+
+    if changed then
+        this.updateMarkers()
+    end
+
+    return changed
+end
+
+
+---@return boolean? changed
+function this.handleDeath(objectId)
+    if not objectId then return end
+
+    local objData = this.markerByObjectId[objectId]
+    if not objData then return end
+
+    local changed = false
+
+    local protected = false
+    for _, markerData in pairs(objData.markers) do
+
+        -- if markerData.handledRequirements and config.data.tracking.hideFinActors then
+        --     local hChanged, hProtected = checkHandledRequirements(objectId, markerData, protected)
+        --     changed = changed or hChanged
+        --     protected = protected or hProtected
+        -- end
+
+        if markerData.actorCount then
+            local killCount = killCounter.getKillCount(markerData.parentObject or objectId)
+
+            if killCount >= markerData.actorCount then
+                if markerData.data.disabled ~= true and not protected then
+                    this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true }
+                    changed = true
+                end
+            else
+                protected = true
+                if markerData.data.disabled ~= false then
+                    this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false }
+                    changed = true
+                end
+            end
+        end
+    end
+
+    if changed and not playerRef.cell.isExterior then
+        this.addMarkersForInteriorCell(playerRef.cell)
+    end
+
+    if changed then
+        this.updateMarkers()
+    end
 
     return changed
 end
@@ -549,9 +606,9 @@ function this.addMarkersForQuest(params)
 
     core.sendGlobalEvent("QGL:getTrackingData", {questId = params.questId, index = params.questIndex})
 
-    -- if tes3.player.cell.isInterior then
-    --     this.addMarkersForInteriorCell(tes3.player.cell)
-    -- end
+    if not playerRef.cell.isExterior then
+        this.addMarkersForInteriorCell(playerRef.cell)
+    end
 end
 
 
