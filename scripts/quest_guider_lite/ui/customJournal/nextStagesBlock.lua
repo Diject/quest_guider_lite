@@ -186,7 +186,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             button{
                                 updateFunc = self.update,
                                 text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and l10n("untrack") or l10n("track"),
-                                textSize = (self.params.fontSize or 18) * 0.9,
+                                textSize = (self.params.fontSize or 18) * 0.8,
                                 event = function (layout)
                                     local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
                                     if trackedState then
@@ -209,7 +209,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             button{
                                 updateFunc = self.update,
                                 text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
-                                textSize = (self.params.fontSize or 18) * 0.9,
+                                textSize = (self.params.fontSize or 18) * 0.8,
                                 event = function (layout)
                                     tracking.setDisableMarkerState{
                                         objectId = objId,
