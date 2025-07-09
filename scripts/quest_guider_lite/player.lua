@@ -104,6 +104,9 @@ return {
             if config.data.tracking.autoTrack then
                 tracking.trackQuest(questId, stage)
             end
+            if tracking.handleTrackingRequirements() then
+                tracking.updateMarkers()
+            end
             core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
         end,
         onTeleported = function ()

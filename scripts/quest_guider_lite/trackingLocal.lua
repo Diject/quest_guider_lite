@@ -511,6 +511,29 @@ function this.handleDeath(objectId)
 end
 
 
+---@return boolean?
+function this.handleTrackingRequirements()
+    local changed = false
+    local protected = false
+
+    for objectId, data in pairs(this.markerByObjectId) do
+        for _, markerData in pairs(data.markers) do
+
+            local hChanged, hProtected = checkHandledRequirements(objectId, markerData, protected)
+            changed = changed or hChanged
+            protected = protected or hProtected
+
+        end
+    end
+
+    if changed and not playerRef.cell.isExterior then
+        this.addMarkersForInteriorCell(playerRef.cell)
+    end
+
+    return changed
+end
+
+
 ---@param params questGuider.tracking.removeMarker
 local function removeMarker(params)
     local recordIdsToRemove = {}
