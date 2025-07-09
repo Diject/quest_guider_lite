@@ -94,7 +94,7 @@ time.runRepeatedly(function()
     if tracking.handlePlayerInventory() then
         tracking.updateMarkers()
     end
-end, 5 * time.second)
+end, 5 * time.second + math.random())
 
 
 return {
