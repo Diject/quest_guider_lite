@@ -14,6 +14,7 @@ local storage = require("scripts.quest_guider_lite.storage.localStorage")
 
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
+local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 
 local config = require("scripts.quest_guider_lite.config")
 
@@ -396,11 +397,10 @@ local function checkHandledRequirements(objectId, markerData, protectedState)
 
     local res = false
 
-    -- TODO
-    -- for _, reqBlock in pairs(markerData.handledRequirements) do
-    --     local reqRes = requirementChecker.checkBlock(reqBlock, {threatErrorsAs = true})
-    --     res = res or reqRes
-    -- end
+    for _, reqBlock in pairs(markerData.handledRequirements) do
+        local reqRes = requirementChecker.checkBlock(reqBlock, {threatErrorsAs = true})
+        res = res or reqRes
+    end
 
     if res == false then
         if markerData.data.disabled ~= true and not protectedState then
@@ -426,12 +426,11 @@ function this.handlePlayerInventory()
         local protected = false
         for _, markerData in pairs(data.markers) do
 
-            -- TODO
-            -- if markerData.handledRequirements then -- and config.data.tracking.hideFinActors
-            --     local hChanged, hProtected = checkHandledRequirements(objId, markerData, protected)
-            --     changed = changed or hChanged
-            --     protected = protected or hProtected
-            -- end
+            if markerData.handledRequirements then -- and config.data.tracking.hideFinActors
+                local hChanged, hProtected = checkHandledRequirements(objId, markerData, protected)
+                changed = changed or hChanged
+                protected = protected or hProtected
+            end
 
             if markerData.itemCount then -- and config.data.tracking.hideObtained
                 local palyerItemCount = types.Actor.inventory(playerRef):countOf(markerData.parentObject)
@@ -476,11 +475,11 @@ function this.handleDeath(objectId)
     local protected = false
     for _, markerData in pairs(objData.markers) do
 
-        -- if markerData.handledRequirements and config.data.tracking.hideFinActors then
-        --     local hChanged, hProtected = checkHandledRequirements(objectId, markerData, protected)
-        --     changed = changed or hChanged
-        --     protected = protected or hProtected
-        -- end
+        if markerData.handledRequirements and config.data.tracking.hideFinActors then
+            local hChanged, hProtected = checkHandledRequirements(objectId, markerData, protected)
+            changed = changed or hChanged
+            protected = protected or hProtected
+        end
 
         if markerData.actorCount then
             local killCount = killCounter.getKillCount(markerData.parentObject or objectId)
@@ -506,6 +505,29 @@ function this.handleDeath(objectId)
 
     if changed then
         this.updateMarkers()
+    end
+
+    return changed
+end
+
+
+---@return boolean?
+function this.handleTrackingRequirements()
+    local changed = false
+    local protected = false
+
+    for objectId, data in pairs(this.markerByObjectId) do
+        for _, markerData in pairs(data.markers) do
+
+            local hChanged, hProtected = checkHandledRequirements(objectId, markerData, protected)
+            changed = changed or hChanged
+            protected = protected or hProtected
+
+        end
+    end
+
+    if changed and not playerRef.cell.isExterior then
+        this.addMarkersForInteriorCell(playerRef.cell)
     end
 
     return changed

@@ -1,7 +1,10 @@
-local types = require('openmw.types')
-local world = require('openmw.world')
+local include = require("scripts.quest_guider_lite.utils.include")
 
-local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local types = require('openmw.types')
+local playerFunc = types.Player
+local world = include("openmw.world")
+local playerRef = include("openmw.self")
+
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local reqTypes = require("scripts.quest_guider_lite.types")
@@ -15,7 +18,8 @@ local this = {}
 local dataFuncs = {
     [reqTypes.requirementType.Journal] = function (req)
         if not req.variable then return end
-        local plIndex = playerQuests.getCurrentIndex(req.variable) or 0
+        local qData = playerFunc.quests(playerRef)[req.variable]
+        local plIndex = qData and qData.stage or 0
         return operator.check(plIndex, req.value, req.operator)
     end,
 
@@ -31,7 +35,7 @@ local dataFuncs = {
     end,
 
     [reqTypes.requirementType.CustomPCFaction] = function (req)
-        local ref = world.players[1]
+        local ref = world and world.players[1] or playerRef
         local factions = types.NPC.getFactions(ref)
         if not factions then return end
         local res = false
@@ -50,7 +54,7 @@ local dataFuncs = {
 
     [reqTypes.requirementType.CustomPCRank] = function (req)
         if not req.variable then return end
-        local rank = types.NPC.getFactionRank(world.players[1], req.variable)
+        local rank = types.NPC.getFactionRank(world and world.players[1] or playerRef, req.variable)
         return operator.check(rank, req.value, req.operator)
     end,
 
@@ -76,7 +80,8 @@ local dataFuncs = {
 
     [reqTypes.requirementType.CustomGlobal] = function (req)
         if req.object or not req.variable then return end
-        local globals = world.mwscript.getGlobalVariables(world.players[1])
+        local globals = world and world.mwscript.getGlobalVariables(world.players[1])
+        if not globals then return end
         local value
         for name, val in pairs(globals) do
             if name:lower() == req.variable then
@@ -90,7 +95,7 @@ local dataFuncs = {
 
     [reqTypes.requirementType.CustomLocal] = function (req, ref)
         if not req.variable or not ref then return end
-        local script = world.mwscript.getLocalScript(ref, world.players[1])
+        local script = world and world.mwscript.getLocalScript(ref, world.players[1])
         if not script then return end
         local variables = script.variables
 
@@ -112,7 +117,7 @@ local dataFuncs = {
     [reqTypes.requirementType.CustomNotLocal] = function (req, ref)
         if not req.variable or not ref then return end
 
-        local script = world.mwscript.getLocalScript(ref, world.players[1])
+        local script = world and world.mwscript.getLocalScript(ref, world.players[1])
         if not script then return true end
 
         for name, val in pairs(script.variables) do
