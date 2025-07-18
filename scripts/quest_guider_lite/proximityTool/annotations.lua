@@ -41,6 +41,16 @@
 ---@field showNoteIcon boolean? *true* by default
 ---@field enableGroupEvent boolean? *true* by default
 
+---@class proximityTool.hudm
+---@field modName string required
+---@field objects any[]? list of object references that this marker should track
+---@field objectIds string[]? list of object record ids that this marker should track
+---@field params table required. HUDM parameters
+---@field version number HUDM version for this marker
+---@field hidden boolean? if true, this marker will not be shown
+---@field temporary boolean? if true, this marker will not be saved to the save file
+---@field shortTerm boolean? if true, this marker will be removed after one of the tracked objects is removed
+
 
 
 ---@class proximityTool
@@ -54,3 +64,9 @@
 ---@field removeMarker fun(id: string, groupId: string): boolean?
 ---@field setVisibility fun(id: string, groupId: string?, value: boolean): boolean?
 ---@field getMarkerData fun(id: string, groupId: string?): proximityTool.marker|proximityTool.record|nil
+---@field addHUDM fun(hudmData: proximityTool.hudm): string?
+---@field updateHUDM fun()
+---@field removeHUDM fun(id: string): boolean?
+---@field getHUDMdata fun(id: string): proximityTool.hudm?
+---@field setHUDMvisibility fun(id: string, value: boolean): boolean?
+---@field newRealTimer fun(duration: number, callback: fun(...), ...): function
