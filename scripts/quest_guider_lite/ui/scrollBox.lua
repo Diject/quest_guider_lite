@@ -1,6 +1,7 @@
 local ui = require('openmw.ui')
 local util = require('openmw.util')
 local time = require('openmw_aux.time')
+local I = require('openmw.interfaces')
 local templates = require('openmw.interfaces').MWUI.templates
 
 local config = require("scripts.quest_guider_lite.config")
@@ -89,21 +90,26 @@ return function(params)
         if timer then
             timer()
             timer = nil
-            lockEvent = false
         end
     end
 
     local function startScrollTimer(type, value)
         stopScrollTimer()
-        -- TODO implement real timer
-        -- timer = time.runRepeatedly(function ()
-        --     if type == 0 then
-        --         scrollUp(value)
-        --     else
-        --         scrollDown(value)
-        --     end
-        --     lockEvent = true
-        -- end, time.second * 0.5, { initialDelay = 1 * time.second })
+        ---@type proximityTool
+        local proximityTool = I.proximityTool
+        if proximityTool then
+            local func
+            func = function ()
+                if type == 0 then
+                    meta:scrollUp(value)
+                else
+                    meta:scrollDown(value)
+                end
+                lockEvent = true
+                timer = proximityTool.newRealTimer(0.2, func)
+            end
+            timer = proximityTool.newRealTimer(1, func)
+        end
     end
 
     local contentData
@@ -133,7 +139,8 @@ return function(params)
                     end
                 end,
                 mousePress = function (layout)
-                    startScrollTimer(0, 12)
+                    lockEvent = false
+                    startScrollTimer(0, meta.params.scrollAmount / 5 or 12)
                 end,
                 mouseRelease = function (layout)
                     stopScrollTimer()
@@ -151,7 +158,8 @@ return function(params)
                     end
                 end,
                 mousePress = function (layout)
-                    startScrollTimer(1, meta.params.scrollAmount / 2 or 12)
+                    lockEvent = false
+                    startScrollTimer(1, meta.params.scrollAmount / 5 or 12)
                 end,
                 mouseRelease = function (layout)
                     stopScrollTimer()
