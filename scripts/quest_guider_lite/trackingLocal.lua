@@ -158,10 +158,12 @@ function this.addMarker(params)
     ---@type questGuider.tracking.markerRecord
     local objectMarkerData = {}
 
+    local text = playerQuests.getJournalText(params.questId, params.questStage)
+
     ---@type proximityTool.record
     local markerRecordParams = {
         name = positionData.name,
-        description = {string.format("%s: \"%s\"", l10n("quest"), questData.name or ""), ""},
+        description = text,
         nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity,
         priority = 10,
@@ -170,7 +172,7 @@ function this.addMarker(params)
     ---@type proximityTool.record
     local doorMarkerRecordParams = {
         name = string.format("%s", positionData.name),
-        description = {string.format("%s: \"%s\"", l10n("quest"), questData.name or ""), ""},
+        description = text,
         icon = "textures/icons/quest_guider/toDoorIcon.dds",
         iconRatio = 1.6,
         iconColor = common.defaultColorData,
