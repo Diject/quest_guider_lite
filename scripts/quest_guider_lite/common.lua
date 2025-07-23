@@ -2,6 +2,8 @@ local util = require('openmw.util')
 
 local this = {}
 
+this.modName = "Quest Guider Lite"
+
 this.l10nKey = "quest_guider_lite"
 
 this.settingPage = "QuestGuiderLite:Settings"

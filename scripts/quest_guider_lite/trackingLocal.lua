@@ -35,6 +35,8 @@ local lastInteriorMarkers = {}
 ---@class questGuider.tracking.markerRecord
 ---@field localMarkerId string|nil
 ---@field localDoorMarkerId string|nil
+---@field hudMarker string?
+---@field hudDoorMarker string?
 ---@field disabled boolean?
 ---@field userDisabled boolean?
 
@@ -284,6 +286,26 @@ function this.addMarker(params)
         }
 
     end
+
+
+    ---@type proximityTool.hudm
+    local hudMarkerParams = {
+        modName = common.modName,
+        version = 5,
+        params = {
+            icon = "textures/icons/quest_guider/HUDMarker.dds",
+            scale = 1,
+            raytracing = false,
+            range = 50,
+            opacity = 1,
+            offsetMult = 1.1,
+            bonusSize = 10,
+            color = config.data.tracking.colored and objectTrackingData.color,
+        },
+        objectIds = listOfObjects,
+    }
+    objectMarkerData.hudMarker = proximityTool.addHUDM(hudMarkerParams)
+
 
     this.markerByObjectId[objectId] = objectTrackingData
 
@@ -539,11 +561,14 @@ end
 ---@param params questGuider.tracking.removeMarker
 local function removeMarker(params)
     local recordIdsToRemove = {}
+    local hudmMarkersToRemove = {}
 
     ---@param rec questGuider.tracking.markerRecord
     local function addToRemove(rec)
         recordIdsToRemove[rec.localDoorMarkerId or ""] = true
         recordIdsToRemove[rec.localMarkerId or ""] = true
+        hudmMarkersToRemove[rec.hudMarker or ""] = true
+        hudmMarkersToRemove[rec.hudDoorMarker or ""] = true
     end
 
     for objId, objData in pairs(this.markerByObjectId) do
@@ -588,6 +613,12 @@ local function removeMarker(params)
     recordIdsToRemove[""] = nil
     for id, _ in pairs(recordIdsToRemove) do
         proximityTool.removeRecord(id)
+        removed = true
+    end
+
+    hudmMarkersToRemove[""] = nil
+    for id, _ in pairs(hudmMarkersToRemove) do
+        proximityTool.removeHUDM(id)
         removed = true
     end
 
@@ -771,8 +802,19 @@ function this.removeProximityMarker(id, groupId)
 end
 
 
+function this.removeHUDMarker(id)
+    proximityTool.removeHUDM(id)
+end
+
+
 function this.updateMarkers()
     proximityTool.update()
+    proximityTool.updateHUDM()
+end
+
+
+function this.updateHUDM()
+    proximityTool.updateHUDM()
 end
 
 
