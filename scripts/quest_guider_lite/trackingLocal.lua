@@ -160,7 +160,11 @@ function this.addMarker(params)
     ---@type questGuider.tracking.markerRecord
     local objectMarkerData = {}
 
-    local text = playerQuests.getJournalText(params.questId, params.questStage)
+    local text
+    local currentIndex = playerQuests.getCurrentIndex(params.questId)
+    if currentIndex then
+        text = playerQuests.getJournalText(params.questId, currentIndex)
+    end
 
     ---@type proximityTool.record
     local markerRecordParams = {
