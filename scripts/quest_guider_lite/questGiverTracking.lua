@@ -64,6 +64,7 @@ function this.createQuestGiverMarker(ref)
         icon = "textures/icons/quest_guider/exclamationMark.dds",
         iconRatio = 2,
         iconColor = commonInfo.defaultColorData,
+        nameColor = commonInfo.defaultColorData,
         description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("starts").." %s"),
         proximity = config.data.tracking.questGiverProximity,
         priority = -100,
