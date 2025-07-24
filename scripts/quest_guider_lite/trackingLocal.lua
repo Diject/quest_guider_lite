@@ -294,24 +294,27 @@ function this.addMarker(params)
     end
 
 
-    ---@type proximityTool.hudm
-    local hudMarkerParams = {
-        modName = common.modName,
-        version = 5,
-        params = {
-            icon = params.reqData and params.reqData.data.type == requirementType.CustomActor and common.hudQuestionMarkPath
-                or common.hudMarkerPath,
-            scale = 1,
-            raytracing = false,
-            range = 50,
-            opacity = 1,
-            offsetMult = 1.1,
-            bonusSize = 10,
-            color = config.data.tracking.colored and objectTrackingData.color or config.data.ui.defaultColor,
-        },
-        objectIds = listOfObjects,
-    }
-    objectMarkerData.hudMarker = proximityTool.addHUDM(hudMarkerParams)
+    if config.data.tracking.hudMarkers then
+        ---@type proximityTool.hudm
+        local hudMarkerParams = {
+            modName = common.modName,
+            version = 5,
+            params = {
+                icon = params.reqData and params.reqData.data.type == requirementType.CustomActor and common.hudQuestionMarkPath
+                    or common.hudMarkerPath,
+                scale = 1,
+                raytracing = false,
+                range = 50,
+                opacity = 1,
+                offsetMult = 1.1,
+                bonusSize = 10,
+                color = config.data.tracking.colored and objectTrackingData.color or config.data.ui.defaultColor,
+            },
+            objectIds = listOfObjects,
+            itemId = positionData.parentObject
+        }
+        objectMarkerData.hudMarker = proximityTool.addHUDM(hudMarkerParams)
+    end
 
 
     this.markerByObjectId[objectId] = objectTrackingData
