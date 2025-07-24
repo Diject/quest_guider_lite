@@ -322,11 +322,12 @@ function this.addMarker(params)
 
     local updateMarkers = false
     if positionData.itemCount then
-        updateMarkers = updateMarkers or this.handlePlayerInventory()
+        updateMarkers = this.handlePlayerInventory() or updateMarkers
     end
     if positionData.actorCount then
-        updateMarkers = updateMarkers or this.handleDeath(objectId)
+        updateMarkers = this.handleDeath(objectId) or updateMarkers
     end
+    updateMarkers = this.handleTrackingRequirements() or updateMarkers
 
     if playerQuests.getQuestStorageData(params.questData.name) then
         this.setDisableMarkerState{ questId = params.questId, value = true }
@@ -395,6 +396,8 @@ function this.setDisableMarkerState(params)
 
         proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not markerData.disabled)
         proximityTool.setVisibility(markerData.localMarkerId, nil, not markerData.disabled)
+        proximityTool.setHUDMvisibility(markerData.hudMarker, not markerData.disabled)
+        proximityTool.setHUDMvisibility(markerData.hudDoorMarker, not markerData.disabled)
     end
 
     for markerData, _ in pairs(markerDataHashTable) do

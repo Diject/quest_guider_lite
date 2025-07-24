@@ -91,7 +91,12 @@ end
 
 
 time.runRepeatedly(function()
-    if tracking.handlePlayerInventory() then
+    local updateMarkers = false
+    updateMarkers = tracking.handlePlayerInventory()
+
+    updateMarkers = tracking.handleTrackingRequirements() or updateMarkers
+
+    if updateMarkers then
         tracking.updateMarkers()
     end
 end, 5 * time.second + math.random())
