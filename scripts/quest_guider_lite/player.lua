@@ -72,8 +72,8 @@ input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
         I.UI.setMode("Journal", { windows = {} })
         questMenu = createQuestMenu{
             fontSize = config.data.ui.fontSize,
-            size = util.vector2(config.data.journal.width, config.data.journal.height),
-            relativePosition = util.vector2(config.data.journal.position.x, config.data.journal.position.y),
+            sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+            relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
             onClose = function ()
                 questMenu = nil
                 I.UI.removeMode("Journal")

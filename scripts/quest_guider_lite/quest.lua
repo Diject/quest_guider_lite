@@ -1014,7 +1014,7 @@ function this.getRequirementPositionData(requirement, customConfig)
         for _, linkData in pairs(objectData.links or {}) do
             local obj = tes.getObject(linkData[1])
             local objDt = this.getObjectData(linkData[1])
-            if obj and objDt and (objDt.type <= 2) and linkData[2] >= trackingConfig.minChance then
+            if obj and objDt and (objDt.type <= 2) and linkData[2] >= trackingConfig.minChance * 0.01 then
                 addPosData(objDt, linkData[1])
                 outD = out[id]
                 if outD then

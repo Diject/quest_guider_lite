@@ -56,7 +56,8 @@ function this.getContentForTooltip(params)
         startedInStr = string.format("Received in \"%s\"", recordInfo.cellData.name)
     end
 
-    local width = config.data.journal.width / 3
+    local scaledScreenSize = uiUtils.getScaledScreenSize()
+    local width = scaledScreenSize.x / 3
     local fontSize = params.fontSize or (meta and meta.params.fontSize) or 18
     local idTextHeight = uiUtils.getTextHeight(idStr, fontSize, width, config.data.journal.textHeightMul)
     local startedInHeight = uiUtils.getTextHeight(startedInStr, fontSize, width, config.data.journal.textHeightMul)

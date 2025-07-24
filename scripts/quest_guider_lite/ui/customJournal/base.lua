@@ -353,6 +353,7 @@ end
 
 ---@class questGuider.ui.customJournal.params
 ---@field size any
+---@field sizeProportional any
 ---@field fontSize integer
 ---@field relativePosition any?
 ---@field onClose function?
@@ -366,6 +367,11 @@ local function create(params)
     local function updateFunc()
         if not meta.menu then return end
         meta:update()
+    end
+
+    if not params.size then
+        local scaledScreenSize = uiUtils.getScaledScreenSize()
+        params.size = util.vector2(scaledScreenSize.x * params.sizeProportional.x, scaledScreenSize.y * params.sizeProportional.y)
     end
 
     meta.params = params
@@ -404,8 +410,8 @@ local function create(params)
 
                     mouseRelease = async:callback(function(_, layout)
                         local relativePos = meta.menu.layout.props.relativePosition
-                        config.setValue("journal.position.x", relativePos.x)
-                        config.setValue("journal.position.y", relativePos.y)
+                        config.setValue("journal.position.x", relativePos.x * 100)
+                        config.setValue("journal.position.y", relativePos.y * 100)
                         layout.userData.lastMousePos = nil
 
                         meta:getQuestMain().content = layout.userData.contentBackup
@@ -451,7 +457,7 @@ local function create(params)
         },
     }
 
-    local questListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize, params.size.y)
+    local questListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y)
     local searchBar
     searchBar = {
         type = ui.TYPE.Container,
@@ -561,7 +567,7 @@ local function create(params)
     }
 
 
-    local questInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize), params.size.y)
+    local questInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
     local questInfo = {
         type = ui.TYPE.Flex,
         props = {
