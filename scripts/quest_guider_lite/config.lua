@@ -20,6 +20,7 @@ this.default = {
             enabled = true,
             range = 80,
             rayTracing = true,
+            opacity = 100, -- %
         }
     },
     journal = {

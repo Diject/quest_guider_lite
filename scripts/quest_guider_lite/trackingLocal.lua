@@ -306,7 +306,7 @@ function this.addMarker(params)
                 scale = uiUtils.getScaledScreenSize().y / 1080,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range,
-                opacity = 1,
+                opacity = config.data.tracking.hudMarkers.opacity * 0.01,
                 offsetMult = 1.2,
                 bonusSize = 10,
                 color = config.data.tracking.colored and objectTrackingData.color or common.colorToArray(config.data.ui.defaultColor),

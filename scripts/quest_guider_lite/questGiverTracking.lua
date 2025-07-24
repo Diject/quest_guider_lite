@@ -87,7 +87,7 @@ function this.createQuestGiverMarker(ref)
                 scale = 1,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range,
-                opacity = 1,
+                opacity = config.data.tracking.hudMarkers.opacity * 0.01,
                 offsetMult = 1.2,
                 bonusSize = 10,
                 color = commonInfo.colorToArray(config.data.ui.defaultColor),
