@@ -11,6 +11,8 @@ local reqTypes = require("scripts.quest_guider_lite.types")
 local operator = reqTypes.operator
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 
+local getObject = require("scripts.quest_guider_lite.core.getObject")
+
 local this = {}
 
 
@@ -64,9 +66,9 @@ local dataFuncs = {
         return operator.check(kilCount, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.CustomOnDeath] = function (req, obj)
-        if not req.object and not obj then return end
-        local kilCount = killCounter.getKillCount(obj and obj.id or req.object)
+    [reqTypes.requirementType.CustomOnDeath] = function (req)
+        if not req.object then return end
+        local kilCount = killCounter.getKillCount(req.object)
         return operator.check(kilCount, req.value, req.operator)
     end,
 
@@ -184,7 +186,14 @@ function this.checkBlock(block, params)
             goto continue
         end
 
-        local r = this.check(req, params.reference)
+        local ref
+        if req.object == "player" then
+            ref = world and world.players[1] or playerRef
+        else
+            ref = params.reference
+        end
+
+        local r = this.check(req, ref)
         if r == nil and params.threatErrorsAs ~= nil then
             r = params.threatErrorsAs
         end
