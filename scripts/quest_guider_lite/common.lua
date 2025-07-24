@@ -46,4 +46,8 @@ end)
 this.playerQuestDataLabel = "playerQuests"
 this.killCounterDataLabel = "killCounter"
 
+
+this.hudMarkerPath = "textures/icons/quest_guider/HUDMarker.dds"
+this.hudQuestionMarkPath = "textures/icons/quest_guider/HUDQuestionMark.dds"
+
 return this

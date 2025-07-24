@@ -16,6 +16,8 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 
+local requirementType = require("scripts.quest_guider_lite.types.requirement")
+
 local config = require("scripts.quest_guider_lite.config")
 
 local l10n = core.l10n(common.l10nKey)
@@ -297,14 +299,15 @@ function this.addMarker(params)
         modName = common.modName,
         version = 5,
         params = {
-            icon = "textures/icons/quest_guider/HUDMarker.dds",
+            icon = params.reqData and params.reqData.data.type == requirementType.CustomActor and common.hudQuestionMarkPath
+                or common.hudMarkerPath,
             scale = 1,
             raytracing = false,
             range = 50,
             opacity = 1,
             offsetMult = 1.1,
             bonusSize = 10,
-            color = config.data.tracking.colored and objectTrackingData.color,
+            color = config.data.tracking.colored and objectTrackingData.color or config.data.ui.defaultColor,
         },
         objectIds = listOfObjects,
     }
