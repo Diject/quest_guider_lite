@@ -328,9 +328,9 @@ function this.addMarker(params)
         updateMarkers = updateMarkers or this.handleDeath(objectId)
     end
 
-    -- if this.disabledQuests[params.questId] then
-    --     this.setDisableMarkerState{ questId = params.questId, value = true }
-    -- end
+    if playerQuests.getQuestStorageData(params.questData.name) then
+        this.setDisableMarkerState{ questId = params.questId, value = true }
+    end
 
     if updateMarkers then
         this.updateMarkers()
