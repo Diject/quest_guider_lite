@@ -2,11 +2,12 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local async = require('openmw.async')
 local customTemplates = require("scripts.quest_guider_lite.ui.templates")
+local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
 local this = {}
 
 function this.calcTooltipPosAnchor(cursorPos)
-    local screenSize = ui.screenSize()
+    local screenSize = uiUtils.getScaledScreenSize()
 
     local halfWidth = screenSize.x / 2
     local halfHeight = screenSize.y / 2

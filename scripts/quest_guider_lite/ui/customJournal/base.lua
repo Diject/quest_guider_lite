@@ -12,6 +12,7 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
+local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local log = require("scripts.quest_guider_lite.utils.log")
 
 local button = require("scripts.quest_guider_lite.ui.button")
@@ -397,7 +398,7 @@ local function create(params)
                         meta:resetQuestListColors()
 
                         layout.userData.doDrag = true
-                        local screenSize = ui.screenSize()
+                        local screenSize = uiUtils.getScaledScreenSize()
                         layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
                     end),
 
@@ -415,7 +416,7 @@ local function create(params)
                     mouseMove = async:callback(function(coord, layout)
                         if not layout.userData.lastMousePos then return end
 
-                        local screenSize = ui.screenSize()
+                        local screenSize = uiUtils.getScaledScreenSize()
                         local props = meta.menu.layout.props
                         local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
 
