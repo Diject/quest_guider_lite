@@ -21,6 +21,7 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local configLib = require("scripts.quest_guider_lite.configLib")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
+local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
@@ -136,9 +137,14 @@ return {
 
         ["QGL:addMarkerForQuestGivers"] = function (data)
             local recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
+            if data.hudMarkerData then
+                data.hudMarkerData.params.scale = uiUtils.getScaledScreenSize().y / 1080
+            end
+            local hudMarkerId = tracking.addHUDMarker(data.hudMarkerData)
             tracking.updateMarkers()
             core.sendGlobalEvent("QGL:questGiverMarkerCallback", {
                 record = recordId,
+                hudMarkerId = hudMarkerId,
                 inputData = data,
             })
         end,
@@ -156,6 +162,11 @@ return {
             local id = data.id
             local groupId = data.groupId
             tracking.removeProximityMarker(id, groupId)
+        end,
+
+        ["QGL:removeHUDMarker"] = function (data)
+            local id = data.id
+            tracking.removeHUDMarker(id)
         end,
 
         ["QGL:addMarkerForInteriorCellTracking"] = function (data)

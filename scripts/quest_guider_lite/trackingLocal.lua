@@ -9,6 +9,7 @@ local stringLib = require("scripts.quest_guider_lite.utils.string")
 local itemLib = require("scripts.quest_guider_lite.types.item")
 local colors = require("scripts.quest_guider_lite.types.gradient")
 local common = require("scripts.quest_guider_lite.common")
+local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
 local storage = require("scripts.quest_guider_lite.storage.localStorage")
 
@@ -302,13 +303,13 @@ function this.addMarker(params)
             params = {
                 icon = params.reqData and params.reqData.data.type == requirementType.CustomActor and common.hudQuestionMarkPath
                     or common.hudMarkerPath,
-                scale = 1,
-                raytracing = false,
-                range = 50,
+                scale = uiUtils.getScaledScreenSize().y / 1080,
+                raytracing = config.data.tracking.hudMarkers.rayTracing,
+                range = config.data.tracking.hudMarkers.range,
                 opacity = 1,
-                offsetMult = 1.1,
+                offsetMult = 1.2,
                 bonusSize = 10,
-                color = config.data.tracking.colored and objectTrackingData.color or config.data.ui.defaultColor,
+                color = config.data.tracking.colored and objectTrackingData.color or common.colorToArray(config.data.ui.defaultColor),
             },
             objectIds = listOfObjects,
             itemId = positionData.parentObject
@@ -726,6 +727,11 @@ function this.addTrackingMarker(recordData, markerData)
     local markerId, markerGroupId = proximityTool.addMarker(markerData)
 
     return recordId, markerId, markerGroupId
+end
+
+
+function this.addHUDMarker(markerData)
+    proximityTool.addHUDM(markerData)
 end
 
 

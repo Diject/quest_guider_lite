@@ -1,5 +1,6 @@
 local types = require('openmw.types')
 local world = require('openmw.world')
+local util = require("openmw.util")
 
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
@@ -13,14 +14,17 @@ local config = require("scripts.quest_guider_lite.config")
 
 local l10n = require('openmw.core').l10n(commonInfo.l10nKey)
 
+
 local this = {}
 
+
+---@type table<string, {markerId : string?, hudMarkerId : string?}>
 this.trackedQuestGivers = {}
 
 
 
-function this.registerTrackedQuestGiver(objectRecordId, markerRecordId)
-    this.trackedQuestGivers[objectRecordId] = markerRecordId
+function this.registerTrackedQuestGiver(objectRecordId, markerRecordId, hudMarkerId)
+    this.trackedQuestGivers[objectRecordId] = {markerId = markerRecordId, hudMarkerId = hudMarkerId}
 end
 
 
@@ -61,7 +65,7 @@ function this.createQuestGiverMarker(ref)
 
     ---@type proximityTool.record
     local recordData = {
-        icon = "textures/icons/quest_guider/exclamationMark.dds",
+        icon = commonInfo.exclamationMarkPath,
         iconRatio = 2,
         iconColor = commonInfo.defaultColorData,
         nameColor = commonInfo.defaultColorData,
@@ -71,6 +75,29 @@ function this.createQuestGiverMarker(ref)
         temporary = true,
     }
 
+    ---@type proximityTool.hudm?
+    local hudMarkerParams
+    if config.data.tracking.hudMarkers.enabled then
+        hudMarkerParams = {
+            modName = commonInfo.modName,
+            version = 5,
+            params = {
+                icon = commonInfo.hudExclamationMarkPath,
+                screenOffset = util.vector2(8, 0),
+                scale = 1,
+                raytracing = config.data.tracking.hudMarkers.rayTracing,
+                range = config.data.tracking.hudMarkers.range,
+                opacity = 1,
+                offsetMult = 1.2,
+                bonusSize = 10,
+                color = commonInfo.colorToArray(config.data.ui.defaultColor),
+            },
+            objectIds = {recordId},
+            temporary = true,
+        }
+    end
+
+
     ---@type proximityTool.marker
     ---@diagnostic disable-next-line: missing-fields
     local markerData = {
@@ -78,12 +105,17 @@ function this.createQuestGiverMarker(ref)
         temporary = true,
     }
 
-    world.players[1]:sendEvent("QGL:addMarkerForQuestGivers", {recordData = recordData, markerData = markerData, objectRecordId = recordId})
+    world.players[1]:sendEvent("QGL:addMarkerForQuestGivers", {
+        recordData = recordData,
+        markerData = markerData,
+        objectRecordId = recordId,
+        hudMarkerData = hudMarkerParams
+    })
 end
 
 
 function this.updateQuestGiverMarkers()
-    for objId, recordId in pairs(this.trackedQuestGivers) do
+    for objId, markerData in pairs(this.trackedQuestGivers) do
         local objectData = questLib.getObjectData(objId)
 
         local valid = false
@@ -112,7 +144,8 @@ function this.updateQuestGiverMarkers()
         end
 
         if not valid then
-            world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = recordId})
+            world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
+            world.players[1]:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
             this.trackedQuestGivers[objId] = nil
         end
     end

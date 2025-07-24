@@ -49,5 +49,13 @@ this.killCounterDataLabel = "killCounter"
 
 this.hudMarkerPath = "textures/icons/quest_guider/HUDMarker.dds"
 this.hudQuestionMarkPath = "textures/icons/quest_guider/HUDQuestionMark.dds"
+this.hudExclamationMarkPath = "textures/icons/quest_guider/HUDExclamationMark.dds"
+this.exclamationMarkPath = "textures/icons/quest_guider/exclamationMark.dds"
+
+
+
+function this.colorToArray(color)
+    return {color.r, color.g, color.b, color.a}
+end
 
 return this
