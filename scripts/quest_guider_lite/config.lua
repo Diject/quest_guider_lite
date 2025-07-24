@@ -16,6 +16,11 @@ this.default = {
         maxPos = 20,
         proximity = 25000,
         questGiverProximity = 8000,
+        hudMarkers = {
+            enabled = true,
+            range = 80,
+            rayTracing = true,
+        }
     },
     journal = {
         menuKey = "H",

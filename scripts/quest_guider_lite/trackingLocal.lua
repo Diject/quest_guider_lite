@@ -294,7 +294,7 @@ function this.addMarker(params)
     end
 
 
-    if config.data.tracking.hudMarkers then
+    if config.data.tracking.hudMarkers.enabled then
         ---@type proximityTool.hudm
         local hudMarkerParams = {
             modName = common.modName,
