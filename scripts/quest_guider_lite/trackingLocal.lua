@@ -824,7 +824,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
             version = 5,
             params = {
                 icon = common.doorMarkPath,
-                scale = uiUtils.getScaledScreenSize().y / 1080,
+                scale = 2 * uiUtils.getScaledScreenSize().y / 1080,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
@@ -867,7 +867,7 @@ function this.createMarkersForExteriorDoor(ref)
             version = 5,
             params = {
                 icon = common.doorMarkPath,
-                scale = uiUtils.getScaledScreenSize().y / 1080,
+                scale = 2 * uiUtils.getScaledScreenSize().y / 1080,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
