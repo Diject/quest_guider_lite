@@ -49,6 +49,7 @@ colorFlagsDescription: "When enabled, colored flags appear before each quest nam
 
 hidden: "Hidden"
 finished: "Finished"
+finishedLabel: "(F) "
 filter: "Filter"
 close: "Close"
 miscellaneous: "Miscellaneous"
