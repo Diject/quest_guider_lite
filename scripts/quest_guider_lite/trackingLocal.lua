@@ -343,7 +343,7 @@ function this.addMarker(params)
     end
     updateMarkers = this.handleTrackingRequirements() or updateMarkers
 
-    if playerQuests.getQuestStorageData(params.questData.name) then
+    if playerQuests.getQuestStorageData(params.questData.name).disabled then
         this.setDisableMarkerState{ questId = params.questId, value = true }
     end
 
