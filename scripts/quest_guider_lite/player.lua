@@ -225,6 +225,10 @@ return {
         ["QGL:registerActorDeath"] = function (data)
             killCounter.registerKill(data.object)
             tracking.handleDeath(data.object.recordId)
+        end,
+
+        ["QGL:createMarkersForDoor"] = function (ref)
+            tracking.createMarkersForExteriorDoor(ref)
         end
     },
 }

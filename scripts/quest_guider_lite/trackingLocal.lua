@@ -3,6 +3,7 @@ local core = require('openmw.core')
 local I = require('openmw.interfaces')
 local types = require('openmw.types')
 local playerRef = require('openmw.self')
+local util = require("openmw.util")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -32,14 +33,18 @@ local storageLabel = "tracking"
 local this = {}
 
 
----@type table<string, {id : string, groupId : string}>
+---@type table<string, {id : string?, groupId : string?, hudId : string}>
 local lastInteriorMarkers = {}
+
+---@type table<string, string>
+local exteriorDoorHUDMarkers = {}
+---@type table<string, any>
+local exteriorDoors = {}
 
 ---@class questGuider.tracking.markerRecord
 ---@field localMarkerId string|nil
 ---@field localDoorMarkerId string|nil
 ---@field hudMarker string?
----@field hudDoorMarker string?
 ---@field disabled boolean?
 ---@field userDisabled boolean?
 
@@ -49,6 +54,7 @@ local lastInteriorMarkers = {}
 ---@field color number[]?
 ---@field markers table<string, questGuider.tracking.markerData> by quest id
 ---@field targetCells table<string, string>? parent cell editor name by editor name of cell that have access to the parent
+---@field firstEntranceCells table<string, any>?
 
 ---@type table<string, questGuider.tracking.objectRecord>
 this.markerByObjectId = {}
@@ -182,7 +188,7 @@ function this.addMarker(params)
     local doorMarkerRecordParams = {
         name = string.format("%s", positionData.name),
         description = text,
-        icon = "textures/icons/quest_guider/toDoorIcon.dds",
+        icon = common.doorMarkPath,
         iconRatio = 1.6,
         iconColor = common.defaultColorData,
         nameColor = config.data.tracking.colored and objectTrackingData.color,
@@ -268,8 +274,15 @@ function this.addMarker(params)
                 if not objectTrackingData.targetCells then
                     objectTrackingData.targetCells = {}
                 end
+                if not objectTrackingData.firstEntranceCells then
+                    objectTrackingData.firstEntranceCells = {}
+                end
 
                 objectTrackingData.targetCells[cell.id] = cell.id
+                local firstEntranceCell = data.cellPath[#data.cellPath - 1]
+                if firstEntranceCell and not firstEntranceCell.isExterior then
+                    objectTrackingData.firstEntranceCells[firstEntranceCell.id] = firstEntranceCell.id
+                end
             end
         end
     end
@@ -401,7 +414,6 @@ function this.setDisableMarkerState(params)
         proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not markerData.disabled)
         proximityTool.setVisibility(markerData.localMarkerId, nil, not markerData.disabled)
         proximityTool.setHUDMvisibility(markerData.hudMarker, not markerData.disabled)
-        proximityTool.setHUDMvisibility(markerData.hudDoorMarker, not markerData.disabled)
     end
 
     for markerData, _ in pairs(markerDataHashTable) do
@@ -411,19 +423,34 @@ end
 
 
 ---@class questGuider.tracking.getDisabledState
----@field questId string should be lowercase
+---@field questId string? should be lowercase
 ---@field objectId string should be lowercase
 
 ---@param params questGuider.tracking.getDisabledState
 ---@return boolean?
 function this.getDisabledState(params)
-    if not params or not params.objectId or not params.questId then return end
+    if not params or not params.objectId then return end
 
-    local objData = this.markerByObjectId[params.objectId]
-    local objQuestTrackingData = objData and objData.markers[params.questId]
-    local disabledState = objQuestTrackingData and objQuestTrackingData.data.disabled
-
-    return disabledState or false
+    if params.questId then
+        local disabledState = false
+        local objData = this.markerByObjectId[params.objectId]
+        local objQuestTrackingData = objData and objData.markers[params.questId]
+        disabledState = objQuestTrackingData and objQuestTrackingData.data.disabled
+        return disabledState or false
+    else
+        local objData = this.markerByObjectId[params.objectId]
+        local found = false
+        for qId, trackingData in pairs((objData or {}).markers) do
+            found = true
+            if not trackingData.data.disabled then
+                return false
+            end
+        end
+        if found then
+            return true
+        end
+    end
+    return false
 end
 
 
@@ -493,6 +520,10 @@ function this.handlePlayerInventory()
         this.addMarkersForInteriorCell(playerRef.cell)
     end
 
+    if changed and playerRef.cell.isExterior then
+        this.updateMarkersForExteriorDoors()
+    end
+
     if changed then
         this.updateMarkers()
     end
@@ -541,6 +572,10 @@ function this.handleDeath(objectId)
         this.addMarkersForInteriorCell(playerRef.cell)
     end
 
+    if changed and playerRef.cell.isExterior then
+        this.updateMarkersForExteriorDoors()
+    end
+
     if changed then
         this.updateMarkers()
     end
@@ -568,6 +603,10 @@ function this.handleTrackingRequirements()
         this.addMarkersForInteriorCell(playerRef.cell)
     end
 
+    if changed and playerRef.cell.isExterior then
+        this.updateMarkersForExteriorDoors()
+    end
+
     return changed
 end
 
@@ -582,7 +621,6 @@ local function removeMarker(params)
         recordIdsToRemove[rec.localDoorMarkerId or ""] = true
         recordIdsToRemove[rec.localMarkerId or ""] = true
         hudmMarkersToRemove[rec.hudMarker or ""] = true
-        hudmMarkersToRemove[rec.hudDoorMarker or ""] = true
     end
 
     for objId, objData in pairs(this.markerByObjectId) do
@@ -677,6 +715,8 @@ function this.addMarkersForQuest(params)
 
     if not playerRef.cell.isExterior then
         this.addMarkersForInteriorCell(playerRef.cell)
+    else
+        this.updateMarkersForExteriorDoors()
     end
 end
 
@@ -738,7 +778,11 @@ end
 function this.addMarkersForInteriorCell(cell)
     local keys = {}
     for key, markerData in pairs(lastInteriorMarkers) do
-        proximityTool.removeMarker(markerData.id, markerData.groupId)
+        if markerData.id then
+            proximityTool.removeMarker(markerData.id, markerData.groupId)
+        elseif markerData.hudId then
+            proximityTool.removeHUDM(markerData.hudId)
+        end
         table.insert(keys, key)
     end
     for _, key in pairs(keys) do
@@ -755,6 +799,8 @@ end
 function this.addMarkerForInteriorCellFromGlobal(data)
     local markerData = data.markerData
     local description = data.description
+    local doors = data.doors
+
     if not markerData or not description then return end
 
     local recordData = proximityTool.getMarkerData(markerData.record)
@@ -769,6 +815,98 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     if not id or not groupId then return end
 
     lastInteriorMarkers[id] = { id = id, groupId = groupId }
+
+
+    if config.data.tracking.hudMarkers.enabled then
+        ---@type proximityTool.hudm
+        local hudDoorMarkerParams = {
+            modName = common.modName,
+            version = 5,
+            params = {
+                icon = common.doorMarkPath,
+                scale = uiUtils.getScaledScreenSize().y / 1080,
+                raytracing = config.data.tracking.hudMarkers.rayTracing,
+                range = config.data.tracking.hudMarkers.range,
+                opacity = config.data.tracking.hudMarkers.opacity * 0.01,
+                offsetMult = -0.05 + math.random() * 0.1,
+                bonusSize = 10,
+                color = newRecordData.nameColor and newRecordData.nameColor or common.colorToArray(config.data.ui.defaultColor),
+            },
+            objects = doors,
+            shortTerm = true,
+        }
+        local hudMarkerId = proximityTool.addHUDM(hudDoorMarkerParams)
+        if hudMarkerId then
+            lastInteriorMarkers[hudMarkerId] = { hudId = hudMarkerId }
+        end
+    end
+end
+
+
+function this.createMarkersForExteriorDoor(ref)
+    if not config.data.tracking.hudMarkers.enabled then return end
+    if not types.Door.objectIsInstance(ref) or not types.Door.isTeleport(ref) then
+        return
+    end
+    local destCell = types.Door.destCell(ref)
+    if not destCell or destCell.isExterior then return end
+
+    exteriorDoors[ref.id] = ref
+
+    local cellId = destCell.id
+
+    for objId, data in pairs(this.markerByObjectId) do
+        if not data.firstEntranceCells or not data.firstEntranceCells[cellId]
+                or not next(data.markers) or this.getDisabledState{objectId = objId} then
+            goto continue
+        end
+
+        ---@type proximityTool.hudm
+        local hudDoorMarkerParams = {
+            modName = common.modName,
+            version = 5,
+            params = {
+                icon = common.doorMarkPath,
+                scale = uiUtils.getScaledScreenSize().y / 1080,
+                raytracing = config.data.tracking.hudMarkers.rayTracing,
+                range = config.data.tracking.hudMarkers.range,
+                opacity = config.data.tracking.hudMarkers.opacity * 0.01,
+                offsetMult = -0.05 + math.random() * 0.1,
+                bonusSize = 10,
+                color = data.color and data.color or common.colorToArray(config.data.ui.defaultColor),
+            },
+            objects = {ref},
+            shortTerm = true,
+        }
+        local hudMarkerId = proximityTool.addHUDM(hudDoorMarkerParams)
+        if hudMarkerId then
+            exteriorDoorHUDMarkers[hudMarkerId] = hudMarkerId
+        end
+
+        ::continue::
+    end
+end
+
+
+function this.updateMarkersForExteriorDoors()
+    local foundOldMarkers = false
+    for _, markerId in pairs(exteriorDoorHUDMarkers) do
+        foundOldMarkers = proximityTool.removeHUDM(markerId) or foundOldMarkers
+    end
+    if foundOldMarkers then
+        this.updateHUDM()
+    end
+
+    for doorId, door in pairs(exteriorDoors) do
+        if not door:isValid() then
+            exteriorDoors[doorId] = nil
+            goto continue
+        end
+
+        this.createMarkersForExteriorDoor(door)
+
+        ::continue::
+    end
 end
 
 

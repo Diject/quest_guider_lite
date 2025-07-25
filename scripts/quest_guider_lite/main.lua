@@ -40,9 +40,12 @@ end
 
 
 local function onObjectActive(ref)
-    if ref.type ~= types.NPC and ref.type ~= types.Creature then return end
-
-    questGivers.createQuestGiverMarker(ref)
+    if ref.type == types.NPC or ref.type == types.Creature then
+        questGivers.createQuestGiverMarker(ref)
+    end
+    if types.Door.objectIsInstance(ref) and ref.cell.isExterior then
+        world.players[1]:sendEvent("QGL:createMarkersForDoor", ref)
+    end
 end
 
 
