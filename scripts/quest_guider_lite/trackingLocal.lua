@@ -62,9 +62,6 @@ this.markerByObjectId = {}
 ---@type table<string, {objects : table<string, string[]>}>
 this.trackedObjectsByDiaId = {}
 
----@type table<string, boolean>
-this.disabledQuests = {}
-
 this.initialized = false
 
 ---@return boolean isSuccessful
@@ -369,10 +366,6 @@ end
 ---@param params questGuider.tracking.disableMarker
 ---@return boolean? changed
 function this.setDisableMarkerState(params)
-    if not (params.isUserDisabled or params.temporary) and
-        params.questId and this.disabledQuests[params.questId] then
-            return
-    end
 
     local markerDataHashTable = {}
 
