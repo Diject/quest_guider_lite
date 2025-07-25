@@ -367,6 +367,7 @@ end
 ---@field temporary boolean?
 
 ---@param params questGuider.tracking.disableMarker
+---@return boolean? changed
 function this.setDisableMarkerState(params)
     if not (params.isUserDisabled or params.temporary) and
         params.questId and this.disabledQuests[params.questId] then
@@ -389,9 +390,12 @@ function this.setDisableMarkerState(params)
         ::continue::
     end
 
+    local changed = false
+
     ---@param markerData questGuider.tracking.markerRecord
     local function setDisabledState(markerData)
         local disabledState = params.toggle == true and not markerData.disabled or params.value
+        local oldState = markerData.disabled
 
         if params.temporary then
             markerData.disabled = disabledState
@@ -411,6 +415,10 @@ function this.setDisableMarkerState(params)
             markerData.disabled = disabledState
         end
 
+        if oldState ~= markerData.disabled then
+            changed = true
+        end
+
         proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not markerData.disabled)
         proximityTool.setVisibility(markerData.localMarkerId, nil, not markerData.disabled)
         proximityTool.setHUDMvisibility(markerData.hudMarker, not markerData.disabled)
@@ -419,6 +427,8 @@ function this.setDisableMarkerState(params)
     for markerData, _ in pairs(markerDataHashTable) do
         setDisabledState(markerData)
     end
+
+    return changed
 end
 
 
@@ -428,6 +438,7 @@ end
 
 ---@param params questGuider.tracking.getDisabledState
 ---@return boolean?
+---@return boolean? userDisabled
 function this.getDisabledState(params)
     if not params or not params.objectId then return end
 
@@ -469,14 +480,12 @@ local function checkHandledRequirements(objectId, markerData, protectedState)
 
     if res == false then
         if markerData.data.disabled ~= true and not protectedState then
-            this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true }
-            changed = true
+            changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true }
         end
     elseif res == true then
         protectedState = true
         if markerData.data.disabled ~= false then
-            this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false }
-            changed = true
+            changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false }
         end
     end
 
@@ -501,14 +510,12 @@ function this.handlePlayerInventory()
                 local palyerItemCount = types.Actor.inventory(playerRef):countOf(markerData.parentObject)
                 if markerData.itemCount <= palyerItemCount then
                     if markerData.data.disabled ~= true and not protected then
-                        this.setDisableMarkerState{ objectId = objId, questId = markerData.id, value = true }
-                        changed = true
+                        changed = this.setDisableMarkerState{ objectId = objId, questId = markerData.id, value = true } or changed
                     end
                 else
                     protected = true
                     if markerData.data.disabled ~= false then
-                        this.setDisableMarkerState{ objectId = objId, questId = markerData.id, value = false }
-                        changed = true
+                        changed = this.setDisableMarkerState{ objectId = objId, questId = markerData.id, value = false } or changed
                     end
                 end
             end
@@ -555,14 +562,12 @@ function this.handleDeath(objectId)
 
             if killCount >= markerData.actorCount then
                 if markerData.data.disabled ~= true and not protected then
-                    this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true }
-                    changed = true
+                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true } or changed
                 end
             else
                 protected = true
                 if markerData.data.disabled ~= false then
-                    this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false }
-                    changed = true
+                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false } or changed
                 end
             end
         end
@@ -906,6 +911,16 @@ function this.updateMarkersForExteriorDoors()
         this.createMarkersForExteriorDoor(door)
 
         ::continue::
+    end
+end
+
+
+function this.updateTemporaryMarkers()
+    local plCell = playerRef.cell
+    if plCell.isExterior then
+        this.updateMarkersForExteriorDoors()
+    else
+        this.addMarkersForInteriorCell(plCell)
     end
 end
 

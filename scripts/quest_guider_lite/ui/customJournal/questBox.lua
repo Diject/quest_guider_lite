@@ -83,6 +83,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
                         questId = info.diaId,
                         removeLinked = true
                     }
+                    tracking.updateMarkers()
                     break
                 end
 

@@ -195,6 +195,8 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     else
                                         tracking.trackObject{diaId = diaId, objectId = objId, index = diaIndex}
                                     end
+                                    tracking.updateTemporaryMarkers()
+                                    tracking.updateMarkers()
 
                                     ---@type questGuider.ui.buttonMeta
                                     local btnMeta = layout.userData.meta
@@ -217,6 +219,8 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                         toggle = true,
                                         isUserDisabled = true,
                                     }
+                                    tracking.updateTemporaryMarkers()
+                                    tracking.updateMarkers()
 
                                     local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
 
