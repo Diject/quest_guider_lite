@@ -487,6 +487,7 @@ end
 
 
 function this.handlePlayerInventory()
+    if not this.initialized then return end
     local changed = false
 
     for objId, data in pairs(this.markerByObjectId) do
@@ -534,6 +535,7 @@ end
 
 ---@return boolean? changed
 function this.handleDeath(objectId)
+    if not this.initialized then return end
     if not objectId then return end
 
     local objData = this.markerByObjectId[objectId]
@@ -584,6 +586,7 @@ end
 
 ---@return boolean?
 function this.handleTrackingRequirements()
+    if not this.initialized then return end
     local changed = false
     local protected = false
 
@@ -684,6 +687,7 @@ end
 ---@param params questGuider.tracking.removeMarker
 ---@return boolean?
 function this.removeMarker(params)
+    if not this.initialized then return end
     if not params.questId and not params.objectId then return end
 
     local res = false
@@ -708,6 +712,7 @@ end
 ---@param params questGuider.tracking.addMarkersForQuest
 ---@return table<string, boolean>? objects object ids
 function this.addMarkersForQuest(params)
+    if not this.initialized then return end
 
     core.sendGlobalEvent("QGL:getTrackingData", {questId = params.questId, index = params.questIndex})
 
@@ -746,6 +751,7 @@ end
 
 ---@param params {objectId : string, diaId : string, index : integer}
 function this.trackObject(params)
+    if not this.initialized then return end
     this.removeMarker{ questId = params.diaId, objectId = params.objectId}
 
     core.sendGlobalEvent("QGL:trackObject", {
@@ -757,6 +763,7 @@ end
 
 
 function this.addTrackingMarker(recordData, markerData)
+    if not this.initialized then return end
     if not recordData or not markerData then return end
 
     local recordId = proximityTool.addRecord(recordData)
@@ -769,11 +776,13 @@ end
 
 
 function this.addHUDMarker(markerData)
+    if not this.initialized then return end
     proximityTool.addHUDM(markerData)
 end
 
 
 function this.addMarkersForInteriorCell(cell)
+    if not this.initialized then return end
     local keys = {}
     for key, markerData in pairs(lastInteriorMarkers) do
         if markerData.id then
@@ -842,6 +851,7 @@ end
 
 
 function this.createMarkersForExteriorDoor(ref)
+    if not this.initialized then return end
     if not config.data.tracking.hudMarkers.enabled then return end
     if not types.Door.objectIsInstance(ref) or not types.Door.isTeleport(ref) then
         return
@@ -887,6 +897,7 @@ end
 
 
 function this.updateMarkersForExteriorDoors()
+    if not this.initialized then return end
     local foundOldMarkers = false
     for _, markerId in pairs(exteriorDoorHUDMarkers) do
         foundOldMarkers = proximityTool.removeHUDM(markerId) or foundOldMarkers
@@ -909,6 +920,7 @@ end
 
 
 function this.updateTemporaryMarkers()
+    if not this.initialized then return end
     local plCell = playerRef.cell
     if plCell.isExterior then
         this.updateMarkersForExteriorDoors()

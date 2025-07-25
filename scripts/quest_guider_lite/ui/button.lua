@@ -88,6 +88,7 @@ end)
 ---@field icon string?
 ---@field iconSize any? util.vector2
 ---@field iconColor any?
+---@field visible boolean?
 ---@field event fun(layout : any)?
 ---@field mousePress fun(layout : any)?
 ---@field mouseRelease fun(layout : any)?
@@ -138,6 +139,13 @@ return function (params)
         }
     end
 
+    local visible
+    if params.visible ~= nil then
+        visible = params.visible
+    else
+        visible = true
+    end
+
     local layout
     layout = {
         template = templates.boxSolidThick,
@@ -146,6 +154,7 @@ return function (params)
             relativePosition = params.relativePosition,
             position = params.position,
             anchor = params.anchor,
+            visible = visible,
         },
         events = {
             mousePress = mousePress,

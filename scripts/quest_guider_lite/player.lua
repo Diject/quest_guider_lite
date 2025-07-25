@@ -92,6 +92,7 @@ end
 
 
 time.runRepeatedly(function()
+    if not tracking.initialized then return end
     local updateMarkers = false
     updateMarkers = tracking.handlePlayerInventory()
 
@@ -107,6 +108,8 @@ return {
     engineHandlers = {
         onQuestUpdate = function(questId, stage)
             playerQuests.update(questId, stage)
+
+            if not tracking.initialized then return end
             if config.data.tracking.autoTrack then
                 tracking.trackQuest(questId, stage)
             end
@@ -136,6 +139,7 @@ return {
         end,
 
         ["QGL:addMarkerForQuestGivers"] = function (data)
+            if not tracking.initialized then return end
             local recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
             if data.hudMarkerData then
                 data.hudMarkerData.params.scale = uiUtils.getScaledScreenSize().y / 1080
