@@ -24,6 +24,9 @@ local button = require("scripts.quest_guider_lite.ui.button")
 
 local l10n = core.l10n(consts.l10nKey)
 
+---@type proximityTool?
+local proximityTool = require("openmw.interfaces").proximityTool
+
 
 local this = {}
 
@@ -145,7 +148,8 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                 end
             end
 
-            local header = {
+            local header
+            header = {
                 type = ui.TYPE.Container,
                 props = {
                     autoSize = false,
@@ -204,6 +208,22 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     local btn = btnMeta:getButtonTextElement()
                                     if btn then
                                         btn.props.text = not trackedState and l10n("untrack") or l10n("track")
+                                        if proximityTool then
+                                            proximityTool.newRealTimer(0.25, function ()
+                                                pcall(function ()
+                                                    local showHideBtn = header.content[2].content[3]
+                                                    ---@type questGuider.ui.buttonMeta
+                                                    local showHideBtnMeta = showHideBtn.userData.meta
+                                                    local btn = showHideBtnMeta:getButtonTextElement()
+                                                    ---@diagnostic disable-next-line: need-check-nil
+                                                    btn.props.text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide")
+                                                    ---@diagnostic disable-next-line: need-check-nil
+                                                    showHideBtn.props.visible = tracking.isObjectTracked{diaId = diaId, objectId = objId}
+                                                    self:updateObjectElements()
+                                                    self:update()
+                                                end)
+                                            end)
+                                        end
                                     end
                                     self:updateObjectElements()
                                 end
@@ -213,18 +233,19 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 updateFunc = self.update,
                                 text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
                                 textSize = (self.params.fontSize or 18) * 0.8,
-                                visible = tracking.initialized,
+                                visible = tracking.initialized and tracking.isObjectTracked{diaId = diaId, objectId = objId},
                                 event = function (layout)
+                                    local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
+                                    disabledState = not disabledState
+
                                     tracking.setDisableMarkerState{
                                         objectId = objId,
                                         questId = diaId,
-                                        toggle = true,
+                                        value = disabledState,
                                         isUserDisabled = true,
                                     }
                                     tracking.updateTemporaryMarkers()
                                     tracking.updateMarkers()
-
-                                    local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
 
                                     ---@type questGuider.ui.buttonMeta
                                     local btnMeta = layout.userData.meta
