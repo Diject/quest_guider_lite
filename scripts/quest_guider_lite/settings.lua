@@ -139,14 +139,19 @@ input.registerTrigger {
 }
 
 -- f this
-local bindingSection = storage.playerSection('OMWInputBindings')
-if bindingSection:get(config.default.journal.menuKey) == nil then
-    bindingSection:set(config.default.journal.menuKey, {
-        device = "keyboard",
-        button = input.KEY[config.default.journal.menuKey],
-        type = "trigger",
-        key = "QGL:journal.menuKey",
-    })
+local res, err = pcall(function()
+    local bindingSection = storage.playerSection('OMWInputBindings')
+    if bindingSection:get(config.default.journal.menuKey) == nil then
+        bindingSection:set(config.default.journal.menuKey, {
+            device = "keyboard",
+            button = input.KEY[config.default.journal.menuKey],
+            type = "trigger",
+            key = "QGL:journal.menuKey",
+        })
+    end
+end)
+if not res then
+    print(err)
 end
 
 
