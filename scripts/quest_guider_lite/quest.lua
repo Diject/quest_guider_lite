@@ -1123,6 +1123,9 @@ function this.checkConditionsForQuest(questId, questIndex)
         [myTypes.requirementType.CustomPCFaction] = true,
         [myTypes.requirementType.CustomPCRank] = true,
         [myTypes.requirementType.CustomGlobal] = true,
+        [myTypes.requirementType.Dead] = true,
+        [myTypes.requirementType.CustomOnDeath] = true,
+        [myTypes.requirementType.Item] = true,
     }
 
     for _, reqBlock in pairs(stageData.requirements or {}) do
