@@ -24,6 +24,7 @@ this.default = {
         }
     },
     journal = {
+        overrideJournal = false,
         menuKey = "H",
         objectNames = 3,
         widthProportional = 70, -- %

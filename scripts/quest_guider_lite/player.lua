@@ -64,7 +64,8 @@ local function teleportedCallback()
     end
 end
 
-input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
+
+local function toggleMenu()
     if questMenu then
         questMenu.menu:destroy()
         questMenu = nil
@@ -81,7 +82,16 @@ input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
             end
         }
     end
+end
+
+
+input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
+    toggleMenu()
 end))
+
+if config.data.journal.overrideJournal then
+    I.UI.registerWindow("Journal", function() toggleMenu() end, function () toggleMenu() end)
+end
 
 local function onKeyRelease(key)
     if questMenu and not core.isWorldPaused() then

@@ -159,6 +159,7 @@ I.Settings.registerGroup{
     order = 0,
     settings = {
         inputKey{key = "journal.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:journal.menuKey", default = config.default.journal.menuKey},
+        boolSetting{key = "journal.overrideJournal", name = "overrideJournal", description = "overrideJournalDescription", default = config.data.journal.overrideJournal},
         numberSetting{key = "journal.widthProportional", name = "width", description = "widthDescription", integer = true, min = 30, max = 100, default = config.default.journal.widthProportional},
         numberSetting{key = "journal.heightProportional", name = "height", description = "heightDescription", integer = true, min = 20, max = 100, default = config.default.journal.heightProportional},
         numberSetting{key = "journal.position.x", name = "positionX", description = "journalWindowPositionNote", integer = false, min = 0, max = 100, default = config.default.journal.position.x},

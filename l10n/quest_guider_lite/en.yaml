@@ -46,6 +46,8 @@ useColoredMarkers: "Colored markers"
 useColoredMarkersDescription: "When enabled, each tracked object is assigned a random color to help distinguish between them. Applies only to newly created."
 colorFlags: "Display color flags in quest list"
 colorFlagsDescription: "When enabled, colored flags appear before each quest name in the menu, matching the colors of the quest's tracked objects."
+overrideJournal: "Override Journal"
+overrideJournalDescription: "When enabled, the mod will override the default journal menu. Requires restart."
 
 hidden: "Hidden"
 finished: "Finished"
