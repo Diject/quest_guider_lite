@@ -5,6 +5,7 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local playerRef = require('openmw.self')
 local templates = require('openmw.interfaces').MWUI.templates
+local I = require("openmw.interfaces")
 
 local config = require("scripts.quest_guider_lite.configLib")
 local commonUtils = require("scripts.quest_guider_lite.utils.common")
@@ -23,9 +24,6 @@ local interval = require("scripts.quest_guider_lite.ui.interval")
 local button = require("scripts.quest_guider_lite.ui.button")
 
 local l10n = core.l10n(consts.l10nKey)
-
----@type proximityTool?
-local proximityTool = require("openmw.interfaces").proximityTool
 
 
 local this = {}
@@ -208,8 +206,8 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     local btn = btnMeta:getButtonTextElement()
                                     if btn then
                                         btn.props.text = not trackedState and l10n("untrack") or l10n("track")
-                                        if proximityTool then
-                                            proximityTool.newRealTimer(0.25, function ()
+                                        if I.proximityTool then
+                                            I.proximityTool.newRealTimer(0.25, function ()
                                                 pcall(function ()
                                                     local showHideBtn = header.content[2].content[3]
                                                     ---@type questGuider.ui.buttonMeta

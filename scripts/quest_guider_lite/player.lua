@@ -33,6 +33,11 @@ local questMenu
 
 
 
+-- for cases when the load order is incorrect
+async:newUnsavableSimulationTimer(0.001, function ()
+    tracking.init()
+end)
+
 local function onInit()
     if not localStorage.isPlayerStorageReady() then
         localStorage.initPlayerStorage()

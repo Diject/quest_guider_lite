@@ -66,6 +66,8 @@ this.initialized = false
 
 ---@return boolean isSuccessful
 function this.init()
+    if this.initialized then return true end
+
     this.initialized = false
     proximityTool = I.proximityTool
     if not proximityTool then return false end
