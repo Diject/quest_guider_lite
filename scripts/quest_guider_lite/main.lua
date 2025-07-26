@@ -15,6 +15,7 @@ local trackingGlobal = require("scripts.quest_guider_lite.trackingGlobal")
 local cellLib = require("scripts.quest_guider_lite.cell")
 local common = require("scripts.quest_guider_lite.common")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
+local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 
 local l10n = require('openmw.core').l10n(common.l10nKey)
 
@@ -277,6 +278,22 @@ world.players[1]:sendEvent("QGL:updateTime", {time = world.getGameTime()})
 
 
 return {
+    interfaceName = common.interfaceName,
+    interface = {
+        version = 1,
+        getQuestsData = function ()
+            return dataHandler.quests or {}
+        end,
+        getObjectsData = function ()
+            return dataHandler.questObjects or {}
+        end,
+        getLocalVarialesData = function ()
+            return dataHandler.localVariablesByScriptId or {}
+        end,
+        questLib = questLib,
+        requirementChecker = requirementChecker,
+        types = require("scripts.quest_guider_lite.types"),
+    },
     engineHandlers = {
         onInit = onInit,
         onLoad = onLoad,

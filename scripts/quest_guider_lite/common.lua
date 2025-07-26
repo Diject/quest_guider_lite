@@ -3,6 +3,7 @@ local util = require('openmw.util')
 local this = {}
 
 this.modName = "Quest Guider Lite"
+this.interfaceName = "QuestGuiderLite"
 
 this.l10nKey = "quest_guider_lite"
 
