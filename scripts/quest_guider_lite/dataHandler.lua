@@ -60,6 +60,14 @@ function this.init()
     stor:set("localVariablesByScriptId", this.localVariablesByScriptId)
     stor:set("info", this.info)
 
+    if isReady then
+        core.sendGlobalEvent("QGL:Interop:DataReady", {
+            quests = this.quests,
+            questObjects = this.questObjects,
+            localVariablesByScriptId = this.localVariablesByScriptId,
+        })
+    end
+
     return isReady
 end
 
