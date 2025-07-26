@@ -27,17 +27,21 @@ local gameFileDataEmpty = false
 ---@return boolean
 function this.init()
     isReady = false
-    this.quests = markup.loadYaml("data/quest_guider_lite/quests.yaml")
-    this.questObjects = markup.loadYaml("data/quest_guider_lite/questObjects.yaml")
-    this.localVariablesByScriptId = markup.loadYaml("data/quest_guider_lite/localVariables.yaml")
-    this.info = markup.loadYaml("data/quest_guider_lite/info.yaml")
 
-    if this.quests and this.questObjects and this.localVariablesByScriptId and this.info and
-            this.version == this.info.version then
+    local res, err = pcall(function ()
+        this.quests = markup.loadYaml("data/quest_guider_lite/quests.yaml")
+        this.questObjects = markup.loadYaml("data/quest_guider_lite/questObjects.yaml")
+        this.localVariablesByScriptId = markup.loadYaml("data/quest_guider_lite/localVariables.yaml")
+        this.info = markup.loadYaml("data/quest_guider_lite/info.yaml")
+    end)
+
+    if res and this.quests and this.questObjects and this.localVariablesByScriptId and this.info and
+            this.version >= this.info.version then
         isReady = true
         versionChanged = false
         gameFileDataEmpty = #this.info.files == 0
     else
+        print("Error loading quest data")
         this.quests = {}
         this.questObjects = {}
         this.questByText = {}
