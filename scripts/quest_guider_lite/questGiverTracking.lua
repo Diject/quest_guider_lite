@@ -86,7 +86,7 @@ function this.createQuestGiverMarker(ref)
                 screenOffset = util.vector2(10, 0),
                 scale = 1,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
-                range = config.data.tracking.hudMarkers.range,
+                range = config.data.tracking.hudMarkers.range * 3.28,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
                 offsetMult = 1.0,
                 offset = util.vector3(0, 0, 15),

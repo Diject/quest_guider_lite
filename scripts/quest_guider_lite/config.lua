@@ -18,7 +18,7 @@ this.default = {
         questGiverProximity = 8000,
         hudMarkers = {
             enabled = true,
-            range = 80,
+            range = 30,
             rayTracing = true,
             opacity = 100, -- %
         }
