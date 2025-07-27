@@ -50,7 +50,7 @@
 ---@field version number HUDM version for this marker
 ---@field hidden boolean? if true, this marker will not be shown
 ---@field temporary boolean? if true, this marker will not be saved to the save file
----@field shortTerm boolean? if true, this marker will be removed after one of the tracked objects is removed
+---@field shortTerm boolean? if true, this marker will be removed after one of the tracked objects is invalidated
 
 
 
