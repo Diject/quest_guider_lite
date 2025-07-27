@@ -179,7 +179,7 @@ function this.addMarker(params)
         name = positionData.name,
         description = text,
         nameColor = config.data.tracking.colored and objectTrackingData.color,
-        proximity = config.data.tracking.proximity,
+        proximity = config.data.tracking.proximity * 69.99,
         priority = 10,
     }
 
@@ -191,7 +191,7 @@ function this.addMarker(params)
         iconRatio = 1.6,
         iconColor = common.defaultColorData,
         nameColor = config.data.tracking.colored and objectTrackingData.color,
-        proximity = config.data.tracking.proximity,
+        proximity = config.data.tracking.proximity * 69.99,
         priority = 0,
     }
 

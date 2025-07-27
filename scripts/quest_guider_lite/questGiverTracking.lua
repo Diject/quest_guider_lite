@@ -70,7 +70,7 @@ function this.createQuestGiverMarker(ref)
         iconColor = commonInfo.defaultColorData,
         nameColor = commonInfo.defaultColorData,
         description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("starts").." %s"),
-        proximity = config.data.tracking.questGiverProximity,
+        proximity = config.data.tracking.questGiverProximity * 69.99,
         priority = -100,
         temporary = true,
     }
@@ -86,7 +86,7 @@ function this.createQuestGiverMarker(ref)
                 screenOffset = util.vector2(10, 0),
                 scale = 1,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
-                range = config.data.tracking.hudMarkers.range * 3.28,
+                range = config.data.tracking.hudMarkers.range * 3.2808,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
                 offsetMult = 1.0,
                 offset = util.vector3(0, 0, 15),
