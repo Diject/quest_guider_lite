@@ -242,13 +242,22 @@ function this.addMarker(params)
                     objects[rawData.id] = true
                 end
             else
-                table.insert(positionalMarkers.positions, {
-                    cell = {
-                        isExterior = data.id and false or true,
-                        id = data.id,
-                    },
-                    position = data.position,
-                })
+                if data.position then
+                    table.insert(positionalMarkers.positions, {
+                        cell = {
+                            isExterior = data.id and false or true,
+                            id = data.id,
+                        },
+                        position = data.position,
+                    })
+                elseif data.exitPos and data.id == nil then
+                    table.insert(positionalMarkers.positions, {
+                        cell = {
+                            isExterior = data.isExitEx,
+                        },
+                        position = data.exitPos,
+                    })
+                end
             end
         end
 

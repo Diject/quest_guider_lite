@@ -1039,7 +1039,16 @@ function this.getRequirementPositionData(requirement, customConfig)
                 --     end
                 -- end
 
-                add(id, cell, {id = cell.name, exitPos = exCellPos, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath})
+                local exits = {}
+                local exitPositions = cellLib.findExitPositions(cell)
+                if exitPositions then
+                    for _, pos in pairs(exitPositions) do
+                        local nearestDoor = cellLib.findNearestDoor(pos)
+                        table.insert(exits, nearestDoor.position)
+                    end
+                end
+
+                add(id, cell, {id = cell.name, exitPos = exCellPos, entrances = exits, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath})
 
             else
                 local descr
