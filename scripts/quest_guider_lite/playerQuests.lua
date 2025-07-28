@@ -216,9 +216,6 @@ function this.update(diaId, index)
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
-    local data = this.getQuestDataByName(dia.questName or "")
-    if not data then return end
-
     local questData = initStorageQuestData(dia.questName or "")
     if questData then
         questData.finished = questData.finished or qDia.finished
@@ -230,6 +227,9 @@ function this.update(diaId, index)
             cellData = cellData.getCellData(playerRef.cell) ---@diagnostic disable-line: need-check-nil
         })
     end
+
+    local data = this.getQuestDataByName(dia.questName or "")
+    if not data then return end
 
     if qDia.finished then
         data.isFinished = true
