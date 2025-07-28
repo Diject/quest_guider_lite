@@ -114,8 +114,8 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
         ---@type table<string, {name : string, descr : string, descrBackward : string, positions : questGuider.quest.getRequirementPositionData.positionData[]}>
         local objectPosInfo = {}
         for _, req in pairs(requirements) do
-            for objId, objName in pairs(req.objects or {}) do
-                if objectPosInfo[objId] then goto continue end
+            for objId, posDt in pairs(req.positionData or {}) do
+                if objectPosInfo[objId] or consts.forbiddenForTracking[posDt.reqType or ""] then goto continue end
 
                 local positionData = objectPositions[objId]
                 if not positionData then goto continue end

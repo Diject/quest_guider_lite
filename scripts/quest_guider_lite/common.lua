@@ -1,5 +1,7 @@
 local util = require('openmw.util')
 
+local reqTypes = require("scripts.quest_guider_lite.types.requirement")
+
 local this = {}
 
 this.modName = "Quest Guider Lite"
@@ -54,6 +56,10 @@ this.hudExclamationMarkPath = "textures/icons/quest_guider/HUDExclamationMark.dd
 this.exclamationMarkPath = "textures/icons/quest_guider/exclamationMark.dds"
 this.doorMarkPath = "textures/icons/quest_guider/toDoorIcon.dds"
 
+
+this.forbiddenForTracking = {
+    ["DIAO"] = true,
+}
 
 
 function this.colorToArray(color)

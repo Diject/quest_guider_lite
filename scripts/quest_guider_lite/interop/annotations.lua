@@ -45,6 +45,7 @@
 ---@field isExitEx boolean? true, if the exit is in an exterior cell
 
 ---@class questGuiderLite.getRequirementPositionData.returnData
+---@field reqType string requirement type
 ---@field name string name of the object
 ---@field inWorld integer? number of instances of the object in the game world
 ---@field parentObject string?

@@ -771,6 +771,7 @@ end
 ---@field isExitEx boolean? true, if the exit is in an exterior cell
 
 ---@class questGuider.quest.getRequirementPositionData.returnData
+---@field reqType string requirement type
 ---@field name string name of the object
 ---@field inWorld integer? number of instances of the object in the game world
 ---@field parentObject string?
@@ -799,8 +800,7 @@ function this.getRequirementPositionData(requirement, customConfig)
     local cells = {}
 
     local requirements = {requirement}
-
-    if requirement.type == myTypes.requirementType.Journal and playerQuests.isInitialized() then
+    if requirement.type == myTypes.requirementType.Journal then
         local index = playerQuests.getCurrentIndex(requirement.variable or "")
         if not index or index == 0 then
             local qDt = this.getQuestData(requirement.variable)
@@ -913,7 +913,7 @@ function this.getRequirementPositionData(requirement, customConfig)
     ---@param dt questGuider.quest.getRequirementPositionData.positionData
     local function add(objId, obj, dt)
         if not out[objId] then
-            out[objId] = {name = obj.editorName or obj.name or obj.id or "", positions = {}}
+            out[objId] = {reqType = requirement.type, name = obj.editorName or obj.name or obj.id or "", positions = {}}
         end
         table.insert(out[objId].positions, dt)
     end

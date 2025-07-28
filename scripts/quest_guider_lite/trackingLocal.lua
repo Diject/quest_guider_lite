@@ -117,7 +117,7 @@ function this.addMarker(params)
 
     if not questData or not positionData then return end
 
-    if params.reqData and params.reqData.data.type == "DIAO" then return end
+    if params.reqData and common.forbiddenForTracking[params.reqData.data.type or ""] then return end
 
     local playerQuestData = playerQuests.getQuestStorageData(questData.name)
 
