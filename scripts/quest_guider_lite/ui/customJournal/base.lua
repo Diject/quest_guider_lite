@@ -305,9 +305,10 @@ function journalMeta.fillQuestsContent(self)
         content:add{
             type = ui.TYPE.Flex,
             props = {
-                autoSize = false,
-                size = util.vector2(sBoxMeta.innnerSize.x, self.params.fontSize),
+                autoSize = true,
+                -- size = util.vector2(sBoxMeta.innnerSize.x, self.params.fontSize),
                 horizontal = true,
+                propagateEvents = false,
             },
             name = qName,
             userData = {
@@ -547,7 +548,7 @@ local function create(params)
 
     local questListBox = scrollBox{
         updateFunc = updateFunc,
-        size = util.vector2(questListSize.x - 4, questListSize.y - params.fontSize * 2 - 14),
+        size = util.vector2(questListSize.x - 3, questListSize.y - params.fontSize * 2 - 13),
         scrollAmount = params.fontSize * 6,
         content = questsContent
     }

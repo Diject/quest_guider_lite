@@ -34,6 +34,7 @@ return function(params)
             relativePosition = params.relativePosition,
             anchor = params.anchor,
             horizontal = true,
+            propagateEvents = false,
         },
         userData = {
             checked = params.checked or false

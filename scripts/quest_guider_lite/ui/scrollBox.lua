@@ -3,6 +3,7 @@ local util = require('openmw.util')
 local time = require('openmw_aux.time')
 local I = require('openmw.interfaces')
 local templates = require('openmw.interfaces').MWUI.templates
+local async = require('openmw.async')
 
 local config = require("scripts.quest_guider_lite.config")
 
@@ -27,7 +28,7 @@ scrollBoxMeta.scrollUp = function(self, val)
     local pos = fl.props.position
     if not pos then return end
 
-    fl.props.position = util.vector2(0, math.min(self.params.maxNegativeShift or config.data.ui.scrollArrowSize * 2 or 32, pos.y + val))
+    fl.props.position = util.vector2(0, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, pos.y + val))
     self:update()
 end
 
@@ -116,11 +117,37 @@ return function(params)
     contentData = {
         template = templates.box,
         props = {
+            autoSize = false,
             size = params.size,
         },
         name = params.name,
         events = {
+            mousePress = async:callback(function(coord, layout)
+                layout.userData.doDrag = true
+                layout.userData.lastMousePos = util.vector2(coord.position.x, coord.position.y)
+            end),
 
+            mouseRelease = async:callback(function(_, layout)
+                layout.userData.lastMousePos = nil
+            end),
+
+            focusLoss = async:callback(function(_, layout)
+                layout.userData.lastMousePos = nil
+            end),
+
+            mouseMove = async:callback(function(coord, layout)
+                if not layout.userData.lastMousePos then return end
+
+                local posDIff = coord.position - layout.userData.lastMousePos
+
+                if posDIff.y > 0 then
+                    meta:scrollUp(posDIff.y)
+                elseif posDIff.y < 0 then
+                    meta:scrollDown(-posDIff.y)
+                end
+
+                layout.userData.lastMousePos = coord.position
+            end),
         },
         userData = {
             scrollBoxMeta = meta,
@@ -165,6 +192,17 @@ return function(params)
                     stopScrollTimer()
                 end
             },
+            {
+                type = ui.TYPE.Widget,
+                props = {
+                    autoSize = false,
+                    size = util.vector2(1, 1),
+                    anchor = util.vector2(1, 1),
+                    position = util.vector2(params.size.x, params.size.y),
+                    visible = false,
+                },
+                content = ui.content{},
+            }
         },
     }
 
