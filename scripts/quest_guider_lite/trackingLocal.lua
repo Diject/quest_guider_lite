@@ -347,23 +347,22 @@ function this.addMarker(params)
 
     this.trackedObjectsByDiaId[params.questId] = qTrackingInfo
 
-    local updateMarkers = false
     if positionData.itemCount then
-        updateMarkers = this.handlePlayerInventory() or updateMarkers
+        this.handlePlayerInventory()
     end
     if positionData.actorCount then
-        updateMarkers = this.handleDeath(objectId) or updateMarkers
+        this.handleDeath(objectId)
     end
-    updateMarkers = this.handleTrackingRequirements() or updateMarkers
+    if handledReqs then
+        this.handleTrackingRequirements()
+    end
 
     local storageData = playerQuests.getQuestStorageData(params.questData.name)
     if storageData and storageData.disabled then
         this.setDisableMarkerState{ questId = params.questId, value = true }
     end
 
-    if updateMarkers then
-        this.updateMarkers()
-    end
+    this.updateMarkers()
 
     return objectTrackingData
 end
