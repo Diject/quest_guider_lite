@@ -820,6 +820,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     local markerData = data.markerData
     local description = data.description
     local doors = data.doors
+    local disabled = data.disabled
 
     if not markerData or not description then return end
 
@@ -857,6 +858,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
             },
             objects = doors,
             shortTerm = true,
+            hidden = disabled,
         }
         local hudMarkerId = proximityTool.addHUDM(hudDoorMarkerParams)
         if hudMarkerId then

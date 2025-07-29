@@ -127,6 +127,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
                                 },
                                 description = string.format(l10n("cellsAway", {count = lowestDepth})),
                                 doors = {},
+                                disabled = markerData.disabled,
                             }
                         end
 
