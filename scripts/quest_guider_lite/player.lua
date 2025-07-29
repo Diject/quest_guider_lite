@@ -134,11 +134,11 @@ return {
             if config.data.tracking.autoTrack then
                 tracking.trackQuest(questId, stage)
             end
-            if tracking.handleTrackingRequirements() then
-                tracking.updateMarkers()
-            end
-            core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
-            handleTracking()
+            async:newUnsavableSimulationTimer(0.05, function()
+                handleTracking()
+                core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
+                tracking.addMarkersForInteriorCell(self.cell)
+            end)
         end,
         onTeleported = function ()
             async:newUnsavableSimulationTimer(0.1, function () -- delay for the player cell data to be updated
