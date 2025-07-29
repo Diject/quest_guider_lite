@@ -790,7 +790,7 @@ end
 
 function this.addHUDMarker(markerData)
     if not this.initialized then return end
-    proximityTool.addHUDM(markerData)
+    return proximityTool.addHUDM(markerData)
 end
 
 
@@ -989,17 +989,17 @@ end
 
 
 function this.removeProximityRecord(id)
-    proximityTool.removeRecord(id)
+    return proximityTool.removeRecord(id)
 end
 
 
 function this.removeProximityMarker(id, groupId)
-    proximityTool.removeMarker(id, groupId)
+    return proximityTool.removeMarker(id, groupId)
 end
 
 
 function this.removeHUDMarker(id)
-    proximityTool.removeHUDM(id)
+    return proximityTool.removeHUDM(id)
 end
 
 
