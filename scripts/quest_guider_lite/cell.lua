@@ -237,7 +237,9 @@ function this.fillDistanceToPlayer(posData, playerRef)
     local interiorCellDistance = this.getInteriorCellApproxDistancesToPos(plCell, plPos)
     local worldPlPosData = interiorCellDistance["__world__"]
 
-    for _, pos in pairs(posData) do
+    for _, pos in pairs(posData or {}) do
+        if not pos.position then goto continue end
+
         if not pos.id and worldPlPosData then
             pos.distanceToPlayer = utils.distance2D(worldPlPosData.position, pos.position)
         elseif pos.id then
@@ -252,6 +254,8 @@ function this.fillDistanceToPlayer(posData, playerRef)
         else
             pos.distanceToPlayer = math.huge
         end
+
+        ::continue::
     end
 end
 
