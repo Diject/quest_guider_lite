@@ -47,11 +47,20 @@ local function onInit()
 end
 
 
+local function teleportedCallback()
+    local newCell = self.cell
+    if not newCell.isExterior then
+        tracking.addMarkersForInteriorCell(newCell)
+    end
+end
+
+
 local function onLoad(data)
     localStorage.initPlayerStorage(data)
     killCounter.initByStorageData(localStorage.data)
     tracking.init()
     playerQuests.init()
+    teleportedCallback()
 end
 
 
@@ -59,14 +68,6 @@ local function onSave()
     local data = {}
     localStorage.save(data)
     return data
-end
-
-
-local function teleportedCallback()
-    local newCell = self.cell
-    if not newCell.isExterior then
-        tracking.addMarkersForInteriorCell(newCell)
-    end
 end
 
 
