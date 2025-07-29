@@ -841,14 +841,17 @@ function this.addMarkerForInteriorCellFromGlobal(data)
         ---@type proximityTool.hudm
         local hudDoorMarkerParams = {
             modName = common.modName,
-            version = 5,
+            version = 6,
             params = {
                 icon = common.doorMarkPath,
                 scale = 2 * uiUtils.getScaledScreenSize().y / 1080,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range * 3.28,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
-                offsetMult = 0.3,
+                screenOffset = util.vector2(6, 0),
+                boundingBoxCenter = true,
+                offset = util.vector3(0, 0, 15),
+                -- offsetMult = 0.3,
                 bonusSize = 10,
                 color = newRecordData.nameColor and newRecordData.nameColor or common.colorToArray(config.data.ui.defaultColor),
             },
@@ -885,14 +888,17 @@ function this.createMarkersForExteriorDoor(ref)
         ---@type proximityTool.hudm
         local hudDoorMarkerParams = {
             modName = common.modName,
-            version = 5,
+            version = 6,
             params = {
                 icon = common.doorMarkPath,
                 scale = 2 * uiUtils.getScaledScreenSize().y / 1080,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range * 3.28,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
-                offsetMult = 0.3,
+                screenOffset = util.vector2(6, 0),
+                boundingBoxCenter = true,
+                offset = util.vector3(0, 0, 15),
+                -- offsetMult = 0.3,
                 bonusSize = 10,
                 color = data.color and data.color or common.colorToArray(config.data.ui.defaultColor),
             },
