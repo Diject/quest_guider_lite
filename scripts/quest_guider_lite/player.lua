@@ -197,6 +197,7 @@ return {
 
         ["QGL:addMarkerForInteriorCellTracking"] = function (data)
             tracking.addMarkerForInteriorCellFromGlobal(data)
+            tracking.updateMarkers()
         end,
 
         ["QGL:updateTime"] = function (data)
