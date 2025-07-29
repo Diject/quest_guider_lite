@@ -107,7 +107,7 @@ local function onKeyRelease(key)
 end
 
 
-time.runRepeatedly(function()
+local function handleTracking()
     if not tracking.initialized then return end
     local updateMarkers = false
     updateMarkers = tracking.handlePlayerInventory()
@@ -117,6 +117,11 @@ time.runRepeatedly(function()
     if updateMarkers then
         tracking.updateMarkers()
     end
+end
+
+
+time.runRepeatedly(function()
+    handleTracking()
 end, 5 * time.second + math.random())
 
 
@@ -133,6 +138,7 @@ return {
                 tracking.updateMarkers()
             end
             core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
+            handleTracking()
         end,
         onTeleported = function ()
             async:newUnsavableSimulationTimer(0.1, function () -- delay for the player cell data to be updated
