@@ -112,8 +112,6 @@ local function handleTracking()
     local updateMarkers = false
     updateMarkers = tracking.handlePlayerInventory()
 
-    updateMarkers = tracking.handleTrackingRequirements() or updateMarkers
-
     if updateMarkers then
         tracking.updateMarkers()
     end

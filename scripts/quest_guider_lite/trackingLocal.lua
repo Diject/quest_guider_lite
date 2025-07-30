@@ -349,11 +349,9 @@ function this.addMarker(params)
 
     if positionData.itemCount then
         this.handlePlayerInventory()
-    end
-    if positionData.actorCount then
+    elseif positionData.actorCount then
         this.handleDeath(objectId)
-    end
-    if handledReqs then
+    elseif handledReqs then
         this.handleTrackingRequirements()
     end
 
