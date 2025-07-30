@@ -123,7 +123,6 @@ return function(params)
         name = params.name,
         events = {
             mousePress = async:callback(function(coord, layout)
-                layout.userData.doDrag = true
                 layout.userData.lastMousePos = util.vector2(coord.position.x, coord.position.y)
             end),
 
