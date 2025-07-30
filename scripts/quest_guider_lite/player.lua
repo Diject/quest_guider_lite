@@ -182,17 +182,20 @@ return {
         ["QGL:removeProximityRecord"] = function (data)
             local recordId = data.recordId
             tracking.removeProximityRecord(recordId)
+            tracking.updateMarkers()
         end,
 
         ["QGL:removeProximityMarker"] = function (data)
             local id = data.id
             local groupId = data.groupId
             tracking.removeProximityMarker(id, groupId)
+            tracking.updateMarkers()
         end,
 
         ["QGL:removeHUDMarker"] = function (data)
             local id = data.id
             tracking.removeHUDMarker(id)
+            tracking.updateMarkers()
         end,
 
         ["QGL:addMarkerForInteriorCellTracking"] = function (data)
