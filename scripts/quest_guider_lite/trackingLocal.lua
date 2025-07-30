@@ -828,7 +828,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     if not recordData then return end
 
     local newRecordData = tableLib.deepcopy(recordData)
-    newRecordData.description = data.description
+    newRecordData.description = {newRecordData.description, data.description}
 
     markerData.record = newRecordData
 

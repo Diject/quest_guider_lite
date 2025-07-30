@@ -75,8 +75,8 @@ trackObjects: "Track objects"
 starts: "Starts"
 quest: "Quest"
 cellsAway: |-
-  {count, plural,
-    one {One cell away}
+  Located {count, plural,
+    one {one cell away}
     other {{count} cells away}
   }
 startedTracking: "Started tracking"
