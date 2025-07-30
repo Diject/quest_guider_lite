@@ -105,8 +105,10 @@ end
 ---@param cell tes3cell
 ---@return tes3vector3[]?
 ---@return table<string, tes3cell>?
-function this.findExitPositions(cell, checked, res, resCells)
+---@return table<string, tes3cell>? entranceCells
+function this.findExitPositions(cell, checked, res, resCells, entranceCells)
     if not checked then checked = {} end
+    if not entranceCells then entranceCells = {} end
     if not res then res = {} end
     if cell.isExterior then
         resCells[cell.id] = cell
@@ -126,14 +128,15 @@ function this.findExitPositions(cell, checked, res, resCells)
 
         if destCell.isExterior then
             table.insert(res, utils.copyVector3(destPos))
+            entranceCells[cell.id] = cell
         else
-            this.findExitPositions(destCell, checked, res)
+            this.findExitPositions(destCell, checked, res, resCells, entranceCells)
         end
 
         ::continue::
     end
 
-    return res, resCells
+    return res, resCells, entranceCells
 end
 
 

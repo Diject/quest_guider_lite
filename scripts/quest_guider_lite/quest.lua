@@ -765,6 +765,7 @@ end
 ---@field distanceToPlayer number?
 ---@field exitPos tes3vector3? coordinates in the game world of the entrance to the exterior cell that leads to the position
 ---@field entrances tes3vector3[]?
+---@field firstEntranceCellIds table<string, any>?
 ---@field doorPath tes3travelDestinationNode[]? list of doors to exit from the position
 ---@field cellPath tes3cellData[]? list of cells to exit from the position
 ---@field rawData questDataGenerator.objectPosition|{id : string}|nil *id* is injected owner id, if it exists
@@ -956,15 +957,19 @@ function this.getRequirementPositionData(requirement, customConfig)
                             -- end
 
                             local exits = {}
-                            local exitPositions = cellLib.findExitPositions(cell)
+                            local firstEntranceCellIds = {}
+                            local exitPositions, _, entranceCells = cellLib.findExitPositions(cell)
                             if exitPositions then
                                 for _, pos in pairs(exitPositions) do
                                     local nearestDoor = cellLib.findNearestDoor(pos)
                                     table.insert(exits, nearestDoor.position)
                                 end
+                                for cellId, _ in pairs(entranceCells or {}) do
+                                    firstEntranceCellIds[cellId] = cellId
+                                end
                             end
 
-                            add(id, object, {id = posDt.name, position = util.vector3(x, y, z), entrances = exits,
+                            add(id, object, {id = posDt.name, position = util.vector3(x, y, z), entrances = exits,  firstEntranceCellIds = firstEntranceCellIds,
                                 exitPos = exCellPos, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath, rawData = newPosData})
 
                         else
@@ -1040,15 +1045,20 @@ function this.getRequirementPositionData(requirement, customConfig)
                 -- end
 
                 local exits = {}
-                local exitPositions = cellLib.findExitPositions(cell)
+                local firstEntranceCellIds = {}
+                local exitPositions, _, entranceCells = cellLib.findExitPositions(cell)
                 if exitPositions then
                     for _, pos in pairs(exitPositions) do
                         local nearestDoor = cellLib.findNearestDoor(pos)
                         table.insert(exits, nearestDoor.position)
                     end
+                    for cellId, _ in pairs(entranceCells or {}) do
+                        firstEntranceCellIds[cellId] = cellId
+                    end
                 end
 
-                add(id, cell, {id = cell.name, exitPos = exCellPos, entrances = exits, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath})
+                add(id, cell, {id = cell.name, exitPos = exCellPos, entrances = exits, firstEntranceCellIds = firstEntranceCellIds,
+                    isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath})
 
             else
                 local descr

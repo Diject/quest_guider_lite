@@ -287,11 +287,9 @@ function this.addMarker(params)
                 end
 
                 objectTrackingData.targetCells[cell.id] = cell.id
-                local firstEntranceCell = data.cellPath[#data.cellPath - 1]
-                if firstEntranceCell and not firstEntranceCell.isExterior then
-                    objectTrackingData.firstEntranceCells[firstEntranceCell.id] = firstEntranceCell.id
-                end
             end
+
+            objectTrackingData.firstEntranceCells = data.firstEntranceCellIds
         end
     end
 
