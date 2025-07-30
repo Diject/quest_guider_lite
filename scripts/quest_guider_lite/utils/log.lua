@@ -12,8 +12,6 @@ return function(...)
     for _, var in pairs(args) do
         if type(var) == "table" then
             print(aux_util.deepToString(var, 10))
-        else
-            print(var)
         end
     end
 end
