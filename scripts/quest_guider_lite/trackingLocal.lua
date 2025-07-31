@@ -237,29 +237,22 @@ function this.addMarker(params)
         if objectMarkerData.localMarkerId then
 
             local rawData = data.rawData
-
             if rawData then
                 if rawData.id then
                     objects[rawData.id] = true
                 end
-            else
-                if data.position then
-                    table.insert(positionalMarkers.positions, {
-                        cell = {
-                            isExterior = data.id and false or true,
-                            id = data.id,
-                        },
-                        position = data.position,
-                    })
-                elseif data.exitPos and data.id == nil then
-                    table.insert(positionalMarkers.positions, {
-                        cell = {
-                            isExterior = data.isExitEx,
-                        },
-                        position = data.exitPos,
-                    })
-                end
             end
+
+            if data.position and not data.id then
+                table.insert(positionalMarkers.positions, {
+                    cell = {
+                        isExterior = data.id and false or true,
+                        id = data.id,
+                    },
+                    position = data.position,
+                })
+            end
+
         end
 
         if data.id ~= nil then
@@ -294,9 +287,9 @@ function this.addMarker(params)
         end
     end
 
-    if next(positionalMarkers.positions) then
-        proximityTool.addMarker(positionalMarkers)
-    end
+    -- if next(positionalMarkers.positions) then
+    --     proximityTool.addMarker(positionalMarkers)
+    -- end
 
     if next(doorMarkers.positions) then
         proximityTool.addMarker(doorMarkers)
@@ -304,11 +297,11 @@ function this.addMarker(params)
 
     local listOfObjects = tableLib.keys(objects)
     if next(listOfObjects) then
-
         if #listOfObjects == 1 then
             proximityTool.addMarker{
                 record = objectMarkerData.localMarkerId,
                 objectId = listOfObjects[1],
+                positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
                 groupName = questData.name,
                 itemId = isItem and objectId or nil,
             }
@@ -316,6 +309,7 @@ function this.addMarker(params)
             proximityTool.addMarker{
                 record = objectMarkerData.localMarkerId,
                 objects = listOfObjects,
+                positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
                 groupName = questData.name,
                 itemId = isItem and objectId or nil,
             }
