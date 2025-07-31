@@ -173,6 +173,7 @@ function this.addMarker(params)
     if currentIndex then
         text = playerQuests.getJournalText(params.questId, currentIndex)
     end
+    if text == questData.name then text = nil end
 
     ---@type proximityTool.record
     local markerRecordParams = {
@@ -293,23 +294,32 @@ function this.addMarker(params)
         end
     end
 
-    if #positionalMarkers.positions > 0 then
+    if next(positionalMarkers.positions) then
         proximityTool.addMarker(positionalMarkers)
     end
 
-    if #doorMarkers.positions > 0 then
+    if next(doorMarkers.positions) then
         proximityTool.addMarker(doorMarkers)
     end
 
     local listOfObjects = tableLib.keys(objects)
-    if #listOfObjects > 0 then
+    if next(listOfObjects) then
 
-        proximityTool.addMarker{
-            record = objectMarkerData.localMarkerId,
-            objects = listOfObjects,
-            groupName = questData.name,
-            itemId = isItem and objectId or nil,
-        }
+        if #listOfObjects == 1 then
+            proximityTool.addMarker{
+                record = objectMarkerData.localMarkerId,
+                objectId = listOfObjects[1],
+                groupName = questData.name,
+                itemId = isItem and objectId or nil,
+            }
+        else
+            proximityTool.addMarker{
+                record = objectMarkerData.localMarkerId,
+                objects = listOfObjects,
+                groupName = questData.name,
+                itemId = isItem and objectId or nil,
+            }
+        end
 
     end
 
