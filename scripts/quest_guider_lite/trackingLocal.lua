@@ -649,7 +649,7 @@ local function removeMarker(params)
             ::continue::
         end
 
-        if tableLib.size(objData.markers) == 0 then
+        if not next(objData.markers) then
             this.markerByObjectId[objId] = nil
         end
 
@@ -667,7 +667,7 @@ local function removeMarker(params)
             ::continue::
         end
 
-        if tableLib.size(qData.objects) == 0 then
+        if not next(qData.objects) then
             this.trackedObjectsByDiaId[qId] = nil
         end
 
@@ -709,10 +709,10 @@ function this.removeMarker(params)
         local qData = playerQuests.getQuestDataByDiaId(params.questId)
         if not qData then return end
         for diaId, _ in pairs(qData.records or {}) do
-            res = res or removeMarker{ questId = diaId, objectId = params.objectId }
+            res = removeMarker{ questId = diaId, objectId = params.objectId } or res
         end
     end
-    res = res or removeMarker(params)
+    res = removeMarker(params) or res
 
     return res
 end
