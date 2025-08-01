@@ -170,16 +170,21 @@ return {
             if not valid then return end
 
             local recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
+            local hudMarkerId
             if data.hudMarkerData then
                 data.hudMarkerData.params.scale = uiUtils.getScaledScreenSize().y / 1080
+                hudMarkerId = tracking.addHUDMarker(data.hudMarkerData)
             end
-            local hudMarkerId = tracking.addHUDMarker(data.hudMarkerData)
+
             tracking.updateMarkers()
-            core.sendGlobalEvent("QGL:questGiverMarkerCallback", {
-                record = recordId,
-                hudMarkerId = hudMarkerId,
-                inputData = data,
-            })
+
+            if data.objectRecordId then
+                core.sendGlobalEvent("QGL:questGiverMarkerCallback", {
+                    record = recordId,
+                    hudMarkerId = hudMarkerId,
+                    inputData = data,
+                })
+            end
         end,
 
         ["QGL:updateMarkers"] = function ()
