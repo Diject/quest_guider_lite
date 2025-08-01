@@ -160,6 +160,15 @@ return {
 
         ["QGL:addMarkerForQuestGivers"] = function (data)
             if not tracking.initialized then return end
+            local valid = false
+            for _, qName in pairs(data.questNames or {}) do
+                if not playerQuests.getQuestStorageData(qName) then
+                    valid = true
+                    break
+                end
+            end
+            if not valid then return end
+
             local recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
             if data.hudMarkerData then
                 data.hudMarkerData.params.scale = uiUtils.getScaledScreenSize().y / 1080

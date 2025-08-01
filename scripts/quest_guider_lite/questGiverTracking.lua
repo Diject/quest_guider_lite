@@ -40,6 +40,8 @@ function this.createQuestGiverMarker(ref)
 
     for _, questId in pairs(objectData.starts) do
         local questIdLower = questId:lower()
+        if (playerQuests.getCurrentIndex(questIdLower) or 0) > 0 then goto continue end
+
         local questData = questLib.getQuestData(questIdLower)
         if not questData or not questData.name then goto continue end
 
@@ -108,6 +110,7 @@ function this.createQuestGiverMarker(ref)
     }
 
     world.players[1]:sendEvent("QGL:addMarkerForQuestGivers", {
+        questNames = questNames,
         recordData = recordData,
         markerData = markerData,
         objectRecordId = recordId,
