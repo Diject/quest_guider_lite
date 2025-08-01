@@ -37,6 +37,7 @@ end
 
 local function onLoad()
     dataHandler.init()
+    -- testing.printRandomQuestList()
 end
 
 

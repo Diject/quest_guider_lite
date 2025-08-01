@@ -1,6 +1,9 @@
 local dataHandler = require("scripts.quest_guider_lite.dataHandler")
 local questLib = require("scripts.quest_guider_lite.quest")
 local log = require("scripts.quest_guider_lite.utils.log")
+local tableLib = require("scripts.quest_guider_lite.utils.table")
+local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
+local myTypes = require("scripts.quest_guider_lite.types")
 
 local this = {}
 
@@ -109,5 +112,47 @@ function this.descriptionLines()
         end
     end
 end
+
+
+function this.printRandomQuestList()
+    ---@type { name: string, links: string[]?, hasFinished: boolean?, [string]: questDataGenerator.stageData }[]
+    local dias = tableLib.keys(dataHandler.quests)
+    tableLib.shuffle(dias)
+
+    local allowedTypes = {
+        [myTypes.requirementType.Journal] = true,
+        [myTypes.requirementType.CustomPCFaction] = true,
+        [myTypes.requirementType.CustomPCRank] = true,
+        [myTypes.requirementType.CustomGlobal] = true,
+        [myTypes.requirementType.Dead] = true,
+        [myTypes.requirementType.CustomOnDeath] = true,
+        [myTypes.requirementType.Item] = true,
+    }
+
+    local i = 0
+
+    for _, diaId in ipairs(dias) do
+        if i > 100 then break end
+        local qDt = dataHandler.quests[diaId]
+        local firstInd = questLib.getFirstIndex(qDt)
+        local firstDt = qDt[tostring(firstInd)]
+
+        if firstDt then
+            for _, reqBlock in pairs(firstDt.requirements or {}) do
+                local ret = requirementChecker.checkBlock(reqBlock, {
+                    allowedTypes = allowedTypes,
+                    threatErrorsAs = true,
+                })
+
+                if ret then
+                    print(string.format("Journal \"%s\" %s", diaId, tostring(firstInd)))
+                    i = i + 1
+                    break
+                end
+            end
+        end
+    end
+end
+
 
 return this
