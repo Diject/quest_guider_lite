@@ -103,6 +103,7 @@ end
 ---@field reqData questGuider.quest.getDescriptionDataFromBlock.returnArr?
 ---@field positionData questGuider.quest.getRequirementPositionData.returnData
 ---@field color number[]|nil
+---@field priority number?
 
 ---@param params questGuider.tracking.addMarker
 ---@return questGuider.tracking.objectRecord|nil
@@ -175,13 +176,15 @@ function this.addMarker(params)
     end
     if text == questData.name then text = nil end
 
+    local priority = params.priority or 0
+
     ---@type proximityTool.record
     local markerRecordParams = {
         name = positionData.name,
         description = text,
         nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity * 69.99,
-        priority = 10,
+        priority = priority + 10,
     }
 
     ---@type proximityTool.record
@@ -193,7 +196,7 @@ function this.addMarker(params)
         iconColor = common.defaultColorData,
         nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity * 69.99,
-        priority = 0,
+        priority = priority,
     }
 
     objectMarkerData.localMarkerId = proximityTool.addRecord(markerRecordParams)

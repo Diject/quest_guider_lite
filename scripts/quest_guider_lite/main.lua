@@ -50,7 +50,7 @@ local function onObjectActive(ref)
 end
 
 
----@param params {diaId : string, diaIndex : number|string, objectId : string?}
+---@param params {diaId : string, diaIndex : number|string, objectId : string?, priority : number?}
 local function addMarkersForQuest(params)
 
     local questData = questLib.getQuestData(params.diaId)
@@ -81,6 +81,7 @@ local function addMarkersForQuest(params)
                         questData = questData,
                         questStage = params.diaIndex,
                         reqData = requirement,
+                        priority = params.priority,
                     }
                     world.players[1]:sendEvent("QGL:addMarker", eventParams)
 
@@ -315,7 +316,7 @@ return {
 
             if linkedIndexData then
                 for qId, dt in pairs(linkedIndexData) do
-                    local objs = addMarkersForQuest{diaId = qId, diaIndex = dt.index}
+                    local objs = addMarkersForQuest{diaId = qId, diaIndex = dt.index, priority = -100}
                     tableLib.copy(objs, objects)
                 end
                 data.shouldUpdate = true
