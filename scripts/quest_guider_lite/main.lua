@@ -3,6 +3,8 @@ local world = require('openmw.world')
 local types = require('openmw.types')
 local time = require('openmw_aux.time')
 
+local config = require("scripts.quest_guider_lite.config")
+
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 
@@ -320,13 +322,22 @@ return {
 
             if linkedIndexData then
                 for qId, dt in pairs(linkedIndexData) do
+                    if not config.data.tracking.autoTrackOneEntryDialogues then
+                        local indexes = questLib.getIndexes(dt.qData) or {}
+                        if #indexes <= 1 then goto continue end
+                    end
+
                     local objs = addMarkersForQuest{diaId = qId, diaIndex = dt.index, priority = -100}
                     tableLib.copy(objs, objects)
+
+                    ::continue::
                 end
                 data.shouldUpdate = true
             end
 
-            showTrackingMessage(objects)
+            if next(objects) then
+                showTrackingMessage(objects)
+            end
             updateQuestMenu()
         end,
 

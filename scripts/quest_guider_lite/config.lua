@@ -10,6 +10,7 @@ local this = {}
 this.default = {
     tracking = {
         autoTrack = true,
+        autoTrackOneEntryDialogues = false,
         trackDisabled = false,
         colored = true,
         minChance = 20, -- %
@@ -18,7 +19,7 @@ this.default = {
         questGiverProximity = 100,
         hudMarkers = {
             enabled = true,
-            range = 30,
+            range = 60,
             rayTracing = true,
             opacity = 100, -- %
         }
