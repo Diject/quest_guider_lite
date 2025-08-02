@@ -801,7 +801,9 @@ function this.getRequirementPositionData(requirement, customConfig)
     local cells = {}
 
     local requirements = {requirement}
-    if requirement.type == myTypes.requirementType.Journal then
+    if requirement.type == myTypes.requirementType.Journal
+            and not ((requirement.operator == myTypes.operator.value.Equal or requirement.operator == myTypes.operator.value.LessOrEqual) and requirement.value == 0)
+            and not (requirement.operator == myTypes.operator.value.Less and requirement.value == 1) then
         local index = playerQuests.getCurrentIndex(requirement.variable or "")
         if not index or index == 0 then
             local qDt = this.getQuestData(requirement.variable)
