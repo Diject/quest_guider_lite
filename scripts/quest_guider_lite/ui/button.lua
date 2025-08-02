@@ -8,7 +8,7 @@ local configData = require("scripts.quest_guider_lite.config")
 local consts = require("scripts.quest_guider_lite.common")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
-local tooltip = require("scripts.proximityTool.ui.tooltip")
+local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 
 
