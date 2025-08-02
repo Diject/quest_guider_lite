@@ -729,6 +729,13 @@ function this.removeMarker(params)
 end
 
 
+function this.removeAll()
+    for diaId, objects in pairs(this.trackedObjectsByDiaId) do
+        this.removeMarker{questId = diaId}
+    end
+end
+
+
 ---@class questGuider.tracking.addMarkersForQuest
 ---@field questId string should be lowercase
 ---@field questIndex integer|string

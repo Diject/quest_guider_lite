@@ -6,6 +6,7 @@ local ui = require('openmw.ui')
 local input = require('openmw.input')
 local I = require('openmw.interfaces')
 local util = require('openmw.util')
+local storage = require('openmw.storage')
 
 local log = require("scripts.quest_guider_lite.utils.log")
 
@@ -31,6 +32,41 @@ local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.next
 ---@type questGuider.ui.customJournal?
 local questMenu
 
+
+I.Settings.registerGroup{
+    key = commonData.settingStorageToRemoveId,
+    page = commonData.settingPage,
+    l10n = commonData.l10nKey,
+    name = "removeAllGroup",
+    permanentStorage = false,
+    order = 4,
+    settings = {
+        {
+            key = "removeAll",
+            renderer = "checkbox",
+            name = "removeAllMarkers",
+            description = "removeAllMarkersDescription",
+            default = false,
+        }
+    },
+}
+
+local isStorageTimerRunning = false
+local storageToRemove = storage.playerSection(commonData.settingStorageToRemoveId)
+storageToRemove:subscribe(async:callback(function(section, key)
+    local remove = storageToRemove:get("removeAll")
+    if remove == true and not isStorageTimerRunning then
+        isStorageTimerRunning = true
+        async:newUnsavableSimulationTimer(0.1, function ()
+            isStorageTimerRunning = false
+            if storageToRemove:get("removeAll") then
+                tracking.removeAll()
+                tracking.updateMarkers()
+                storageToRemove:set("removeAll", false)
+            end
+        end)
+    end
+end))
 
 
 -- for cases when the load order is incorrect
