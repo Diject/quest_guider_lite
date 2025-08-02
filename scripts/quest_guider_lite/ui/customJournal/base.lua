@@ -481,7 +481,7 @@ local function create(params)
                         props = {
                             autoSize = false,
                             textSize = params.fontSize,
-                            size = util.vector2(params.size.x * 0.2, params.fontSize + 4),
+                            size = util.vector2(params.size.x * 0.2, params.fontSize + 5),
                         },
                         events = {
                             textChanged = async:callback(function(text, layout)
@@ -560,7 +560,7 @@ local function create(params)
     local questListBox = scrollBox{
         updateFunc = updateFunc,
         size = util.vector2(questListSize.x - 3, questListSize.y - params.fontSize * 2 - 13),
-        scrollAmount = params.fontSize * 6,
+        scrollAmount = params.size.y / 5,
         content = questsContent
     }
 
