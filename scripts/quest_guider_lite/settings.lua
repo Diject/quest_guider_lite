@@ -186,8 +186,9 @@ I.Settings.registerGroup{
     order = 1,
     settings = {
         boolSetting{key = "tracking.autoTrack", name = "autoTrack", description = "autoTrackDescription", default = config.data.tracking.autoTrack},
-        boolSetting{key = "tracking.trackDisabled", name = "trackDisabled", description = "trackDisabledDescription", default = config.data.tracking.trackDisabled},
+        boolSetting{key = "tracking.autoTrackSideBranches", name = "autoTrackSideBranches", description = "autoTrackSideBranchesDescription", default = config.data.tracking.autoTrackSideBranches},
         boolSetting{key = "tracking.autoTrackOneEntryDialogues", name = "autoTrackOneEntryDialogues", description = "autoTrackOneEntryDialoguesDescription", default = config.data.tracking.autoTrackOneEntryDialogues},
+        boolSetting{key = "tracking.trackDisabled", name = "trackDisabled", description = "trackDisabledDescription", default = config.data.tracking.trackDisabled},
         numberSetting{key = "tracking.minChance", name = "minDropchance", description = "minDropchanceDescription", integer = false, min = 0, max = 100, default = config.default.tracking.minChance},
         numberSetting{key = "tracking.maxPos", name = "maxPositionNumberToNotTrackEntrances", description = "maxPositionNumberToNotTrackEntrancesDescription", integer = true, min = 0, default = config.default.tracking.maxPos},
         numberSetting{key = "tracking.proximity", name = "markerActivationDistance", description = "markerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.proximity},

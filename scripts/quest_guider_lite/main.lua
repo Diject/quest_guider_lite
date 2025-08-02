@@ -320,7 +320,7 @@ return {
                 data.shouldUpdate = true
             end
 
-            if linkedIndexData then
+            if linkedIndexData and config.data.tracking.autoTrackSideBranches then
                 for qId, dt in pairs(linkedIndexData) do
                     if not config.data.tracking.autoTrackOneEntryDialogues then
                         local indexes = questLib.getIndexes(dt.qData) or {}

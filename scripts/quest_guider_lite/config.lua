@@ -10,6 +10,7 @@ local this = {}
 this.default = {
     tracking = {
         autoTrack = true,
+        autoTrackSideBranches = false,
         autoTrackOneEntryDialogues = false,
         trackDisabled = false,
         colored = true,
