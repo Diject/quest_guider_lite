@@ -37,15 +37,15 @@ nextStagesMeta.type = consts.elementMetatableTypes.nextStages
 
 
 function nextStagesMeta.getRequirementsFlex(self)
-    return self:getLayout().content[2].content[3]
+    return self:getLayout().content[3]
 end
 
 function nextStagesMeta.getRequirementsHeader(self)
-    return self:getLayout().content[2].content[1]
+    return self:getLayout().content[1]
 end
 
 function nextStagesMeta.getObjectsFlex(self)
-    return self:getLayout().content[2].content[2]
+    return self:getLayout().content[2]
 end
 
 function nextStagesMeta.getHeaderNextBtnsFlex(self)
@@ -536,25 +536,12 @@ function this.create(params)
         type = ui.TYPE.Flex,
         props = {
             autoSize = true,
-            horizontal = true,
-        },
-        userData = {
-            meta = meta,
+            horizontal = false,
         },
         content = ui.content {
-            interval(4, 0),
-            {
-                type = ui.TYPE.Flex,
-                props = {
-                    autoSize = true,
-                    horizontal = false,
-                },
-                content = ui.content {
-                    header,
-                    objectsFlex,
-                    requirementFlex,
-                }
-            }
+            header,
+            objectsFlex,
+            requirementFlex,
         }
     }
 
