@@ -1,5 +1,6 @@
 local storage = require('openmw.storage')
 local async = require('openmw.async')
+local core = require("openmw.core")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local commonData = require("scripts.quest_guider_lite.common")
@@ -30,9 +31,11 @@ for _, section in pairs(this.storageSections) do
         else
             this.loadFromStorage(section)
         end
+        core.sendGlobalEvent("QGL:updateConfigData", this.data)
     end))
 
     this.loadFromStorage(section)
+    core.sendGlobalEvent("QGL:updateConfigData", this.data)
 end
 
 

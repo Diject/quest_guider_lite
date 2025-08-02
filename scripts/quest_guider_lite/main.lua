@@ -386,5 +386,9 @@ return {
         ["QGL:updateKillCounter"] = function (data)
             killCounter.init(data)
         end,
+
+        ["QGL:updateConfigData"] = function (data)
+            tableLib.applyChanges(config.data, data)
+        end
     },
 }
