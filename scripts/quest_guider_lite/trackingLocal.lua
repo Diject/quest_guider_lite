@@ -62,6 +62,9 @@ this.markerByObjectId = {}
 ---@type table<string, {objects : table<string, string[]>}>
 this.trackedObjectsByDiaId = {}
 
+---@type table<string, number[]>
+this.lastObjectColor = {}
+
 this.initialized = false
 
 ---@return boolean isSuccessful
@@ -83,9 +86,11 @@ function this.init()
     this.storageData = storage.data[storageLabel]
     this.storageData.markerByObjectId = this.storageData.markerByObjectId or {}
     this.storageData.trackedObjectsByQuestId = this.storageData.trackedObjectsByQuestId or {}
+    this.storageData.lastObjectColor = this.storageData.lastObjectColor or {}
 
     this.markerByObjectId = this.storageData.markerByObjectId
     this.trackedObjectsByDiaId = this.storageData.trackedObjectsByQuestId
+    this.lastObjectColor = this.storageData.lastObjectColor
 
     this.scannedCellsForTemporaryMarkers = {}
 
@@ -137,11 +142,17 @@ function this.addMarker(params)
 
     local objectTrackingData = this.markerByObjectId[objectId]
     if not objectTrackingData then
-        local colorId = math.min(this.storageData.colorId, #colors)
+        local lastColor = this.lastObjectColor[objectId]
+        if not lastColor then
+            local colorId = math.min(this.storageData.colorId, #colors)
 
-        objectTrackingData = { markers = {}, color = config.data.tracking.colored and colors[colorId] } ---@diagnostic disable-line: missing-fields
+            objectTrackingData = { markers = {}, color = config.data.tracking.colored and colors[colorId] } ---@diagnostic disable-line: missing-fields
 
-        this.storageData.colorId = colorId < #colors and colorId + 1 or 1
+            this.lastObjectColor[objectId] = colors[colorId]
+            this.storageData.colorId = colorId < #colors and colorId + 1 or 1
+        else
+            objectTrackingData = { markers = {}, color = config.data.tracking.colored and lastColor } ---@diagnostic disable-line: missing-fields
+        end
     end
 
     if objectTrackingData.markers[params.questId] then
