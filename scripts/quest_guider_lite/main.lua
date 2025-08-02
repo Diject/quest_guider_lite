@@ -18,6 +18,7 @@ local cellLib = require("scripts.quest_guider_lite.cell")
 local common = require("scripts.quest_guider_lite.common")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
+local playerQuests = require('scripts.quest_guider_lite.playerQuests')
 
 local l10n = require('openmw.core').l10n(common.l10nKey)
 
@@ -194,10 +195,15 @@ local function fillQuestBoxQuestInfo(data)
 
         if linkedIndexData then
             for dId, dt in pairs(linkedIndexData) do
+                local currentIndex = playerQuests.getCurrentIndex(dId)
+                if currentIndex and currentIndex >= dt.index then goto continue end
+
                 local linkedQuestData = questLib.getQuestData(dId)
-                if linkedIndexData then
-                    fillRes(linkedQuestData, res.linked, dId, dt.index)
-                end
+                if not linkedIndexData then goto continue end
+
+                fillRes(linkedQuestData, res.linked, dId, dt.index)
+
+                ::continue::
             end
 
             if not next(res.linked) then
@@ -326,6 +332,9 @@ return {
                         local indexes = questLib.getIndexes(dt.qData) or {}
                         if #indexes <= 1 then goto continue end
                     end
+
+                    local currentIndex = playerQuests.getCurrentIndex(qId)
+                    if currentIndex and currentIndex >= dt.index then goto continue end
 
                     local objs = addMarkersForQuest{diaId = qId, diaIndex = dt.index, priority = -100}
                     tableLib.copy(objs, objects)
