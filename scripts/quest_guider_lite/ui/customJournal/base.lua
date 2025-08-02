@@ -319,6 +319,7 @@ function journalMeta.fillQuestsContent(self)
                 mouseRelease = async:callback(function(e, layout)
                     if e.button ~= 1 then return end
 
+                    self:fillQuestsContent()
                     self:selectQuest(qName)
                 end),
             },
