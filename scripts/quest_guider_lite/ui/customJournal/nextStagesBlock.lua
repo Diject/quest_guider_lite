@@ -362,6 +362,20 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                         text = string.format(format, tostring(nextData.index)),
                         textSize = params.fontSize,
                         updateFunc = params.updateFunc,
+                        tooltipContent = ui.content{
+                            {
+                                template = templates.textNormal,
+                                type = ui.TYPE.Text,
+                                props = {
+                                    text = string.format(l10n("idIndexShort"), diaId, nextData.index),
+                                    textColor = config.data.ui.defaultColor,
+                                    autoSize = true,
+                                    textSize = params.fontSize or 18,
+                                    multiline = false,
+                                    wordWrap = false,
+                                },
+                            },
+                        },
                         event = function (layout)
                             local variantBtnFlex = self:getHeaderVariantBtnsFlex()
                             variantBtnFlex.content = ui.content{
