@@ -29,13 +29,13 @@ this.default = {
         overrideJournal = false,
         menuKey = "H",
         objectNames = 3,
-        widthProportional = 70, -- %
-        heightProportional = 55, -- %
+        widthProportional = 80, -- %
+        heightProportional = 70, -- %
         width = 1100,
         height = 700,
         position = { -- %
-            x = 20,
-            y = 20,
+            x = 10,
+            y = 10,
         },
         listRelativeSize = 30, -- %
         trackedColorMarks = true,
