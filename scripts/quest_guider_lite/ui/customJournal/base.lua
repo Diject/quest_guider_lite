@@ -271,9 +271,21 @@ function journalMeta.fillQuestsContent(self)
     ---@type questGuider.playerQuest.storageData
     local playerData = playerQuests.getStorageData()
 
+    local finishedSubVal = 200000000000
+    local disabledSubVal = 100000000000
+    local function compareFunc(a, b)
+        local aVal = a.timestamp or 0
+        aVal = a.finished and aVal - finishedSubVal
+            or a.disabled and aVal - disabledSubVal or aVal
+        local bVal = b.timestamp or 0
+        bVal = b.finished and bVal - finishedSubVal
+            or b.disabled and bVal - disabledSubVal or bVal
+        return aVal > bVal
+    end
+
     ---@type questGuider.playerQuest.storageQuestData[]
     local sortedData = tableLib.values(playerData.questData, function (a, b)
-        return (a.finished and -2 or a.disabled and -1 or a.timestamp or 0) > (b.finished and -2 or b.disabled and -1 or b.timestamp or 0)
+        return compareFunc(a, b)
     end)
 
     local showFinished = self:getQuestListFinishedCheckBox().userData.checked
