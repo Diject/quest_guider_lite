@@ -254,4 +254,14 @@ function this.getCurrentIndex(diaId)
 end
 
 
+---@param diaId string
+---@return string?
+function this.getQuestNameByDiaId(diaId)
+    local dia = core.dialogue.journal.records[diaId]
+    if not dia then return end
+
+    return dia.questName
+end
+
+
 return this

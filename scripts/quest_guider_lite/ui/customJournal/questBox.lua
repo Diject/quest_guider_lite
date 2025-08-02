@@ -293,6 +293,16 @@ function this.create(params)
                         textSize = params.fontSize or 18,
                         event = function (checked, layout)
                             params.playerQuestData.disabled = checked
+                            local qData = playerQuests.getQuestDataByName(params.questName)
+                            if qData then
+                                local changed = false
+                                for diaId, _ in pairs(qData.records or {}) do
+                                    changed = tracking.setDisableMarkerState{questId = diaId, value = checked} or changed
+                                end
+                                if changed then
+                                    tracking.updateMarkers()
+                                end
+                            end
                         end
                     },
                     {

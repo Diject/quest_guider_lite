@@ -385,6 +385,15 @@ function this.setDisableMarkerState(params)
 
     local markerDataHashTable = {}
 
+    local hidden = false
+    if params.questId then
+        local qName = playerQuests.getQuestNameByDiaId(params.questId)
+        if qName then
+            local storageData = playerQuests.getQuestStorageData(qName)
+            hidden = storageData and storageData.disabled or false
+        end
+    end
+
     for objId, objData in pairs(this.markerByObjectId) do
         if params.objectId and objId ~= params.objectId then goto continue end
 
@@ -409,19 +418,18 @@ function this.setDisableMarkerState(params)
         if params.temporary then
             markerData.disabled = disabledState
         elseif params.isUserDisabled then
-            markerData.disabled = disabledState
-            if markerData.disabled == nil then markerData.disabled = false end
+            markerData.disabled = disabledState or false
             markerData.userDisabled = markerData.disabled
 
         elseif markerData.userDisabled ~= nil then
             local userDisabled = markerData.userDisabled
-            if userDisabled == disabledState then
+            if userDisabled == (disabledState or hidden) then
                 markerData.userDisabled = nil
             end
             markerData.disabled = userDisabled
 
         else
-            markerData.disabled = disabledState
+            markerData.disabled = disabledState or hidden
         end
 
         if oldState ~= markerData.disabled then
