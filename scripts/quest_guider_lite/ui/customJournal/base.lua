@@ -2,6 +2,7 @@ local async = require('openmw.async')
 local ui = require('openmw.ui')
 local util = require('openmw.util')
 local core = require('openmw.core')
+local input = require('openmw.input')
 local templates = require('openmw.interfaces').MWUI.templates
 local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 
@@ -485,6 +486,15 @@ local function create(params)
                         events = {
                             textChanged = async:callback(function(text, layout)
                                 meta.textFilter = text
+                            end),
+                            keyRelease = async:callback(function(e, layout)
+                                if e.code == input.KEY.Enter then
+                                    local selectedQuest = meta:getQuestListSelectedFladValue()
+                                    meta:fillQuestsContent()
+                                    meta:selectQuest(selectedQuest)
+                                    searchBar.content[1].content[1].props.text = meta.textFilter
+                                    updateFunc()
+                                end
                             end),
                             focusLoss = async:callback(function(layout)
                                 searchBar.content[1].content[1].props.text = meta.textFilter
