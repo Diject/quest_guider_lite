@@ -1,12 +1,15 @@
 local ui = require('openmw.ui')
 local util = require('openmw.util')
 local templates = require('openmw.interfaces').MWUI.templates
+local core = require('openmw.core')
 
 local config = require("scripts.quest_guider_lite.configLib")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
+local commonData = require("scripts.quest_guider_lite.common")
 
 local interval = require("scripts.quest_guider_lite.ui.interval")
 
+local l10n = core.l10n(commonData.l10nKey)
 
 local this = {}
 
@@ -39,21 +42,21 @@ function this.getContentForTooltip(params)
     local idStr
     for _, qData in ipairs(list) do
         if not idStr then
-            idStr = string.format("ID: \"%s\" (%s)", qData.diaId, tostring(qData.index))
+            idStr = string.format(l10n("tooltipIDStringStart"), qData.diaId, tostring(qData.index))
         else
-            idStr = string.format("%s, \"%s\" (%s)", idStr, qData.diaId, tostring(qData.index))
+            idStr = string.format(l10n("tooltipIDString"), idStr, qData.diaId, tostring(qData.index))
         end
     end
     idStr = idStr or ""
 
-    local startedInStr = "Received in ???"
+    local startedInStr = l10n("receivedInDefault")
     if meta and meta.params.playerQuestData.list[1] then
         local firstRecordData = meta.params.playerQuestData.list[1]
         if firstRecordData.cellData then
-            startedInStr = string.format("Started in \"%s\"", firstRecordData.cellData.name)
+            startedInStr = string.format(l10n("startedIn"), firstRecordData.cellData.name)
         end
     elseif recordInfo and recordInfo.cellData then
-        startedInStr = string.format("Received in \"%s\"", recordInfo.cellData.name)
+        startedInStr = string.format(l10n("receivedIn"), recordInfo.cellData.name)
     end
 
     local scaledScreenSize = uiUtils.getScaledScreenSize()
