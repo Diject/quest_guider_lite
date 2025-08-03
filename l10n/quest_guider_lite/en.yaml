@@ -1,6 +1,6 @@
 empty: ""
 modName: "Quest Guider Lite"
-modDescription: "PH"
+modDescription: "New improved quest menu and quest object tracking."
 journal: "Journal"
 customJournalKeyName: "Open Menu"
 customJournalKeyDescription: "Key to open menu"
