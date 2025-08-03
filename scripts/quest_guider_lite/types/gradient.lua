@@ -24,7 +24,7 @@ local function hslToRgb(h, s, l)
 end
 
 
-local numColors = 20
+local numColors = 40
 local gradient = {}
 
 for i = 0, numColors - 1 do
