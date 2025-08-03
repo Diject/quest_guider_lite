@@ -824,18 +824,15 @@ end
 
 
 function this.addMarkersForInteriorCell(cell)
-    if not this.initialized then return end
-    local keys = {}
-    for key, markerData in pairs(lastInteriorMarkers) do
+    if not this.init() then return end
+
+    for id, markerData in pairs(lastInteriorMarkers) do
         if markerData.id then
             proximityTool.removeMarker(markerData.id, markerData.groupId)
         elseif markerData.hudId then
             proximityTool.removeHUDM(markerData.hudId)
         end
-        table.insert(keys, key)
-    end
-    for _, key in pairs(keys) do
-        lastInteriorMarkers[key] = nil
+        lastInteriorMarkers[id] = nil
     end
 
     core.sendGlobalEvent("QGL:addMarkersForInteriorCell", {

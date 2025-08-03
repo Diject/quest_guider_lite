@@ -96,7 +96,9 @@ local function onLoad(data)
     killCounter.initByStorageData(localStorage.data)
     tracking.init()
     playerQuests.init()
-    teleportedCallback()
+    async:newUnsavableSimulationTimer(0.1, function ()
+        teleportedCallback()
+    end)
 end
 
 
@@ -158,6 +160,7 @@ time.runRepeatedly(function()
     handleTracking()
 end, 5 * time.second + math.random())
 
+local onQuestUpdateTimerStarted = false
 
 return {
     engineHandlers = {
@@ -168,11 +171,15 @@ return {
             if config.data.tracking.autoTrack then
                 tracking.trackQuest(questId, stage)
             end
-            async:newUnsavableSimulationTimer(0.05, function()
-                handleTracking()
-                core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
-                tracking.addMarkersForInteriorCell(self.cell)
-            end)
+            if not onQuestUpdateTimerStarted then
+                onQuestUpdateTimerStarted = true
+                async:newUnsavableSimulationTimer(0.05, function()
+                    handleTracking()
+                    core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
+                    tracking.updateTemporaryMarkers()
+                    onQuestUpdateTimerStarted = false
+                end)
+            end
         end,
         onTeleported = function ()
             async:newUnsavableSimulationTimer(0.1, function () -- delay for the player cell data to be updated
@@ -195,7 +202,7 @@ return {
         end,
 
         ["QGL:addMarkerForQuestGivers"] = function (data)
-            if not tracking.initialized then return end
+            if not tracking.init() then return end
             local valid = false
             for _, qName in pairs(data.questNames or {}) do
                 if not playerQuests.getQuestStorageData(qName) then
