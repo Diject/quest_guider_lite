@@ -4,15 +4,13 @@
 ---@field positions proximityTool.positionData[]? positions that the marker will track
 ---@field objectId string? record id, objects with this id will be tracked by the marker. The name field will be automatically assigned as the object's name
 ---@field object any? GameObject that will be tracked by the marker. Not saved between game sessions
----@field objects string[]? several record ids, objects with these ids will be tracked by the marker
+---@field objectIds string[]? several record ids, objects with these ids will be tracked by the marker
 ---@field itemId string? record id of the item, the presence of which is required for the tracked object
 ---@field temporary boolean? if true, the marker will not be saved to game save files
 ---@field shortTerm boolean? if true, the marker will be removed when changing location
 
 ---@class proximityTool.marker.cellData
 ---@field id string? cell id
----@field gridX integer? for exterior cells
----@field gridY integer? for exterior cells
 ---@field isExterior boolean required!
 
 ---@class proximityTool.positionData
@@ -40,6 +38,7 @@
 ---@field showGroupIcon boolean? *true* by default
 ---@field showNoteIcon boolean? *true* by default
 ---@field enableGroupEvent boolean? *true* by default
+---@field trackAllTypesTogether boolean? *false* by default
 
 ---@class proximityTool.hudm
 ---@field modName string required

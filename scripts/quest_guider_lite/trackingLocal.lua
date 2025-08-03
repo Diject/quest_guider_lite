@@ -322,7 +322,7 @@ function this.addMarker(params)
         else
             proximityTool.addMarker{
                 record = objectMarkerData.localMarkerId,
-                objects = listOfObjects,
+                objectIds = listOfObjects,
                 positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
                 groupName = questData.name,
                 itemId = isItem and objectId or nil,
