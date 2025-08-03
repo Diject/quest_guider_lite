@@ -295,9 +295,8 @@ function this.addMarker(params)
                 end
 
                 objectTrackingData.targetCells[cell.id] = cell.id
+                tableLib.copy(data.firstEntranceCellIds or {}, objectTrackingData.firstEntranceCells)
             end
-
-            objectTrackingData.firstEntranceCells = data.firstEntranceCellIds
         end
     end
 
