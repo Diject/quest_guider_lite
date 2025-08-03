@@ -53,11 +53,6 @@ function this.createQuestGiverMarker(ref)
             goto continue
         end
 
-        local currentIndex = playerQuests.getCurrentIndex(questId)
-        if not currentIndex or currentIndex > 0 then
-            goto continue
-        end
-
         questNames[questData.name] = questData.name
 
         ::continue::
