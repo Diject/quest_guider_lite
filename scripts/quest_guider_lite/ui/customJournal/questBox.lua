@@ -61,6 +61,9 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
                 tracking.trackQuest(info.diaId, info.diaIndex)
                 break
             end
+            async:newUnsavableSimulationTimer(0.1, function ()
+                tracking.updateTemporaryMarkers()
+            end)
         end,
         updateFunc = function ()
             self.params.updateFunc()
@@ -88,6 +91,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
                     tracking.updateMarkers()
                     break
                 end
+                tracking.updateTemporaryMarkers()
 
                 self:addTrackButtons()
                 playerRef:sendEvent("QGL:updateQuestMenu", {})

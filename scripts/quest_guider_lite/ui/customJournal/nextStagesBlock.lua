@@ -216,8 +216,9 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     else
                                         tracking.trackObject{diaId = diaId, objectId = objId, index = diaIndex}
                                     end
-                                    tracking.updateTemporaryMarkers()
-                                    tracking.updateMarkers()
+                                    async:newUnsavableSimulationTimer(0.1, function ()
+                                        tracking.updateTemporaryMarkers()
+                                    end)
 
                                     ---@type questGuider.ui.buttonMeta
                                     local btnMeta = layout.userData.meta
