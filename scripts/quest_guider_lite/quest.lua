@@ -763,6 +763,7 @@ end
 ---@field id string? cell id of the position
 ---@field position tes3vector3? coordinates of the position
 ---@field distanceToPlayer number?
+---@field pathFromPlayer string[]? cell names
 ---@field exitPos tes3vector3? coordinates in the game world of the entrance to the exterior cell that leads to the position
 ---@field entrances tes3vector3[]?
 ---@field firstEntranceCellIds table<string, any>?
@@ -964,7 +965,11 @@ function this.getRequirementPositionData(requirement, customConfig)
                             if exitPositions then
                                 for _, pos in pairs(exitPositions) do
                                     local nearestDoor = cellLib.findNearestDoor(pos)
-                                    table.insert(exits, nearestDoor.position)
+                                    if nearestDoor then
+                                        table.insert(exits, nearestDoor.position)
+                                    else
+                                        table.insert(exits, pos)
+                                    end
                                 end
                                 for cellId, _ in pairs(entranceCells or {}) do
                                     firstEntranceCellIds[cellId] = cellId
@@ -1052,7 +1057,11 @@ function this.getRequirementPositionData(requirement, customConfig)
                 if exitPositions then
                     for _, pos in pairs(exitPositions) do
                         local nearestDoor = cellLib.findNearestDoor(pos)
-                        table.insert(exits, nearestDoor.position)
+                        if nearestDoor then
+                            table.insert(exits, nearestDoor.position)
+                        else
+                            table.insert(exits, pos)
+                        end
                     end
                     for cellId, _ in pairs(entranceCells or {}) do
                         firstEntranceCellIds[cellId] = cellId

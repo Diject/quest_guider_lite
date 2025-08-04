@@ -1,4 +1,5 @@
 local types = require('openmw.types')
+local util = require("openmw.util")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local utils = require("scripts.quest_guider_lite.utils.common")
@@ -42,7 +43,7 @@ function this.findExitPos(cell, path, checked, cellPath)
         table.insert(cellPathCopy, destCellData)
 
         if destCell.isExterior or destCell:hasTag("QuasiExterior") then
-            return utils.copyVector3(destPos), pathCopy, cellPathCopy, destCell.isExterior
+            return utils.copyVector3(destPos), pathCopy, cellPathCopy, destCell.isExterior, checked
         else
             local out, destPath, cPath, isEx = this.findExitPos(destCell, pathCopy, checked, cellPathCopy)
             if out then return out, destPath, cPath, isEx, checked end
@@ -192,13 +193,16 @@ function this.findNearestDoor(position, cell)
 end
 
 
----@return table<string, {position : any, distance : number}> ret by lowercase cell id. __world__ - for exterior
-function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked)
+---@return table<string, {position : any, distance : number, namePath : string[]}> ret by lowercase cell id. __world__ - for exterior
+function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked, namePath)
     if not checked then checked = {} end
     if not distance then distance = 0 end
+    if not namePath then namePath = {} end
 
     local cellId = cell.id
-    if checked[cellId] then return checked end
+    if checked[cellId] and checked[cellId].distance <= distance then return checked end
+
+    table.insert(namePath, tes3.getCellData(cell).name)
 
     if cell.isExterior then
         local exData = checked["__world__"]
@@ -206,6 +210,7 @@ function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked)
             checked["__world__"] = {
                 position = pos,
                 distance = distance,
+                namePath = tableLib.copy(namePath),
             }
         end
         return checked
@@ -213,6 +218,7 @@ function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked)
         checked[cellId] = {
             position = pos,
             distance = distance,
+            namePath = tableLib.copy(namePath),
         }
     end
 
@@ -223,7 +229,7 @@ function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked)
         local destPos = types.Door.destPosition(door)
         if not destCell or not destPos then goto continue end
 
-        this.getInteriorCellApproxDistancesToPos(destCell, destPos, distance + (pos - door.position):length(), checked)
+        this.getInteriorCellApproxDistancesToPos(destCell, destPos, distance + (pos - door.position):length(), checked, tableLib.copy(namePath))
 
         ::continue::
     end
@@ -245,10 +251,12 @@ function this.fillDistanceToPlayer(posData, playerRef)
 
         if not pos.id and worldPlPosData then
             pos.distanceToPlayer = utils.distance2D(worldPlPosData.position, pos.position)
+            pos.pathFromPlayer = worldPlPosData.namePath
         elseif pos.id then
             local distData = interiorCellDistance[pos.id:lower()]
             if distData then
                 pos.distanceToPlayer = distData.distance + utils.distance2D(distData.position, pos.position)
+                pos.pathFromPlayer = distData.namePath
             elseif pos.exitPos and pos.isExitEx then
                 pos.distanceToPlayer = utils.distance2D(plPos, pos.exitPos)
             else

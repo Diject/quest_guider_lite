@@ -96,11 +96,29 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
         local descr
         local descrBack
         if not data.description then
-            for i = #data.cellPath, 1, -1 do
-                descr = descr and string.format("%s => \"%s\"", descr, data.cellPath[i].name) or
-                    string.format("\"%s\"", data.cellPath[i].name)
-                descrBack = descrBack and string.format("\"%s\" <= %s", data.cellPath[i].name, descrBack) or
-                    string.format("\"%s\"", data.cellPath[i].name)
+            if data.pathFromPlayer then
+                for _, cellName in ipairs(data.pathFromPlayer) do
+                    descr = descr and string.format("%s => \"%s\"", descr, cellName) or
+                        string.format("\"%s\"", cellName)
+                    descrBack = descrBack and string.format("\"%s\" <= %s", cellName, descrBack) or
+                        string.format("\"%s\"", cellName)
+                end
+
+            elseif data.cellPath then
+                for i = #data.cellPath, 1, -1 do
+                    descr = descr and string.format("%s => \"%s\"", descr, data.cellPath[i].name) or
+                        string.format("\"%s\"", data.cellPath[i].name)
+                    descrBack = descrBack and string.format("\"%s\" <= %s", data.cellPath[i].name, descrBack) or
+                        string.format("\"%s\"", data.cellPath[i].name)
+                end
+
+            elseif data.id then
+                descr = string.format("\"%s\"", data.id)
+                descrBack = descr
+
+            else
+                descr = "???"
+                descrBack = "???"
             end
         else
             descr = data.description
