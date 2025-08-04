@@ -207,7 +207,7 @@ function this.getNextIndexes(questData, quesId, questIndex, params)
             end
         end
     end
-    if not foundNextIndex and tpData.nextIndex and not linkedNext and not (plIndex >= tpData.nextIndex) then
+    if not foundNextIndex and tpData.nextIndex and not (plIndex >= tpData.nextIndex) then
         nextIndexes[tpData.nextIndex] = true
     end
 
