@@ -28,20 +28,56 @@ local gameFileDataEmpty = false
 function this.init()
     isReady = false
 
-    local res, err = pcall(function ()
-        this.quests = markup.loadYaml("data/quest_guider_lite/quests.yaml")
-        this.questObjects = markup.loadYaml("data/quest_guider_lite/questObjects.yaml")
-        this.localVariablesByScriptId = markup.loadYaml("data/quest_guider_lite/localVariables.yaml")
+    local stor = storage.globalSection(common.dataStorageName)
+
+    local infoSuccess, infoErr = pcall(function ()
         this.info = markup.loadYaml("data/quest_guider_lite/info.yaml")
     end)
 
-    if res and this.quests and this.questObjects and this.localVariablesByScriptId and this.info and
+    local loadedFromStorage = false
+    local successfullyLoaded = false
+
+    if infoSuccess then
+        local storageInfoData = stor:get("info")
+        if storageInfoData and storageInfoData.time and this.info.time and storageInfoData.time == this.info.time then
+            local data = stor:asTable()
+            if data then
+                this.quests = data.quests
+                this.questObjects = data.questObjects
+                this.localVariablesByScriptId = data.localVariablesByScriptId
+                this.info = data.info
+                loadedFromStorage = true
+            end
+        end
+    end
+
+    if not loadedFromStorage or not this.quests or not this.questObjects or not this.localVariablesByScriptId then
+        local res, err = pcall(function ()
+            this.info = markup.loadYaml("data/quest_guider_lite/info.yaml")
+            this.quests = markup.loadYaml("data/quest_guider_lite/quests.yaml")
+            this.questObjects = markup.loadYaml("data/quest_guider_lite/questObjects.yaml")
+            this.localVariablesByScriptId = markup.loadYaml("data/quest_guider_lite/localVariables.yaml")
+        end)
+        loadedFromStorage = false
+        successfullyLoaded = res
+    else
+        successfullyLoaded = true
+    end
+
+    if successfullyLoaded and this.quests and this.questObjects and this.localVariablesByScriptId and this.info and
             this.version >= this.info.version then
         isReady = true
         versionChanged = false
         gameFileDataEmpty = #this.info.files == 0
+
+        if not loadedFromStorage then
+            stor:set("quests", this.quests)
+            stor:set("questObjects", this.questObjects)
+            stor:set("localVariablesByScriptId", this.localVariablesByScriptId)
+            stor:set("info", this.info)
+        end
     else
-        print("Error loading quest data")
+        print("Failed to load quest data")
         this.quests = {}
         this.questObjects = {}
         this.questByText = {}
@@ -53,12 +89,6 @@ function this.init()
         end
     end
 
-    local stor = storage.globalSection(common.dataStorageName)
-    stor:setLifeTime(storage.LIFE_TIME.GameSession)
-    stor:set("quests", this.quests)
-    stor:set("questObjects", this.questObjects)
-    stor:set("localVariablesByScriptId", this.localVariablesByScriptId)
-    stor:set("info", this.info)
 
     if isReady then
         core.sendGlobalEvent("QGL:Interop:DataReady", {
