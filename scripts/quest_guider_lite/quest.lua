@@ -459,7 +459,10 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 elseif codeStr == "isBeforeValue" then
                     mapped[pattern] = environment.value == 0 and l10n("before_l") or ""
                 elseif codeStr == "raceByIntValue" then
-                    local race = types.NPC.races.record(environment.value) -- TODO: probably doesn't work
+                    local race
+                    pcall(function ()
+                        race = types.NPC.races.records[environment.value]
+                    end)
                     mapped[pattern] = race and race.name or "???"
                 elseif codeStr == "dialogueVariable" then
                     mapped[pattern] = environment.variableStr:sub(7)
