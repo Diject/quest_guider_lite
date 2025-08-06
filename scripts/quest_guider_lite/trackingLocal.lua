@@ -822,6 +822,8 @@ function this.addHUDMarker(markerData)
 end
 
 
+local interiorHUDMoffsetData = {offset = 0, step = 0}
+local interiorHUDMobjectOffset = {}
 function this.addMarkersForInteriorCell(cell)
     if not this.init() then return end
 
@@ -834,6 +836,9 @@ function this.addMarkersForInteriorCell(cell)
         lastInteriorMarkers[id] = nil
     end
 
+    interiorHUDMoffsetData.offset = 0
+    interiorHUDMoffsetData.step = 0
+    interiorHUDMobjectOffset = {}
     core.sendGlobalEvent("QGL:addMarkersForInteriorCell", {
         cellId = cell.id,
         markerByObjectId = this.markerByObjectId,
@@ -846,6 +851,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     local description = data.description
     local doors = data.doors
     local disabled = data.disabled
+    local objectId = data.objId
 
     if not markerData or not description then return end
 
@@ -864,17 +870,30 @@ function this.addMarkerForInteriorCellFromGlobal(data)
 
 
     if config.data.tracking.hudMarkers.enabled then
+        local scale = 2 * uiUtils.getScaledScreenSize().y / 1080
+        local offset = interiorHUDMobjectOffset[objectId] or interiorHUDMoffsetData.offset
+
+        if not interiorHUDMobjectOffset[objectId] then
+            interiorHUDMoffsetData.offset = math.floor(1 + interiorHUDMoffsetData.step / 2) * 6
+            if interiorHUDMoffsetData.step % 2 == 1 then
+                interiorHUDMoffsetData.offset = -interiorHUDMoffsetData.offset
+            end
+            interiorHUDMoffsetData.step = interiorHUDMoffsetData.step + 1
+        end
+
+        interiorHUDMobjectOffset[objectId] = offset
+
         ---@type proximityTool.hudm
         local hudDoorMarkerParams = {
             modName = common.modName,
             version = 6,
             params = {
                 icon = common.doorMarkPath,
-                scale = 2 * uiUtils.getScaledScreenSize().y / 1080,
+                scale = scale,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range * 3.28,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
-                screenOffset = util.vector2(6, 0),
+                screenOffset = util.vector2(offset * scale, 0),
                 boundingBoxCenter = true,
                 offset = util.vector3(0, 0, 25),
                 -- offsetMult = 0.3,
@@ -906,23 +925,31 @@ function this.createMarkersForExteriorDoor(ref)
 
     local cellId = destCell.id
 
+    local i = -1
     for objId, data in pairs(this.markerByObjectId) do
         if not data.firstEntranceCells or not data.firstEntranceCells[cellId]
                 or not next(data.markers) or this.getDisabledState{objectId = objId} then
             goto continue
         end
 
+        local offset = math.floor(1 + i / 2) * 6
+        if i % 2 == 1 then
+            offset = -offset
+        end
+        i = i + 1
+
+        local scale = 2 * uiUtils.getScaledScreenSize().y / 1080
         ---@type proximityTool.hudm
         local hudDoorMarkerParams = {
             modName = common.modName,
             version = 6,
             params = {
                 icon = common.doorMarkPath,
-                scale = 2 * uiUtils.getScaledScreenSize().y / 1080,
+                scale = scale,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range * 3.28,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
-                screenOffset = util.vector2(6, 0),
+                screenOffset = util.vector2(offset * scale, 0),
                 boundingBoxCenter = true,
                 offset = util.vector3(0, 0, 25),
                 -- offsetMult = 0.3,

@@ -90,7 +90,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
             end
         end
 
-        ---@type table<string, {description : string, markerData : proximityTool.marker, doors : any[], color : number[]}>
+        ---@type table<string, {description : string, markerData : proximityTool.marker, doors : any[], color : number[], objId : string}>
         local newMarkerData = {}
 
         for doorRef, doorDt in pairs(objDoorDt) do
@@ -128,6 +128,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
                                 description = string.format(l10n("cellsAway", {count = lowestDepth})),
                                 doors = {},
                                 disabled = markerData.disabled,
+                                objId = objId,
                             }
                         end
 
