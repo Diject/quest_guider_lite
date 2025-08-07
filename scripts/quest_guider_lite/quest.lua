@@ -211,13 +211,32 @@ function this.getNextIndexes(questData, quesId, questIndex, params)
         nextIndexes[tpData.nextIndex] = true
     end
 
-    nextIndexes = tableLib.keys(nextIndexes)
+    -- adds the next sequential index if its requirements are met
+    if tableLib.count(nextIndexes) == 1 and not nextIndexes[tpData.nextIndex] then
+        ---@type questDataGenerator.stageData
+        local nextIndexData = questData[tostring(tpData.nextIndex)]
+        if nextIndexData then
+            local valid = false
+            for _, block in pairs(nextIndexData.requirements) do
+                valid = valid or requirementChecker.checkBlock(block, {
+                    threatErrorsAs = true,
+                })
+                if valid then break end
+            end
 
-    if #nextIndexes == 0 then return nil, linkedNext end
+            if valid then
+                nextIndexes[tpData.nextIndex] = true
+            end
+        end
+    end
 
-    table.sort(nextIndexes)
+    local nextIndexKeys = tableLib.keys(nextIndexes)
 
-    return nextIndexes, linkedNext
+    if #nextIndexKeys == 0 then return nil, linkedNext end
+
+    table.sort(nextIndexKeys)
+
+    return nextIndexKeys, linkedNext
 end
 
 
