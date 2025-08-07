@@ -31,7 +31,7 @@ function this.init()
     local stor = storage.globalSection(common.dataStorageName)
 
     local infoSuccess, infoErr = pcall(function ()
-        this.info = markup.loadYaml("data/quest_guider_lite/info.yaml")
+        this.info = markup.loadYaml("questData/info.yaml")
     end)
 
     local loadedFromStorage = false
@@ -53,10 +53,10 @@ function this.init()
 
     if not loadedFromStorage or not this.quests or not this.questObjects or not this.localVariablesByScriptId then
         local res, err = pcall(function ()
-            this.info = markup.loadYaml("data/quest_guider_lite/info.yaml")
-            this.quests = markup.loadYaml("data/quest_guider_lite/quests.yaml")
-            this.questObjects = markup.loadYaml("data/quest_guider_lite/questObjects.yaml")
-            this.localVariablesByScriptId = markup.loadYaml("data/quest_guider_lite/localVariables.yaml")
+            this.info = markup.loadYaml("questData/info.yaml")
+            this.quests = markup.loadYaml("questData/quests.yaml")
+            this.questObjects = markup.loadYaml("questData/questObjects.yaml")
+            this.localVariablesByScriptId = markup.loadYaml("questData/localVariables.yaml")
         end)
         loadedFromStorage = false
         successfullyLoaded = res
