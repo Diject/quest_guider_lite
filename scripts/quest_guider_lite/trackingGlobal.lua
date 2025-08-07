@@ -12,7 +12,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local l10n = require('openmw.core').l10n(common.l10nKey)
 
 
-local depthConut = 2
+local depthConut = 1
 local depthMaxDifference = 1
 
 
