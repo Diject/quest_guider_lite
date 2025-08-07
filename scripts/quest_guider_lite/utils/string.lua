@@ -11,9 +11,10 @@ local this = {}
 ---@param returnTable boolean? return an array with values
 ---@param customNumber integer? number of elements in the table
 ---@return string|string[]|nil
-function this.getValueEnumString(tb, max, framePattern, returnTable, customNumber)
+function this.getValueEnumString(tb, max, framePattern, returnTable, customNumber, valueFormat)
     local str = returnTable and {} or ""
     local count = 0
+    valueFormat = valueFormat or "\"%s\""
 
     if max <= 0 then
         return str
@@ -29,10 +30,12 @@ function this.getValueEnumString(tb, max, framePattern, returnTable, customNumbe
             break
         end
 
+        local valueForm = string.format(valueFormat, value)
+
         if returnTable then
-            table.insert(str, string.format(framePattern or "%s", value))
+            table.insert(str, string.format(framePattern or "%s", valueForm))
         else
-            str = string.format("%s%s\"%s\"", str, str:len() ~= 0 and ", " or "", value)
+            str = string.format("%s%s%s", str, str:len() ~= 0 and ", " or "", valueForm)
         end
         count = count + 1
 

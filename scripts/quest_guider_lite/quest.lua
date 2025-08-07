@@ -252,9 +252,9 @@ function this.getObjectNamesFromLinkTable(tb)
         if dt and (dt.type <= 2) then
             local obj = getObject(id)
             if obj and obj.name then
-                out[id] = obj.name
+                out[id] = string.format("\"%s\" (%s)", obj.name, id)
             else
-                out[id] = id
+                out[id] = string.format("(%s)", id)
             end
             count = count + 1
         end
@@ -516,7 +516,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                             local objs, count = this.getObjectNamesFromLinkTable(scrData.links)
 
                             if count > 0 then
-                                res = stringLib.getValueEnumString(objs, configData.journal.objectNames, "%s")
+                                res = stringLib.getValueEnumString(objs, configData.journal.objectNames, "%s", nil, nil, "%s")
                             end
                         end
                     end
@@ -533,7 +533,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                             local objs, count = this.getObjectNamesFromLinkTable(scrData.contains)
 
                             if count > 0 then
-                                res = stringLib.getValueEnumString(objs, configData.journal.objectNames, "%s")
+                                res = stringLib.getValueEnumString(objs, configData.journal.objectNames, "%s", nil, nil, "%s")
                             end
                         end
                     end
