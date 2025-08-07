@@ -427,9 +427,9 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 elseif codeStr == "objectName" then
                     mapped[pattern] = getName(environment.objectObj, l10n("theObject_l"))
                 elseif codeStr == "valueName" then
-                    mapped[pattern] = getName(environment.valueObj)
+                    mapped[pattern] = getName(environment.valueObj, environment.value)
                 elseif codeStr == "varName" then
-                    mapped[pattern] = getName(environment.variableObj)
+                    mapped[pattern] = getName(environment.variableObj, environment.variable)
                 elseif codeStr == "skillName" then
                     mapped[pattern] = environment.skill and (tes.skillName[environment.skill] or "???") or "???"
                 elseif codeStr == "attributeName" then
@@ -443,7 +443,9 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 elseif codeStr == "classVal" then
                     mapped[pattern] = tes.findClass(environment.value) and tes.findClass(environment.value).name or environment.value
                 elseif codeStr == "rankName" then
-                    mapped[pattern] = environment.variableObj and environment.variableObj:getRankName(environment.value) or environment.value
+                    local faction = core.factions.records[environment.variable or ""]
+                    local rank = faction and faction.ranks[environment.value]
+                    mapped[pattern] = rank and rank.name or environment.value
                 elseif codeStr == "vampClanVal" then
                     mapped[pattern] = vampireClan[environment.value] and vampireClan[environment.value] or tostring(environment.value)
                 elseif codeStr == "weatherIdVal" then
@@ -464,6 +466,15 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                         race = types.NPC.races.records[environment.value]
                     end)
                     mapped[pattern] = race and race.name or "???"
+                elseif codeStr == "factionValue" then
+                    local faction = core.factions.records[environment.value or ""]
+                    mapped[pattern] = faction and faction.name or environment.value
+                elseif codeStr == "factionVar" then
+                    local faction = core.factions.records[environment.variable or ""]
+                    mapped[pattern] = faction and faction.name or environment.variable
+                elseif codeStr == "varSpellName" then
+                    local spell = core.magic.spells.records[environment.variable]
+                    mapped[pattern] = spell and spell.name or environment.variable
                 elseif codeStr == "dialogueVariable" then
                     mapped[pattern] = environment.variableStr:sub(7)
                 elseif codeStr == "dialogueValue" then

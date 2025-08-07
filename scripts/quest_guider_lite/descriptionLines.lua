@@ -113,6 +113,8 @@ return {
     [types.requirementType.CustomInvisible] = { str = l10n("types.requirementType.CustomInvisible") or "", priority = -1001 },
     [types.requirementType.CustomChameleon] = { str = l10n("types.requirementType.CustomChameleon") or "", priority = -1001 },
     [types.requirementType.CustomPCRace] = { str = l10n("types.requirementType.CustomPCRace") or "" },
+    [types.requirementType.CustomPCJumping] = { str = l10n("types.requirementType.CustomPCJumping") or "" },
+    [types.requirementType.CustomStandingActor] = { str = l10n("types.requirementType.CustomStandingActor") or "" },
     ["DIAO"] = { str = l10n("DIAO") or "", priority = -1001 },
     ["DIAP"] = { str = l10n("DIAP") or "", priority = -1001 },
 }
