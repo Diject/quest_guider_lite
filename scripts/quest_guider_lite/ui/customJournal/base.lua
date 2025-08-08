@@ -308,8 +308,12 @@ function journalMeta.fillQuestsContent(self)
 
         local qNameText = qName == "" and l10n("miscellaneous") or qName or "???"
 
-        if dt.finished then
-            qNameText = string.format("%s%s", l10n("finishedLabel"), qNameText)
+        if dt.finished or dt.disabled then
+            qNameText = string.format("(%s%s) %s",
+                dt.finished and l10n("finishedLabel") or "",
+                dt.disabled and l10n("hiddenLabel") or "",
+                qNameText
+            )
         end
 
         local flagsContent = ui.content{}
