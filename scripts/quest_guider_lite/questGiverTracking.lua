@@ -47,6 +47,10 @@ function this.createQuestGiverMarker(ref)
         local questData = questLib.getQuestData(questIdLower)
         if not questData or not questData.name then goto continue end
 
+        for _, linkId in pairs(questData.links or {}) do
+            if (playerQuests.getCurrentIndex(linkId) or 0) > 0 then goto continue end
+        end
+
         local firstIndexStr = questLib.getFirstIndex(questData)
         if not firstIndexStr then goto continue end
         if not questLib.checkConditionsForQuest(questIdLower, firstIndexStr) then
@@ -126,6 +130,10 @@ function this.updateQuestGiverMarkers()
             local questData = questLib.getQuestData(questId)
             if not questData or not questData.name then goto continue end
 
+            for _, linkId in pairs(questData.links or {}) do
+                if (playerQuests.getCurrentIndex(linkId) or 0) > 0 then goto continue end
+            end
+
             local firstIndexStr = questLib.getFirstIndex(questData)
             if not firstIndexStr then goto continue end
             if not questLib.checkConditionsForQuest(questId, firstIndexStr) then
@@ -193,6 +201,10 @@ function this.createQuestGiverMarkerForDoor(ref)
 
             local questData = questLib.getQuestData(questIdLower)
             if not questData or not questData.name then goto continue end
+
+            for _, linkId in pairs(questData.links or {}) do
+                if (playerQuests.getCurrentIndex(linkId) or 0) > 0 then goto continue end
+            end
 
             local firstIndexStr = questLib.getFirstIndex(questData)
             if not firstIndexStr then goto continue end
