@@ -571,7 +571,7 @@ local function create(params)
 
     local questListBox = scrollBox{
         updateFunc = updateFunc,
-        size = util.vector2(questListSize.x - 3, questListSize.y - params.fontSize * 2 - 13),
+        size = util.vector2(questListSize.x - 2, questListSize.y - params.fontSize * 2 - 13),
         scrollAmount = params.size.y / 5,
         content = questsContent
     }
