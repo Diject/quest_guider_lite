@@ -338,7 +338,7 @@ function this.addMarker(params)
         ---@type proximityTool.hudm
         local hudMarkerParams = {
             modName = common.modName,
-            version = 5,
+            version = 6,
             params = {
                 icon = params.reqData and params.reqData.data.type == requirementType.CustomActor and common.hudQuestionMarkPath
                     or common.hudMarkerPath,

@@ -84,7 +84,7 @@ function this.createQuestGiverMarker(ref)
     if config.data.tracking.hudMarkers.enabled then
         hudMarkerParams = {
             modName = commonInfo.modName,
-            version = 5,
+            version = 6,
             params = {
                 icon = commonInfo.hudExclamationMarkPath,
                 screenOffset = util.vector2(10, 0),
