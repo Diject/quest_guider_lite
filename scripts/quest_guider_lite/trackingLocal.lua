@@ -196,6 +196,9 @@ function this.addMarker(params)
         nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity * 69.99,
         priority = priority + 10,
+        options = {
+            hideDead = params.reqData and (params.reqData.data.type == requirementType.Dead)
+        }
     }
 
     ---@type proximityTool.record

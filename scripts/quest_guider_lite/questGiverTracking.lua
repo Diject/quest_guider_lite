@@ -76,6 +76,7 @@ function this.createQuestGiverMarker(ref)
         proximity = config.data.tracking.questGiverProximity * 69.99,
         priority = -100,
         temporary = true,
+        options = {hideDead = true},
     }
 
     ---@type proximityTool.hudm?
@@ -98,6 +99,7 @@ function this.createQuestGiverMarker(ref)
                 color = commonInfo.colorToArray(config.data.ui.defaultColor),
             },
             objectIds = {recordId},
+            hideDead = true,
             temporary = true,
         }
     end

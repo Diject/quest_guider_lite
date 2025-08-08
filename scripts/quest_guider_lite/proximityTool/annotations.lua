@@ -39,6 +39,7 @@
 ---@field showNoteIcon boolean? *true* by default
 ---@field enableGroupEvent boolean? *true* by default
 ---@field trackAllTypesTogether boolean? *false* by default
+---@field hideDead boolean? *false* by default
 
 ---@class proximityTool.hudm
 ---@field modName string required
@@ -48,6 +49,7 @@
 ---@field params table required. HUDM parameters
 ---@field version number HUDM version for this marker
 ---@field hidden boolean? if true, this marker will not be shown
+---@field hideDead boolean? hide markers for dead actors
 ---@field temporary boolean? if true, this marker will not be saved to the save file
 ---@field shortTerm boolean? if true, this marker will be removed after one of the tracked objects is invalidated
 
