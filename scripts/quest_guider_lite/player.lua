@@ -25,6 +25,7 @@ local killCounter = require("scripts.quest_guider_lite.killCounter")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
+local realTimer = require("scripts.quest_guider_lite.realTimer")
 
 local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
@@ -190,6 +191,9 @@ return {
         onLoad = onLoad,
         onInit = onInit,
         onKeyRelease = onKeyRelease,
+        onFrame = function(dt)
+            realTimer.updateTimers()
+        end,
     },
     eventHandlers = {
         ["QGL:addMarker"] = function(data)
