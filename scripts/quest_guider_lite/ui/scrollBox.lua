@@ -5,6 +5,8 @@ local I = require('openmw.interfaces')
 local templates = require('openmw.interfaces').MWUI.templates
 local async = require('openmw.async')
 
+local realTimer = require("scripts.quest_guider_lite.realTimer")
+
 local config = require("scripts.quest_guider_lite.config")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
@@ -96,21 +98,18 @@ return function(params)
 
     local function startScrollTimer(type, value)
         stopScrollTimer()
-        ---@type proximityTool
-        local proximityTool = I.proximityTool
-        if proximityTool then
-            local func
-            func = function ()
-                if type == 0 then
-                    meta:scrollUp(value)
-                else
-                    meta:scrollDown(value)
-                end
-                lockEvent = true
-                timer = proximityTool.newRealTimer(0.2, func)
+
+        local func
+        func = function ()
+            if type == 0 then
+                meta:scrollUp(value)
+            else
+                meta:scrollDown(value)
             end
-            timer = proximityTool.newRealTimer(1, func)
+            lockEvent = true
+            timer = realTimer.newTimer(0.2, func)
         end
+        timer = realTimer.newTimer(1, func)
     end
 
     local contentData
