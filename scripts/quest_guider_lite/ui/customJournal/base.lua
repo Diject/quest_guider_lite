@@ -371,6 +371,7 @@ function journalMeta.fillQuestsContent(self)
                     props = {
                         autoSize = true,
                         horizontal = true,
+                        alpha = (dt.finished or dt.disabled) and 0.5 or 1,
                     },
                     content = flagsContent,
                 },
