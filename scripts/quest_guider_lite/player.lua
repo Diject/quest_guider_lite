@@ -30,8 +30,12 @@ local realTimer = require("scripts.quest_guider_lite.realTimer")
 local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
 
+
 ---@type questGuider.ui.customJournal?
 local questMenu
+
+local questBoxUpdateQueue = {}
+local questBoxUpdateTimer = nil
 
 
 I.Settings.registerGroup{
@@ -107,6 +111,66 @@ local function onSave()
     local data = {}
     localStorage.save(data)
     return data
+end
+
+
+local function questBoxUpdateTimerCallback()
+    for func, _ in pairs(questBoxUpdateQueue) do
+        func()
+        questBoxUpdateQueue[func] = nil
+        break;
+    end
+    if next(questBoxUpdateQueue) then
+        questBoxUpdateTimer = realTimer.newTimer(0, questBoxUpdateTimerCallback)
+    else
+        questBoxUpdateTimer = nil
+    end
+end
+
+
+---@param data questGuider.main.fillQuestBoxQuestInfo.return
+local function fillQuestBoxQuestInfo(data)
+    local func = function ()
+        if not questMenu then return end
+        ---@class questGuider.ui.questBoxMeta
+        local questBox = questMenu:getQuestScrollBox().userData.questBoxMeta
+
+        questBox.questInfo = data
+        questBox:addTrackButtons()
+
+        ---@type questGuider.ui.scrollBox
+        local scrollBox = questBox:getScrollBox().userData.scrollBoxMeta
+
+        local scrollBoxContent = scrollBox:getMainFlex()
+
+        for contentIndex, dt in pairs(data) do
+            local element = scrollBoxContent.content[contentIndex]
+            if not element then goto continue end
+
+            element.content:add(
+                nextStagesBlock.create{
+                    data = dt,
+                    size = scrollBox.innnerSize,
+                    fontSize = config.data.ui.fontSize,
+                    updateFunc = function ()
+                        questMenu:update()
+                    end,
+                    thisElementInContent = function ()
+                        return scrollBox:getMainFlex().content[contentIndex].content[#element.content]
+                    end
+                }
+            )
+
+            ::continue::
+        end
+        questMenu:update()
+    end
+
+    -- For safety, the menu is updated once per frame, since I had issues with updating in other places
+    questBoxUpdateQueue[func] = true
+    if not questBoxUpdateTimer then
+        questBoxUpdateTimer = realTimer.newTimer(0, questBoxUpdateTimerCallback)
+    end
 end
 
 
@@ -266,42 +330,7 @@ return {
             timeLib.time = data.time
         end,
 
-        ---@param data questGuider.main.fillQuestBoxQuestInfo.return
-        ["QGL:fillQuestBoxQuestInfo"] = function (data)
-            if not questMenu then return end
-            ---@class questGuider.ui.questBoxMeta
-            local questBox = questMenu:getQuestScrollBox().userData.questBoxMeta
-
-            questBox.questInfo = data
-            questBox:addTrackButtons()
-
-            ---@type questGuider.ui.scrollBox
-            local scrollBox = questBox:getScrollBox().userData.scrollBoxMeta
-
-            local scrollBoxContent = scrollBox:getMainFlex()
-
-            for contentIndex, dt in pairs(data) do
-                local element = scrollBoxContent.content[contentIndex]
-                if not element then goto continue end
-
-                element.content:add(
-                    nextStagesBlock.create{
-                        data = dt,
-                        size = scrollBox.innnerSize,
-                        fontSize = config.data.ui.fontSize,
-                        updateFunc = function ()
-                            questMenu:update()
-                        end,
-                        thisElementInContent = function ()
-                            return scrollBox:getMainFlex().content[contentIndex].content[#element.content]
-                        end
-                    }
-                )
-
-                ::continue::
-            end
-            questMenu:update()
-        end,
+        ["QGL:fillQuestBoxQuestInfo"] = fillQuestBoxQuestInfo,
 
         ["QGL:updateQuestMenu"] = function (data)
             if not questMenu then return end
