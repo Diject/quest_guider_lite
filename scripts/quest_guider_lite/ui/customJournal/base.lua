@@ -225,7 +225,9 @@ function journalMeta._addFlags(self, content, storageData)
         tableLib.copy(tracking.getDiaTrackedObjects(diaId) or {}, objects)
     end
 
-    if not config.data.journal.trackedColorMarks and next(objects) then
+    if not next(objects) then return end
+
+    if not config.data.journal.trackedColorMarks then
         content:add{
             type = ui.TYPE.Image,
             props = {
