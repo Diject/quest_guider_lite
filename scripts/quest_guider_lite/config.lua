@@ -42,6 +42,7 @@ this.default = {
         maxColorMarks = 10,
         textHeightMul = 0.5,
         textHeightMulRecord = 0.7,
+        ssqnIcons = true,
     },
     ui = {
         fontSize = 20,

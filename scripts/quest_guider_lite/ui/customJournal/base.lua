@@ -3,6 +3,8 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local core = require('openmw.core')
 local input = require('openmw.input')
+local I = require('openmw.interfaces')
+local vfs = require('openmw.vfs')
 local templates = require('openmw.interfaces').MWUI.templates
 local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 
@@ -321,6 +323,27 @@ function journalMeta.fillQuestsContent(self)
         local flagsContent = ui.content{}
         self:_addFlags(flagsContent, dt)
 
+        if (I.SSQN and config.data.journal.ssqnIcons) then
+            local diaId = (dt.list[1] or {}).diaId
+
+            if diaId then
+                local iconPath = I.SSQN.getQIcon(diaId)
+
+                if not vfs.fileExists(iconPath) then
+                    iconPath = "Icons/SSQN/DEFAULT.dds"
+                end
+
+                flagsContent:add(interval(self.params.fontSize / 4, 1))
+                flagsContent:add{
+                    type = ui.TYPE.Image,
+                    props = {
+                        size = util.vector2(self.params.fontSize - 2, self.params.fontSize - 2),
+                        resource = ui.texture{ path = iconPath },
+                    }
+                }
+            end
+        end
+
         content:add{
             type = ui.TYPE.Flex,
             props = {
@@ -351,7 +374,7 @@ function journalMeta.fillQuestsContent(self)
                     },
                     content = flagsContent,
                 },
-                interval(0, params.fontSize / 4),
+                interval(params.fontSize / 4, 1),
                 {
                     template = templates.textNormal,
                     type = ui.TYPE.Text,
