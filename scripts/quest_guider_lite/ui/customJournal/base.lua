@@ -12,6 +12,7 @@ local config = require("scripts.quest_guider_lite.configLib")
 local commonData = require("scripts.quest_guider_lite.common")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
+local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
@@ -571,13 +572,14 @@ local function create(params)
                 updateFunc = function ()
                     meta:update()
                 end,
-                checked = true,
+                checked = localStorage.data.finishedCheckBox and true or false,
                 text = l10n("finished"),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()
                     meta:selectQuest(selectedQuest)
+                    localStorage.data.finishedCheckBox = checked
                 end
             },
             interval(params.fontSize / 2, 0),
@@ -585,13 +587,14 @@ local function create(params)
                 updateFunc = function ()
                     meta:update()
                 end,
-                checked = true,
+                checked = localStorage.data.hiddenCheckBox and true or false,
                 text = l10n("hidden"),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()
                     meta:selectQuest(selectedQuest)
+                    localStorage.data.hiddenCheckBox = checked
                 end
             },
         }
