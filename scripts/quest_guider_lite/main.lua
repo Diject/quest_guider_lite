@@ -34,12 +34,12 @@ local l10n = require('openmw.core').l10n(common.l10nKey)
 
 
 local function onInit()
-    dataHandler.init()
+    -- dataHandler.init()
     -- testing.descriptionLines()
 end
 
 local function onLoad()
-    dataHandler.init()
+    -- dataHandler.init()
     -- testing.printRandomQuestList()
 end
 
@@ -313,6 +313,9 @@ return {
         onObjectActive = onObjectActive,
     },
     eventHandlers = {
+        ["QGL:Interop:DataReady"] = function (data)
+            dataHandler.load(data)
+        end,
         ["QGL:trackQuest"] = function (data)
             local questNextIndexes, linkedIndexData = questLib.getNextIndexes(data.questId, data.questId, data.index, data.params)
 

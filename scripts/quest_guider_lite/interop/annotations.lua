@@ -64,3 +64,10 @@
 ---@field ignoredTypes table<string, any>?
 ---@field allowedTypes table<string, any>?
 ---@field threatErrorsAs boolean?
+
+---@class questGuiderLite.event.dataReady.data
+---@field quests questDataGenerator.quests
+---@field questObjects table<string, questDataGenerator.objectInfo>
+---@field localVariablesByScriptId questDataGenerator.localVariableByQuestId
+---@field info {time : integer, version : integer, files : string[]}?
+---@field isReady boolean

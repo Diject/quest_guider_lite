@@ -1,6 +1,7 @@
 local markup = require('openmw.markup')
 local core = require('openmw.core')
 local storage = require('openmw.storage')
+local async = require('openmw.async')
 
 local common = require("scripts.quest_guider_lite.common")
 
@@ -28,7 +29,7 @@ local gameFileDataEmpty = false
 function this.init()
     isReady = false
 
-    local stor = storage.globalSection(common.dataStorageName)
+    local stor = storage.playerSection(common.dataStorageName)
 
     local infoSuccess, infoErr = pcall(function ()
         this.info = markup.loadYaml("questData/info.yaml")
@@ -89,22 +90,28 @@ function this.init()
         end
     end
 
-
-    if isReady then
-        core.sendGlobalEvent("QGL:Interop:DataReady", {
-            quests = this.quests,
-            questObjects = this.questObjects,
-            localVariablesByScriptId = this.localVariablesByScriptId,
-        })
-    end
+    stor:set("isReady", isReady)
 
     return isReady
 end
+
+
+---@param data questGuiderLite.event.dataReady.data
+---@param isGlobalScope boolean?
+function this.load(data, isGlobalScope)
+    this.info = data.info or tableLib.deepcopy(defaultInfo)
+    this.quests = data.quests or {}
+    this.questObjects = data.questObjects or {}
+    this.localVariablesByScriptId = data.localVariablesByScriptId or {}
+    isReady = data.isReady
+end
+
 
 ---@return boolean
 function this.isReady()
     return isReady
 end
+
 
 function this.reset()
     this.quests = {}

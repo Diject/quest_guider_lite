@@ -74,6 +74,31 @@ storageToRemove:subscribe(async:callback(function(section, key)
 end))
 
 
+local function loadData()
+    local stor = storage.playerSection(commonData.dataStorageName)
+    if not stor then return end
+
+    local isReady = stor:get("isReady")
+    if isReady then
+        local dt = stor:asTable() or {}
+
+        ---@type questGuiderLite.event.dataReady.data
+        local data = {
+            quests = dt.quests or {},
+            questObjects = dt.questObjects or {},
+            localVariablesByScriptId = dt.localVariablesByScriptId or {},
+            info = dt.info,
+            isReady = isReady,
+        }
+
+        core.sendGlobalEvent("QGL:Interop:DataReady", data)
+        self:sendEvent("QGL:Interop:DataReady", data)
+    end
+end
+
+loadData()
+
+
 -- for cases when the load order is incorrect
 async:newUnsavableSimulationTimer(0.001, function ()
     tracking.init()
