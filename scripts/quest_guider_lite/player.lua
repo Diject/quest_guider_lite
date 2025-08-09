@@ -110,6 +110,7 @@ local function onInit()
     end
     killCounter.initByStorageData(localStorage.data)
     tracking.init()
+    playerQuests.init()
 end
 
 
