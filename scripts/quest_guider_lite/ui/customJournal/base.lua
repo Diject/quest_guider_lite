@@ -345,6 +345,10 @@ function journalMeta.fillQuestsContent(self)
             end
         end
 
+        local qListScrollBox = self:getQuestList()
+        ---@type questGuider.ui.scrollBox
+        local qListScrollBoxMeta = qListScrollBox.userData.scrollBoxMeta
+
         content:add{
             type = ui.TYPE.Flex,
             props = {
@@ -359,11 +363,27 @@ function journalMeta.fillQuestsContent(self)
                 playerQuestData = dt,
             },
             events = {
+                mousePress = async:callback(function(e, layout)
+                    qListScrollBoxMeta:mousePress(e)
+                end),
+
+                focusLoss = async:callback(function(e, layout)
+                    qListScrollBoxMeta:focusLoss(e)
+                end),
+
+                mouseMove = async:callback(function(e, layout)
+                    qListScrollBoxMeta:mouseMove(e)
+                end),
+
                 mouseRelease = async:callback(function(e, layout)
                     if e.button ~= 1 then return end
 
-                    self:fillQuestsContent()
-                    self:selectQuest(qName)
+                    qListScrollBoxMeta:mouseRelease(e)
+
+                    if qListScrollBoxMeta.lastMovedDistance < 30 then
+                        self:fillQuestsContent()
+                        self:selectQuest(qName)
+                    end
                 end),
             },
             content = ui.content {

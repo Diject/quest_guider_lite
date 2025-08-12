@@ -49,6 +49,45 @@ scrollBoxMeta.clearContent = function (self)
 end
 
 
+scrollBoxMeta.lastMovedDistance = 0
+
+scrollBoxMeta.mousePress = function (self, e)
+    if e.button ~= 1 then return end
+    local layout = self:getLayout()
+    layout.userData.lastMousePos = util.vector2(e.position.x, e.position.y)
+    self.lastMovedDistance = 0
+end
+
+scrollBoxMeta.mouseRelease = function (self, e)
+    if e.button ~= 1 then return end
+    local layout = self:getLayout()
+    layout.userData.lastMousePos = nil
+end
+
+scrollBoxMeta.focusLoss = function (self, e)
+    local layout = self:getLayout()
+    layout.userData.lastMousePos = nil
+    self.lastMovedDistance = 0
+end
+
+scrollBoxMeta.mouseMove = function (self, e)
+    local layout = self:getLayout()
+    if not layout.userData.lastMousePos then return end
+
+    local posDIff = e.position - layout.userData.lastMousePos
+
+    if posDIff.y > 0 then
+        self:scrollUp(posDIff.y)
+    elseif posDIff.y < 0 then
+        self:scrollDown(-posDIff.y)
+    end
+
+    layout.userData.lastMousePos = e.position
+
+    self.lastMovedDistance = self.lastMovedDistance + math.abs(posDIff.x) + math.abs(posDIff.y) ---@diagnostic disable-line: need-check-nil
+end
+
+
 ---@class questGuider.ui.scrollBox.params
 ---@field name string?
 ---@field size any -- util.vector2
@@ -121,34 +160,25 @@ return function(params)
         },
         name = params.name,
         events = {
-            mousePress = async:callback(function(coord, layout)
-                layout.userData.lastMousePos = util.vector2(coord.position.x, coord.position.y)
+            mousePress = async:callback(function(e, layout)
+                meta:mousePress(e)
             end),
 
-            mouseRelease = async:callback(function(_, layout)
-                layout.userData.lastMousePos = nil
+            mouseRelease = async:callback(function(e, layout)
+                meta:mouseRelease(e)
             end),
 
-            focusLoss = async:callback(function(_, layout)
-                layout.userData.lastMousePos = nil
+            focusLoss = async:callback(function(e, layout)
+                meta:focusLoss(e)
             end),
 
-            mouseMove = async:callback(function(coord, layout)
-                if not layout.userData.lastMousePos then return end
-
-                local posDIff = coord.position - layout.userData.lastMousePos
-
-                if posDIff.y > 0 then
-                    meta:scrollUp(posDIff.y)
-                elseif posDIff.y < 0 then
-                    meta:scrollDown(-posDIff.y)
-                end
-
-                layout.userData.lastMousePos = coord.position
+            mouseMove = async:callback(function(e, layout)
+                meta:mouseMove(e)
             end),
         },
         userData = {
             scrollBoxMeta = meta,
+            movedDistance = 0,
         },
         content = ui.content {
             flex,
