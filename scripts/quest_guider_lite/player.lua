@@ -296,7 +296,7 @@ return {
         end,
 
         ["QGL:addMarkerForQuestGivers"] = function (data)
-            if not tracking.init() then return end
+            if not tracking.init() or not config.data.tracking.questGivers then return end
             local valid = false
             for _, qName in pairs(data.questNames or {}) do
                 if not playerQuests.getQuestStorageData(qName) then

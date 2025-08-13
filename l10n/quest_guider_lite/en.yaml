@@ -64,6 +64,8 @@ removeAllGroup: "Remove"
 removeAllMarkers: "Remove all markers"
 ssqnIcons: "Use SSQN icons"
 ssqnIconsDescription: "If enabled, a quest icon from Skyrim Style Quest Notifications will be displayed before the quest name in the list."
+questGivers: "Quest giver markers"
+questGiversDescription: "Create markers for quest givers. Markers will be created both for the quest givers themselves and for doors to locations where quest givers may be found. Changing this setting will only take effect after re-entering the location."
 
 hidden: "Hidden"
 finished: "Finished"

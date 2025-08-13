@@ -13,6 +13,7 @@ this.default = {
         autoTrackSideBranches = false,
         autoTrackOneEntryDialogues = false,
         trackDisabled = false,
+        questGivers = true,
         colored = true,
         minChance = 20, -- %
         maxPos = 20,
