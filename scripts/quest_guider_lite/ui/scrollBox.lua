@@ -30,7 +30,7 @@ scrollBoxMeta.scrollUp = function(self, val)
     local pos = fl.props.position
     if not pos then return end
 
-    fl.props.position = util.vector2(0, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, pos.y + val))
+    fl.props.position = util.vector2(2, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, pos.y + val))
     self:update()
 end
 
@@ -39,7 +39,7 @@ scrollBoxMeta.scrollDown = function(self, val)
     local pos = fl.props.position
     if not pos then return end
 
-    fl.props.position = util.vector2(0, pos.y - val)
+    fl.props.position = util.vector2(2, pos.y - val)
     self:update()
 end
 
@@ -112,7 +112,7 @@ return function(params)
             autoSize = true,
             horizontal = false,
             size = params.size,
-            position = util.vector2(0, 0),
+            position = util.vector2(2, 0),
             arrange = params.arrange,
         },
         content = params.content,
