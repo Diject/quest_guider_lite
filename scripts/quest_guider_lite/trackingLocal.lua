@@ -335,6 +335,7 @@ function this.addMarker(params)
 
 
     if config.data.tracking.hudMarkers.enabled then
+        local scale = 1.5 * uiUtils.getScaledScreenSize().y / 1080
         ---@type proximityTool.hudm
         local hudMarkerParams = {
             modName = common.modName,
@@ -342,14 +343,16 @@ function this.addMarker(params)
             params = {
                 icon = params.reqData and params.reqData.data.type == requirementType.CustomActor and common.hudQuestionMarkPath
                     or common.hudMarkerPath,
-                scale = uiUtils.getScaledScreenSize().y / 1080,
+                scale = scale,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range * 3.28,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
-                screenOffset = util.vector2(6, 0),
+                screenOffset = util.vector2(2 * scale, 0),
                 offsetMult = 1.0,
-                offset = util.vector3(0, 0, 15),
-                bonusSize = 10,
+                offset = util.vector3(0, 0,
+                    params.reqData and params.reqData.data.type == requirementType.CustomActor and 25 or 15
+                ),
+                -- bonusSize = 10,
                 color = config.data.tracking.colored and objectTrackingData.color or common.colorToArray(config.data.ui.defaultColor),
             },
             objectIds = listOfObjects,

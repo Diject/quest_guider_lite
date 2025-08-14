@@ -38,6 +38,9 @@ local questBoxUpdateQueue = {}
 local questBoxUpdateTimer = nil
 
 
+core.sendGlobalEvent("QGL:setScaledScreenSize", uiUtils.getScaledScreenSize())
+
+
 I.Settings.registerGroup{
     key = commonData.settingStorageToRemoveId,
     page = commonData.settingPage,
@@ -309,7 +312,6 @@ return {
             local recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
             local hudMarkerId
             if data.hudMarkerData then
-                data.hudMarkerData.params.scale = uiUtils.getScaledScreenSize().y / 1080
                 hudMarkerId = tracking.addHUDMarker(data.hudMarkerData)
             end
 

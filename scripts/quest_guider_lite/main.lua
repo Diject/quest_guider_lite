@@ -403,6 +403,10 @@ return {
 
         ["QGL:updateConfigData"] = function (data)
             tableLib.applyChanges(config.data, data)
+        end,
+
+        ["QGL:setScaledScreenSize"] = function (data)
+            questGivers.scaledScreenSize = data
         end
     },
 }

@@ -23,6 +23,8 @@ local this = {}
 ---@type table<string, {markerId : string?, hudMarkerId : string?}>
 this.trackedQuestGivers = {}
 
+this.scaledScreenSize = {x = 1920, y = 1080}
+
 
 
 function this.registerTrackedQuestGiver(objectRecordId, markerRecordId, hudMarkerId)
@@ -82,20 +84,21 @@ function this.createQuestGiverMarker(ref)
     ---@type proximityTool.hudm?
     local hudMarkerParams
     if config.data.tracking.hudMarkers.enabled then
+        local scale = 1.5 * this.scaledScreenSize.y / 1080
         hudMarkerParams = {
             modName = commonInfo.modName,
             version = 6,
             params = {
                 icon = commonInfo.hudExclamationMarkPath,
-                screenOffset = util.vector2(10, 0),
-                scale = 1,
+                screenOffset = util.vector2(7 * scale, 0),
+                scale = scale,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range * 3.2808,
                 opacity = config.data.tracking.hudMarkers.opacity * 0.01,
-                offsetMult = 1.0,
-                offset = util.vector3(0, 0, 15),
+                offsetMult = 1,
+                offset = util.vector3(0, 0, 25),
                 -- boundingBoxCenter = true,
-                bonusSize = 10,
+                -- bonusSize = 0,
                 color = commonInfo.colorToArray(config.data.ui.defaultColor),
             },
             objectIds = {recordId},
