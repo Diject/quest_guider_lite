@@ -375,6 +375,31 @@ return {
 
         ["QGL:createMarkersForDoor"] = function (ref)
             tracking.createMarkersForExteriorDoor(ref)
-        end
+        end,
+
+        ---@param data proximityTool.event.callbackParams
+        ["QGL:proximityMarkerCallback"] = function (data)
+            if not data.recordData or not data.recordData or not data.recordData.userData
+                    or data.eventArgument.button ~= 1 then
+                return
+            end
+            local userData = data.recordData.userData
+
+            if userData.type == "tracking" and userData.questName then ---@diagnostic disable-line: need-check-nil
+                if not questMenu then
+                    I.UI.setMode("Journal", { windows = {} })
+                    questMenu = createQuestMenu{
+                        fontSize = config.data.ui.fontSize,
+                        sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+                        relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+                        onClose = function ()
+                            questMenu = nil
+                            I.UI.removeMode("Journal")
+                        end
+                    }
+                end
+                questMenu:selectQuest(userData.questName) ---@diagnostic disable-line: need-check-nil
+            end
+        end,
     },
 }

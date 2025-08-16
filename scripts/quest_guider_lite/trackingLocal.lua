@@ -189,6 +189,13 @@ function this.addMarker(params)
 
     local priority = params.priority or 0
 
+    local userData = {
+        type = "tracking",
+        diaId = params.questId,
+        index = params.questStage,
+        questName = questData.name,
+    }
+
     ---@type proximityTool.record
     local markerRecordParams = {
         name = positionData.name,
@@ -196,9 +203,13 @@ function this.addMarker(params)
         nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity * 69.99,
         priority = priority + 10,
+        events = {
+            MouseClick = "QGL:proximityMarkerCallback",
+        },
         options = {
             hideDead = params.reqData and (params.reqData.data.type == requirementType.Dead)
-        }
+        },
+        userData = userData,
     }
 
     ---@type proximityTool.record
@@ -211,6 +222,10 @@ function this.addMarker(params)
         nameColor = config.data.tracking.colored and objectTrackingData.color,
         proximity = config.data.tracking.proximity * 69.99,
         priority = priority,
+        events = {
+            MouseClick = "QGL:proximityMarkerCallback",
+        },
+        userData = userData,
     }
 
     objectMarkerData.localMarkerId = proximityTool.addRecord(markerRecordParams)
