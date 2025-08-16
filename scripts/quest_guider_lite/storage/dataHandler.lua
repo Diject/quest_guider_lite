@@ -7,6 +7,7 @@ local common = require("scripts.quest_guider_lite.common")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
+---@class questGuider.dataHandler.global
 local this = {}
 
 this.version = 7

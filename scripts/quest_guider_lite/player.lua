@@ -24,6 +24,8 @@ local configLib = require("scripts.quest_guider_lite.configLib")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
+local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
+
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 
@@ -77,29 +79,7 @@ storageToRemove:subscribe(async:callback(function(section, key)
 end))
 
 
-local function loadData()
-    local stor = storage.playerSection(commonData.dataStorageName)
-    if not stor then return end
-
-    local isReady = stor:get("isReady")
-    if isReady then
-        local dt = stor:asTable() or {}
-
-        ---@type questGuiderLite.event.dataReady.data
-        local data = {
-            quests = dt.quests or {},
-            questObjects = dt.questObjects or {},
-            localVariablesByScriptId = dt.localVariablesByScriptId or {},
-            info = dt.info,
-            isReady = isReady,
-        }
-
-        core.sendGlobalEvent("QGL:Interop:DataReady", data)
-        self:sendEvent("QGL:Interop:DataReady", data)
-    end
-end
-
-loadData()
+playerDataHandler.init()
 
 
 -- for cases when the load order is incorrect
