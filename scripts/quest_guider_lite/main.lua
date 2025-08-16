@@ -9,7 +9,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 
 local log = require("scripts.quest_guider_lite.utils.log")
-local dataHandler = require("scripts.quest_guider_lite.dataHandler")
+local dataHandler = require("scripts.quest_guider_lite.storage.dataHandler")
 local questLib = require("scripts.quest_guider_lite.quest")
 local testing = require("scripts.quest_guider_lite.testing.tests")
 local questGivers = require("scripts.quest_guider_lite.questGiverTracking")

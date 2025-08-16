@@ -13,7 +13,7 @@ local myTypes = require("scripts.quest_guider_lite.types")
 local descriptionLines = require("scripts.quest_guider_lite.descriptionLines")
 local otherTypes = require("scripts.quest_guider_lite.types.other")
 
-local dataHandler = require("scripts.quest_guider_lite.dataHandler")
+local dataHandler = require("scripts.quest_guider_lite.storage.dataHandler")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 
