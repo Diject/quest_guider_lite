@@ -1,11 +1,13 @@
 ---@class proximityTool.marker
 ---@field record string|proximityTool.record record information for the marker
----@field groupName string? group name for the marker. Markers with the same group name will be grouped
+---@field groupName string? group name for the marker. Markers with the same group name will be grouped. The group name is displayed above the markers. '~' at the beginning of the group name hides the group name element
 ---@field positions proximityTool.positionData[]? positions that the marker will track
 ---@field objectId string? record id, objects with this id will be tracked by the marker. The name field will be automatically assigned as the object's name
----@field object any? GameObject that will be tracked by the marker. Not saved between game sessions
 ---@field objectIds string[]? several record ids, objects with these ids will be tracked by the marker
+---@field object any? GameObject that will be tracked by the marker. Not saved between game sessions. Not grouped with other markers
+---@field objects any[]? multiple GameObjects that will be tracked by the marker. Not saved between game sessions
 ---@field itemId string? record id of the item, the presence of which is required for the tracked object
+---@field userData table? data that can be later retrieved in callbacks. Must be serializable
 ---@field temporary boolean? if true, the marker will not be saved to game save files
 ---@field shortTerm boolean? if true, the marker will be removed when changing location
 
@@ -31,7 +33,8 @@
 ---@field proximity number? distance from the object when the marker will be visible
 ---@field priority number? priority for the marker. Markers with higher priority will be higher in the list
 ---@field temporary boolean? if true, the record will not be saved to game save files
----@field events table<string, function>?
+---@field events table<string, string>? list of marker events. The key is the marker event name. The value is the event name in the player scope, which will be triggered via player:sendEvent. Possible events: "MouseClick"
+---@field userData table? data that can be later retrieved in callbacks. Must be serializable
 ---@field options proximityTool.record.options? some additional options
 
 ---@class proximityTool.record.options
@@ -54,6 +57,14 @@
 ---@field shortTerm boolean? if true, this marker will be removed after one of the tracked objects is invalidated
 
 
+---@class proximityTool.event.callbackParams
+---@field id string marker id
+---@field groupId string marker group id
+---@field data proximityTool.marker marker data
+---@field recordId string? marker record id
+---@field recordData proximityTool.record marker record data
+---@field eventArgument any data from the UI element's event first argument
+
 
 ---@class proximityTool
 ---@field version integer
@@ -61,7 +72,6 @@
 ---@field addRecord fun(recordData: proximityTool.record): string?
 ---@field update fun()
 ---@field updateRecord fun(id: string, recordData: proximityTool.record): boolean?
----@field registerEvent fun(eventId: string, recordId: string, func: fun(arg1: any, arg2: any)): boolean?
 ---@field removeRecord fun(id: string): boolean?
 ---@field removeMarker fun(id: string, groupId: string): boolean?
 ---@field setVisibility fun(id: string, groupId: string?, value: boolean): boolean?
