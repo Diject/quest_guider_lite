@@ -129,7 +129,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
 
     ---@param requirements questGuider.quest.getDescriptionDataFromBlock.returnArr[]
     local function addObjectPositionInfo(content, requirements, diaId, diaIndex)
-        ---@type table<string, {name : string, descr : string, descrBackward : string, positions : questGuider.quest.getRequirementPositionData.positionData[]}>
+        ---@type table<string, {id : string, name : string, descr : string, descrBackward : string, positions : questGuider.quest.getRequirementPositionData.positionData[]}>
         local objectPosInfo = {}
         for _, req in pairs(requirements) do
             for objId, posDt in pairs(req.positionData or {}) do
@@ -143,6 +143,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                     local descr, descrBck = getDescription(pos)
 
                     objectPosInfo[objId] = {
+                        id = objId,
                         descr = descr or "",
                         descrBackward = descrBck or descr or "",
                         name = positionData.name or "???",
@@ -154,7 +155,12 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             end
         end
 
-        for objId, objData in pairs(objectPosInfo) do
+        objectPosInfo = tableLib.values(objectPosInfo, function (a, b)
+            return a.name < b.name
+        end)
+
+        for _, objData in pairs(objectPosInfo) do
+            local objId = objData.id
             local trackingData = tracking.markerByObjectId[objId]
 
             local objectColor = config.data.ui.defaultColor
