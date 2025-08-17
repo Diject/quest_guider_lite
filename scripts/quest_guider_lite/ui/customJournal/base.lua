@@ -204,20 +204,20 @@ end
 ---@return boolean
 local function hasText(questData, text)
     text = text:lower()
-    if questData.name:lower():find(text) then
+    if questData.name:lower():find(text, 1, true) then
         return true
     end
 
     for _, dt in pairs(questData.list) do
-        if dt.diaId:find(text) then return true end
+        if dt.diaId:find(text, 1, true) then return true end
 
         local journalText = playerQuests.getJournalText(dt.diaId, dt.index)
-        if journalText and journalText:lower():find(text) then
+        if journalText and journalText:lower():find(text, 1, true) then
             return true
         end
 
         local dateStr = timeLib.getDateByTime(dt.timestamp or 0)
-        if dateStr:lower():find(text) then
+        if dateStr:lower():find(text, 1, true) then
             return true
         end
     end
