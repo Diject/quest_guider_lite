@@ -2,6 +2,8 @@ local types = require('openmw.types')
 local world = require('openmw.world')
 local util = require("openmw.util")
 
+local tes3 = require("scripts.quest_guider_lite.core.tes3")
+
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
@@ -41,12 +43,13 @@ function this.createQuestGiverMarker(ref)
     if not objectData or not objectData.starts then return end
 
     local questNames = {}
+    local diaIds = {}
 
-    for _, questId in pairs(objectData.starts) do
-        local questIdLower = questId:lower()
-        if (playerQuests.getCurrentIndex(questIdLower) or 0) > 0 then goto continue end
+    for _, diaId in pairs(objectData.starts) do
+        local diaIdLower = diaId:lower()
+        if (playerQuests.getCurrentIndex(diaIdLower) or 0) > 0 then goto continue end
 
-        local questData = questLib.getQuestData(questIdLower)
+        local questData = questLib.getQuestData(diaIdLower)
         if not questData or not questData.name then goto continue end
 
         for _, linkId in pairs(questData.links or {}) do
@@ -55,11 +58,12 @@ function this.createQuestGiverMarker(ref)
 
         local firstIndexStr = questLib.getFirstIndex(questData)
         if not firstIndexStr then goto continue end
-        if not questLib.checkConditionsForQuest(questIdLower, firstIndexStr) then
+        if not questLib.checkConditionsForQuest(diaIdLower, firstIndexStr) then
             goto continue
         end
 
         questNames[questData.name] = questData.name
+        diaIds[diaId] = true
 
         ::continue::
     end
@@ -79,6 +83,14 @@ function this.createQuestGiverMarker(ref)
         priority = -100,
         temporary = true,
         options = {hideDead = true},
+        userData = {
+            type = "questGiver",
+            diaIds = tableLib.keys(diaIds),
+            objName = (tes3.getObject(recordId) or {}).name or l10n("questGiverU"),
+        },
+        events = {
+            MouseClick = "QGL:questGiverMarkerCallback",
+        },
     }
 
     ---@type proximityTool.hudm?
@@ -171,6 +183,9 @@ function this.createQuestGiverMarkerForDoor(ref)
     if not types.Door.isTeleport(ref) then return end
 
     local destCell = types.Door.destCell(ref)
+    if not destCell then return end
+
+    local destCellData = tes3.getCellData(destCell)
 
     local cellsData = cellLib.findReachableCellsByNode({cell = destCell}) ---@diagnostic disable-line: missing-fields
 
@@ -198,13 +213,14 @@ function this.createQuestGiverMarkerForDoor(ref)
     end
 
     local questNames = {}
+    local diaIds = {}
 
     for objId, objectData in pairs(giverIdsWithData) do
-        for _, questId in pairs(objectData.starts) do
-            local questIdLower = questId:lower()
-            if (playerQuests.getCurrentIndex(questIdLower) or 0) > 0 then goto continue end
+        for _, diaId in pairs(objectData.starts) do
+            local diaIdLower = diaId:lower()
+            if (playerQuests.getCurrentIndex(diaIdLower) or 0) > 0 then goto continue end
 
-            local questData = questLib.getQuestData(questIdLower)
+            local questData = questLib.getQuestData(diaIdLower)
             if not questData or not questData.name then goto continue end
 
             for _, linkId in pairs(questData.links or {}) do
@@ -213,16 +229,17 @@ function this.createQuestGiverMarkerForDoor(ref)
 
             local firstIndexStr = questLib.getFirstIndex(questData)
             if not firstIndexStr then goto continue end
-            if not questLib.checkConditionsForQuest(questIdLower, firstIndexStr) then
+            if not questLib.checkConditionsForQuest(diaIdLower, firstIndexStr) then
                 goto continue
             end
 
-            local currentIndex = playerQuests.getCurrentIndex(questId)
+            local currentIndex = playerQuests.getCurrentIndex(diaId)
             if not currentIndex or currentIndex > 0 then
                 goto continue
             end
 
             questNames[questData.name] = questData.name
+            diaIds[diaId] = true
 
             ::continue::
         end
@@ -238,9 +255,17 @@ function this.createQuestGiverMarkerForDoor(ref)
         icon = commonInfo.doorExclMarkPath,
         iconColor = commonInfo.defaultColorData,
         nameColor = commonInfo.defaultColorData,
-        description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, "%s can be started here or in surrounding locations."),
+        description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("doorGiverMessage")),
         proximity = 400,
         priority = 0,
+        userData = {
+            type = "doorQuestGiver",
+            diaIds = tableLib.keys(diaIds),
+            objName = destCellData and destCellData.name or l10n("questGiversU"),
+        },
+        events = {
+            MouseClick = "QGL:questGiverMarkerCallback",
+        },
         shortTerm = true,
     }
 

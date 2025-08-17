@@ -53,7 +53,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     self:getButtonFlex().content:add(button{
         text = l10n("trackObjects"),
         textSize = self.params.fontSize * 0.8,
-        visible = tracking.initialized,
+        visible = tracking.initialized and not self.params.isQuestList,
         event = function (layout)
             self:addTrackButtons(true)
 
@@ -81,7 +81,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         self:getButtonFlex().content:add(button{
             text = l10n("removeTracking"),
             textSize = self.params.fontSize * 0.8,
-            visible = tracking.initialized,
+            visible = tracking.initialized and not self.params.isQuestList,
             event = function (layout)
                 for _, info in pairs(self.questInfo) do
                     tracking.removeMarker{
@@ -108,24 +108,33 @@ end
 function questBoxMeta._fillJournal(self, content, params)
 
     self.dialogueInfo = {}
+    ---@type table<string, boolean>
+    local addedDiaIds = {}
 
     local contentIndex = 2
-    for i = #params.playerQuestData.list, 1, -1 do
+    local function addElement(i)
         local qInfo = params.playerQuestData.list[i]
         if not qInfo then goto continue end
 
-        local text = playerQuests.getJournalText(qInfo.diaId, qInfo.index)
+        if params.showOnlyFirst and addedDiaIds[qInfo.diaId] then return end
+
+        local text = self.params.hideStageText and "" or playerQuests.getJournalText(qInfo.diaId, qInfo.index)
         if not text then goto continue end
 
-        if not self.dialogueInfo[qInfo.diaId] or self.dialogueInfo[qInfo.diaId].index < qInfo.index then
-            self.dialogueInfo[qInfo.diaId] = {
-                diaId = qInfo.diaId,
-                index = qInfo.index,
-                contentIndex = contentIndex,
-            }
+        if self.params.showReqsForAll or not addedDiaIds[qInfo.diaId] then
+            addedDiaIds[qInfo.diaId] = true
+            local id = qInfo.diaId..tostring(qInfo.index)
+            if not self.dialogueInfo[id] or self.dialogueInfo[id].index < qInfo.index then
+                self.dialogueInfo[id] = {
+                    diaId = qInfo.diaId,
+                    index = qInfo.index,
+                    contentIndex = contentIndex,
+                }
+            end
         end
 
-        local dateStr = timeLib.getDateByTime(qInfo.timestamp or 0)
+        local dateStr = self.params.isQuestList and string.format(l10n("tooltipIDStringStart"), qInfo.diaId, tostring(qInfo.index))
+            or timeLib.getDateByTime(qInfo.timestamp or 0)
 
         local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12, config.data.journal.textHeightMulRecord)
         local textElemSize = util.vector2(params.size.x - 12, height)
@@ -204,6 +213,16 @@ function questBoxMeta._fillJournal(self, content, params)
 
         ::continue::
     end
+
+    if self.params.isQuestList then
+        for i = 1, #params.playerQuestData.list do
+            addElement(i)
+        end
+    else
+        for i = #params.playerQuestData.list, 1, -1 do
+            addElement(i)
+        end
+    end
 end
 
 
@@ -212,6 +231,10 @@ end
 ---@field fontSize integer
 ---@field questName string,
 ---@field playerQuestData questGuider.playerQuest.storageQuestData
+---@field isQuestList boolean?
+---@field hideStageText boolean?
+---@field showReqsForAll boolean?
+---@field showOnlyFirst boolean?
 ---@field updateFunc function
 
 
@@ -280,6 +303,7 @@ function this.create(params)
                         checked = params.playerQuestData.finished,
                         text = l10n("finished"),
                         textSize = params.fontSize or 18,
+                        visible = not params.isQuestList,
                         relativePosition = util.vector2(0.01, 0.5),
                         anchor = util.vector2(0, 0.5),
                         event = function (checked, layout)
@@ -295,6 +319,7 @@ function this.create(params)
                         relativePosition = util.vector2(0.25, 0.5),
                         anchor = util.vector2(0, 0.5),
                         textSize = params.fontSize or 18,
+                        visible = not params.isQuestList,
                         event = function (checked, layout)
                             params.playerQuestData.disabled = checked
                             local qData = playerQuests.getQuestDataByName(params.questName)

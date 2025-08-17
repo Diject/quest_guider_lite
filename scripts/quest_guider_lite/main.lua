@@ -30,7 +30,7 @@ local l10n = require('openmw.core').l10n(common.l10nKey)
 ---@alias questGuider.main.fillQuestBoxQuestInfo.returnDt table<string, questGuider.main.fillQuestBoxQuestInfo.returnFieldDt[]> by dia id, sorted by index
 ---@alias questGuider.main.fillQuestBoxQuestInfo.returnBlock {next : questGuider.main.fillQuestBoxQuestInfo.returnDt?, linked : questGuider.main.fillQuestBoxQuestInfo.returnDt?, objectPositions : table<string, questGuider.quest.getRequirementPositionData.returnData>, diaId : string, diaIndex : integer}
 
----@alias questGuider.main.fillQuestBoxQuestInfo.return table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock> by content id
+---@alias questGuider.main.fillQuestBoxQuestInfo.return {data : table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock>, menuId : string} data by content id
 
 
 local function onInit()
@@ -45,17 +45,19 @@ end
 
 
 local function onObjectActive(ref)
-    if (ref.type == types.NPC or ref.type == types.Creature) and config.data.tracking.questGivers then
-        questGivers.createQuestGiverMarker(ref)
-    end
-    if types.Door.objectIsInstance(ref) and types.Door.isTeleport(ref) then
-        if ref.cell.isExterior then
-            world.players[1]:sendEvent("QGL:createMarkersForDoor", ref)
+    async:newUnsavableSimulationTimer(0.2, function ()
+        if (ref.type == types.NPC or ref.type == types.Creature) and config.data.tracking.questGivers then
+            questGivers.createQuestGiverMarker(ref)
         end
-        if config.data.tracking.questGivers then
-            questGivers.createQuestGiverMarkerForDoor(ref)
+        if types.Door.objectIsInstance(ref) and types.Door.isTeleport(ref) then
+            if ref.cell.isExterior then
+                world.players[1]:sendEvent("QGL:createMarkersForDoor", ref)
+            end
+            if config.data.tracking.questGivers then
+                questGivers.createQuestGiverMarkerForDoor(ref)
+            end
         end
-    end
+    end)
 end
 
 
@@ -108,9 +110,9 @@ local function addMarkersForQuest(params)
 end
 
 
----@param data table<string, {diaId : string, index : integer, contentIndex : integer}>
-local function fillQuestBoxQuestInfo(data)
-    ---@type questGuider.main.fillQuestBoxQuestInfo.return
+---@param params {menuId : string, useCurrentIndex : boolean?, data: table<string, {diaId : string, index : integer, contentIndex : integer}>}
+local function fillQuestBoxQuestInfo(params)
+    ---@type table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock>
     local out = {}
 
     local function getDtArr(t, diaId, index)
@@ -136,11 +138,17 @@ local function fillQuestBoxQuestInfo(data)
         end
     end
 
-    for diaId, diaInfo in pairs(data) do
+    for _, diaInfo in pairs(params.data) do
+        local diaId = diaInfo.diaId
         local qData = questLib.getQuestData(diaId)
         if not qData then goto continue end
 
-        local questNextIndexes, linkedIndexData = questLib.getNextIndexes(qData, diaId, diaInfo.index, {findCompleted = false, findInLinked = true})
+        local questNextIndexes, linkedIndexData
+        if params.useCurrentIndex then
+            questNextIndexes = {diaInfo.index}
+        else
+            questNextIndexes, linkedIndexData = questLib.getNextIndexes(qData, diaId, diaInfo.index, {findCompleted = false, findInLinked = true})
+        end
         if not questNextIndexes and not linkedIndexData then goto continue end
 
         local function getData(qData, index, arr)
@@ -258,7 +266,7 @@ local function fillQuestBoxQuestInfo(data)
     end
 
     if next(out) then
-        world.players[1]:sendEvent("QGL:fillQuestBoxQuestInfo", out)
+        world.players[1]:sendEvent("QGL:fillQuestBoxQuestInfo", {data = out, menuId = params.menuId})
     end
 end
 

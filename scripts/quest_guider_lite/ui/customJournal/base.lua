@@ -146,6 +146,10 @@ journalMeta.selectQuest = function (self, qName)
             parent = self,
             fontSize = self.params.fontSize or 18,
             playerQuestData = selectedLayout.userData.playerQuestData,
+            isQuestList = self.params.isQuestList,
+            showReqsForAll = self.params.showReqsForAll,
+            hideStageText = self.params.hideStageText,
+            showOnlyFirst = self.params.showOnlyFirst,
             questName = selectedLayout.userData.questName,
             size = qMainLay.userData.size,
             updateFunc = function ()
@@ -162,7 +166,11 @@ journalMeta.selectQuest = function (self, qName)
 
     ---@type questGuider.ui.questBoxMeta
     local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
-    core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", questBoxMeta.dialogueInfo)
+    core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", {
+        data = questBoxMeta.dialogueInfo,
+        menuId = self.params.headerName or commonData.journalMenuId,
+        useCurrentIndex = self.params.isQuestList,
+    })
 end
 
 journalMeta.update = function(self)
@@ -273,8 +281,9 @@ function journalMeta.fillQuestsContent(self)
 
     local content = sBoxMeta:getMainFlex().content
 
-    ---@type questGuider.playerQuest.storageData
-    local playerData = playerQuests.getStorageData()
+    ---@type table<string, questGuider.playerQuest.storageQuestData>
+    local questData = params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList)
+        or playerQuests.getStorageData().questData
 
     local finishedSubVal = 200000000000
     local disabledSubVal = 100000000000
@@ -289,7 +298,7 @@ function journalMeta.fillQuestsContent(self)
     end
 
     ---@type questGuider.playerQuest.storageQuestData[]
-    local sortedData = tableLib.values(playerData.questData, function (a, b)
+    local sortedData = tableLib.values(questData, function (a, b)
         return compareFunc(a, b)
     end)
 
@@ -422,6 +431,12 @@ end
 ---@field sizeProportional any
 ---@field fontSize integer
 ---@field relativePosition any?
+---@field headerName string?
+---@field questList string[]?
+---@field isQuestList boolean?
+---@field showReqsForAll boolean?
+---@field hideStageText boolean?
+---@field showOnlyFirst boolean?
 ---@field onClose function?
 
 ---@param params questGuider.ui.customJournal.params
@@ -455,7 +470,7 @@ local function create(params)
                 template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
-                    text = l10n("journal"),
+                    text = params.headerName and params.headerName or l10n("journal"),
                     textSize = params.fontSize * 1.5,
                     autoSize = true,
                     textColor = config.data.ui.defaultColor,
@@ -595,6 +610,7 @@ local function create(params)
                 checked = localStorage.data.finishedCheckBox and true or false,
                 text = l10n("finished"),
                 textSize = params.fontSize or 18,
+                visible = not params.isQuestList,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()
@@ -610,6 +626,7 @@ local function create(params)
                 checked = localStorage.data.hiddenCheckBox and true or false,
                 text = l10n("hidden"),
                 textSize = params.fontSize or 18,
+                visible = not params.isQuestList,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()

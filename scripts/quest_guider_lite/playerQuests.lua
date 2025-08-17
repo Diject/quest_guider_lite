@@ -8,12 +8,21 @@ local cellData = require("scripts.quest_guider_lite.core.cellData")
 local playerFunc = require('openmw.types').Player
 local core = require('openmw.core')
 
+---@type questGuider.dataHandler.global|questGuider.dataHandler.player
+local dataHandler
+local questLib = include("scripts.quest_guider_lite.quest")
+
 local playerRef = include('openmw.self')
 if not playerRef then
     local world = include('openmw.world')
     if world then
         playerRef = world.players[1]
     end
+    ---@type questGuider.dataHandler.global|questGuider.dataHandler.player
+    dataHandler = include("scripts.quest_guider_lite.storage.dataHandler") or {}
+else
+    ---@type questGuider.dataHandler.global|questGuider.dataHandler.player
+    dataHandler = include("scripts.quest_guider_lite.storage.playerDataHandler") or {}
 end
 
 
@@ -28,9 +37,9 @@ local this = {}
 
 ---@class questGuider.playerQuest.storageQuestData
 ---@field name string
----@field disabled boolean
----@field finished boolean
----@field timestamp number
+---@field disabled boolean?
+---@field finished boolean?
+---@field timestamp number?
 ---@field list questGuider.playerQuest.storageQuestInfo[]
 
 ---@class questGuider.playerQuest.storageData
@@ -167,6 +176,59 @@ end
 ---@return questGuider.playerQuest.storageData?
 function this.getStorageData()
     return initStorageData()
+end
+
+
+---@param list string[]
+---@return table<string, questGuider.playerQuest.storageQuestData>
+function this.generateStorageQuestDataByDiaIdList(list)
+    ---@type table<string, questGuider.playerQuest.storageQuestData>
+    local res = {}
+
+    for _, diaId in pairs(list or {}) do
+        local qData = dataHandler.data.quests[diaId]
+        if not qData then goto continue end
+
+        local qName = qData.name or ""
+
+        ---@type questGuider.playerQuest.storageQuestData
+        local storDt = res[qName]
+        if not storDt then
+            ---@type questGuider.playerQuest.storageQuestData
+            storDt = {
+                list = {},
+                name = qData.name or "",
+                timestamp = nil,
+                disabled = nil,
+                finished = nil,
+            }
+            res[qName] = storDt
+        end
+
+        local indexes = {}
+        for ind, _ in pairs(qData) do
+            local indInt = tonumber(ind)
+            if indInt then
+                table.insert(indexes, indInt)
+            end
+        end
+        table.sort(indexes)
+
+        for _, index in ipairs(indexes) do
+            ---@type questGuider.playerQuest.storageQuestInfo
+            local dt = {
+                diaId = diaId,
+                index = index,
+                timestamp = nil,
+            }
+
+            table.insert(storDt.list, dt)
+        end
+
+        ::continue::
+    end
+
+    return res
 end
 
 

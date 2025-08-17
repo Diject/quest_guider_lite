@@ -33,8 +33,8 @@ local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
 
 
----@type questGuider.ui.customJournal?
-local questMenu
+---@type table<string, questGuider.ui.customJournal>
+local activeMenus = {}
 
 local questBoxUpdateQueue = {}
 local questBoxUpdateTimer = nil
@@ -137,14 +137,14 @@ local function questBoxUpdateTimerCallback()
 end
 
 
----@param data questGuider.main.fillQuestBoxQuestInfo.return
-local function fillQuestBoxQuestInfo(data)
+---@param params questGuider.main.fillQuestBoxQuestInfo.return
+local function fillQuestBoxQuestInfo(params)
     local func = function ()
-        if not questMenu then return end
+        if not activeMenus[params.menuId] then return end
         ---@class questGuider.ui.questBoxMeta
-        local questBox = questMenu:getQuestScrollBox().userData.questBoxMeta
+        local questBox = activeMenus[params.menuId]:getQuestScrollBox().userData.questBoxMeta
 
-        questBox.questInfo = data
+        questBox.questInfo = params.data
         questBox:addTrackButtons()
 
         ---@type questGuider.ui.scrollBox
@@ -152,7 +152,7 @@ local function fillQuestBoxQuestInfo(data)
 
         local scrollBoxContent = scrollBox:getMainFlex()
 
-        for contentIndex, dt in pairs(data) do
+        for contentIndex, dt in pairs(params.data) do
             local element = scrollBoxContent.content[contentIndex]
             if not element then goto continue end
 
@@ -161,8 +161,9 @@ local function fillQuestBoxQuestInfo(data)
                     data = dt,
                     size = scrollBox.innnerSize,
                     fontSize = config.data.ui.fontSize,
+                    hideTrackButtons = params.menuId ~= commonData.journalMenuId,
                     updateFunc = function ()
-                        questMenu:update()
+                        activeMenus[params.menuId]:update()
                     end,
                     thisElementInContent = function ()
                         return scrollBox:getMainFlex().content[contentIndex].content[#element.content]
@@ -172,7 +173,7 @@ local function fillQuestBoxQuestInfo(data)
 
             ::continue::
         end
-        questMenu:update()
+        activeMenus[params.menuId]:update()
     end
 
     -- For safety, the menu is updated once per frame, since I had issues with updating in other places
@@ -184,18 +185,18 @@ end
 
 
 local function toggleMenu()
-    if questMenu then
-        questMenu.menu:destroy()
-        questMenu = nil
+    if activeMenus[commonData.journalMenuId] then
+        activeMenus[commonData.journalMenuId].menu:destroy()
+        activeMenus[commonData.journalMenuId] = nil
         I.UI.removeMode("Journal")
     else
         I.UI.setMode("Journal", { windows = {} })
-        questMenu = createQuestMenu{
+        activeMenus[commonData.journalMenuId] = createQuestMenu{
             fontSize = config.data.ui.fontSize,
             sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
             relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
             onClose = function ()
-                questMenu = nil
+                activeMenus[commonData.journalMenuId] = nil
                 I.UI.removeMode("Journal")
             end
         }
@@ -212,9 +213,11 @@ if config.data.journal.overrideJournal then
 end
 
 local function onKeyRelease(key)
-    if questMenu and not core.isWorldPaused() then
-        questMenu.menu:destroy()
-        questMenu = nil
+    if not core.isWorldPaused() then
+        for _, menuHandler in pairs(activeMenus) do
+            menuHandler.menu:destroy()
+        end
+        activeMenus[commonData.journalMenuId] = nil
     end
 end
 
@@ -341,11 +344,11 @@ return {
         ["QGL:fillQuestBoxQuestInfo"] = fillQuestBoxQuestInfo,
 
         ["QGL:updateQuestMenu"] = function (data)
-            if not questMenu then return end
+            if not activeMenus[commonData.journalMenuId] then return end
 
-            questMenu:updateNextStageBlocks()
-            questMenu:updateQuestListTrackedColors()
-            questMenu:update()
+            activeMenus[commonData.journalMenuId]:updateNextStageBlocks()
+            activeMenus[commonData.journalMenuId]:updateQuestListTrackedColors()
+            activeMenus[commonData.journalMenuId]:update()
         end,
 
         ["QGL:registerActorDeath"] = function (data)
@@ -359,27 +362,56 @@ return {
 
         ---@param data proximityTool.event.callbackParams
         ["QGL:proximityMarkerCallback"] = function (data)
-            if not data.recordData or not data.recordData or not data.recordData.userData
+            if not data.recordData or not data.recordData.userData
                     or data.eventArgument.button ~= 1 then
                 return
             end
             local userData = data.recordData.userData
 
             if userData.type == "tracking" and userData.questName then ---@diagnostic disable-line: need-check-nil
-                if not questMenu then
+                if not activeMenus[commonData.journalMenuId] then
                     I.UI.setMode("Journal", { windows = {} })
-                    questMenu = createQuestMenu{
+                    activeMenus[commonData.journalMenuId] = createQuestMenu{
                         fontSize = config.data.ui.fontSize,
                         sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
                         relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
                         onClose = function ()
-                            questMenu = nil
+                            activeMenus[commonData.journalMenuId] = nil
                             I.UI.removeMode("Journal")
                         end
                     }
                 end
-                questMenu:selectQuest(userData.questName) ---@diagnostic disable-line: need-check-nil
+                activeMenus[commonData.journalMenuId]:selectQuest(userData.questName) ---@diagnostic disable-line: need-check-nil
             end
+        end,
+
+        ---@param data proximityTool.event.callbackParams
+        ["QGL:questGiverMarkerCallback"] = function (data)
+            if not data.recordData or not data.recordData.userData
+                    or (data.recordData.userData.type ~= "questGiver" and data.recordData.userData.type ~= "doorQuestGiver") then
+                return
+            end
+
+            local objName = data.recordData.userData.objName or ""
+            if activeMenus[objName] then
+                activeMenus[objName].menu:destroy()
+                activeMenus[objName] = nil
+            end
+
+            activeMenus[objName] = createQuestMenu{
+                fontSize = config.data.ui.fontSize,
+                sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+                relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+                headerName = objName,
+                questList = data.recordData.userData.diaIds,
+                isQuestList = true,
+                showReqsForAll = true,
+                showOnlyFirst = true,
+                hideStageText = true,
+                onClose = function ()
+                    activeMenus[objName] = nil
+                end
+            }
         end,
     },
 }

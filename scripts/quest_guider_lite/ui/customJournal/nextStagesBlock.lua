@@ -207,7 +207,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 updateFunc = self.update,
                                 text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and l10n("untrack") or l10n("track"),
                                 textSize = (self.params.fontSize or 18) * 0.8,
-                                visible = tracking.initialized,
+                                visible = tracking.initialized and not params.hideTrackButtons,
                                 event = function (layout)
                                     local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
                                     if trackedState then
@@ -250,7 +250,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 updateFunc = self.update,
                                 text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
                                 textSize = (self.params.fontSize or 18) * 0.8,
-                                visible = tracking.initialized and tracking.isObjectTracked{diaId = diaId, objectId = objId},
+                                visible = tracking.initialized and not params.hideTrackButtons and tracking.isObjectTracked{diaId = diaId, objectId = objId},
                                 event = function (layout)
                                     local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
                                     disabledState = not disabledState
@@ -476,6 +476,7 @@ end
 ---@field size any util.vector2
 ---@field fontSize integer
 ---@field data questGuider.main.fillQuestBoxQuestInfo.returnBlock
+---@field hideTrackButtons boolean?
 ---@field updateFunc function
 
 

@@ -13,6 +13,7 @@ local interval = require("scripts.quest_guider_lite.ui.interval")
 ---@field text string?
 ---@field checked boolean?
 ---@field textSize integer?
+---@field visible boolean?
 ---@field position any? util.vector2
 ---@field relativePosition any? util.vector2
 ---@field anchor any? util.vector2
@@ -26,6 +27,13 @@ return function(params)
     local boxSize = util.vector2((params.textSize or 18) - 10, (params.textSize or 18) - 10)
     local texture = ui.texture { path = "white" }
 
+    local visible
+    if params.visible ~= nil then
+        visible = params.visible
+    else
+        visible = true
+    end
+
     local contentData = {
         type = ui.TYPE.Flex,
         props = {
@@ -35,6 +43,7 @@ return function(params)
             anchor = params.anchor,
             horizontal = true,
             propagateEvents = false,
+            visible = visible,
         },
         userData = {
             checked = params.checked or false

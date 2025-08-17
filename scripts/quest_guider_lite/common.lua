@@ -64,6 +64,9 @@ this.forbiddenForTracking = {
 }
 
 
+this.journalMenuId = "__QGL:Journal__"
+
+
 function this.colorToArray(color)
     return {color.r, color.g, color.b, color.a}
 end
