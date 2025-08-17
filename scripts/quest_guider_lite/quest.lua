@@ -790,6 +790,8 @@ function this.isContainsLocalVariableRequirement(reqBlock)
 end
 
 
+local findExitPosCache = {}
+
 ---@class questGuider.quest.getRequirementPositionData.positionData
 ---@field description string?
 ---@field descriptionBackward string?
@@ -981,7 +983,14 @@ function this.getRequirementPositionData(requirement, customConfig)
                             newPosData.type = 1
                         end
 
-                        local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+                        local exCellPos, doorPath, cellPath, isExterior, checkedCells
+                        if findExitPosCache[cell.id] then
+                            exCellPos, doorPath, cellPath, isExterior, checkedCells = table.unpack(findExitPosCache[cell.id])
+                        else
+                            exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+                            findExitPosCache[cell.id] = {exCellPos, doorPath, cellPath, isExterior, checkedCells}
+                        end
+
                         if exCellPos then
 
                             -- local descr
@@ -1073,7 +1082,14 @@ function this.getRequirementPositionData(requirement, customConfig)
 
     for cell, id in pairs(cells) do
         if not cell.isExterior then
-            local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+            local exCellPos, doorPath, cellPath, isExterior, checkedCells
+            if findExitPosCache[cell.id] then
+                exCellPos, doorPath, cellPath, isExterior, checkedCells = table.unpack(findExitPosCache[cell.id])
+            else
+                exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+                findExitPosCache[cell.id] = {exCellPos, doorPath, cellPath, isExterior, checkedCells}
+            end
+
             if exCellPos then
 
                 -- local descr
@@ -1223,7 +1239,13 @@ function this.getObjectPositionDescription(objData, maxNames)
         if posDt.name then
             local cell = tes.getCell{id = posDt.name}
             if cell then
-                local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+                local exCellPos, doorPath, cellPath, isExterior, checkedCells
+                if findExitPosCache[cell.id] then
+                    exCellPos, doorPath, cellPath, isExterior, checkedCells = table.unpack(findExitPosCache[cell.id])
+                else
+                    exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+                    findExitPosCache[cell.id] = {exCellPos, doorPath, cellPath, isExterior, checkedCells}
+                end
                 if exCellPos then
 
                     if cellPath then

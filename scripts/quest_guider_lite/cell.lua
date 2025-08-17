@@ -102,6 +102,7 @@ function this.findReachableCellsByNode(node, cells, depth)
     return cells, hasExitToExterior
 end
 
+local findExitPositionsCache = {}
 
 ---@param cell tes3cell
 ---@return tes3vector3[]?
@@ -116,6 +117,10 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells)
         return
     end
     if checked[cell.id] then return end
+
+    if findExitPositionsCache[cell.id] then
+        return table.unpack(findExitPositionsCache[cell.id]) ---@diagnostic disable-line: redundant-return-value
+    end
 
     checked[cell.id] = true
 
@@ -137,9 +142,12 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells)
         ::continue::
     end
 
+    findExitPositionsCache[cell.id] = {res, resCells, entranceCells}
     return res, resCells, entranceCells
 end
 
+
+local findNearestDoorCache = {}
 
 ---@param cell tes3cell?
 ---@param position tes3vector3
@@ -148,6 +156,10 @@ function this.findNearestDoor(position, cell)
     if not cell then
         cell = tes3.getCell{position = position}
         if not cell then return end
+    end
+    local hashVal = string.format("%d_%d_%d_%s", math.floor(position.x), math.floor(position.y), math.floor(position.z), cell.id)
+    if findNearestDoorCache[hashVal] then
+        return findNearestDoorCache[hashVal]
     end
     local nearestDoor
     local nearestdist = math.huge
@@ -189,6 +201,7 @@ function this.findNearestDoor(position, cell)
         end
     end
 
+    findNearestDoorCache[hashVal] = nearestDoor
     return nearestDoor
 end
 
