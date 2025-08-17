@@ -191,6 +191,8 @@ function this.generateStorageQuestDataByDiaIdList(list)
 
         local qName = qData.name or ""
 
+        local plData = this.getQuestStorageData(qName)
+
         ---@type questGuider.playerQuest.storageQuestData
         local storDt = res[qName]
         if not storDt then
@@ -198,9 +200,9 @@ function this.generateStorageQuestDataByDiaIdList(list)
             storDt = {
                 list = {},
                 name = qData.name or "",
-                timestamp = nil,
-                disabled = nil,
-                finished = nil,
+                timestamp = plData and plData.timestamp,
+                disabled = plData and plData.disabled,
+                finished = plData and plData.finished,
             }
             res[qName] = storDt
         end

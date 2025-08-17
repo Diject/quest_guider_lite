@@ -622,7 +622,6 @@ local function create(params)
                 checked = localStorage.data.finishedCheckBox and true or false,
                 text = l10n("finished"),
                 textSize = params.fontSize or 18,
-                visible = not params.isQuestList,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()
@@ -638,7 +637,6 @@ local function create(params)
                 checked = localStorage.data.hiddenCheckBox and true or false,
                 text = l10n("hidden"),
                 textSize = params.fontSize or 18,
-                visible = not params.isQuestList,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()

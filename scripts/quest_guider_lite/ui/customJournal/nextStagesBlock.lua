@@ -373,7 +373,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
 
             local curentIndex = playerQuests.getCurrentIndex(diaId) or 0
             for _, nextData in ipairs(diaData) do
-                if curentIndex >= nextData.index then goto continue end
+                if not params.isQuestListMode and curentIndex >= nextData.index then goto continue end
 
                 nextBtnsFlexContent:add(interval(12, 0))
                 nextBtnsFlexContent:add(
@@ -476,6 +476,7 @@ end
 ---@field size any util.vector2
 ---@field fontSize integer
 ---@field data questGuider.main.fillQuestBoxQuestInfo.returnBlock
+---@field isQuestListMode boolean?
 ---@field hideTrackButtons boolean?
 ---@field updateFunc function
 
@@ -521,7 +522,7 @@ function this.create(params)
                         template = templates.textNormal,
                         type = ui.TYPE.Text,
                         props = {
-                            text = l10n("nextColon"),
+                            text = params.isQuestListMode and l10n("requirementsColon") or l10n("nextColon"),
                             textColor = config.data.ui.defaultColor,
                             autoSize = true,
                             textSize = params.fontSize or 18,

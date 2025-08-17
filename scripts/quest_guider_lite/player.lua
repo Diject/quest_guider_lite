@@ -164,6 +164,7 @@ local function fillQuestBoxQuestInfo(params)
                     size = scrollBox.innnerSize,
                     fontSize = config.data.ui.fontSize,
                     hideTrackButtons = params.menuId ~= commonData.journalMenuId,
+                    isQuestListMode = params.menuId ~= commonData.journalMenuId,
                     updateFunc = function ()
                         activeMenus[params.menuId]:update()
                     end,

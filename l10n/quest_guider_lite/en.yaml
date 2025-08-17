@@ -91,6 +91,7 @@ trackObjects: "Track objects"
 starts: "Starts"
 quest: "Quest"
 quests: "Quests"
+requirementsColon: "Requirements:"
 cellsAway: |-
   Located {count, plural,
     one {one cell away}
