@@ -298,9 +298,16 @@ function journalMeta.fillQuestsContent(self)
     end
 
     ---@type questGuider.playerQuest.storageQuestData[]
-    local sortedData = tableLib.values(questData, function (a, b)
-        return compareFunc(a, b)
-    end)
+    local sortedData
+    if params.isQuestList then
+        sortedData = tableLib.values(questData, function (a, b)
+            return (a.name or "") < (b.name or "")
+        end)
+    else
+        sortedData = tableLib.values(questData, function (a, b)
+            return compareFunc(a, b)
+        end)
+    end
 
     local showFinished = self:getQuestListFinishedCheckBox().userData.checked
     local showHidden = self:getQuestListHiddenCheckBox().userData.checked
