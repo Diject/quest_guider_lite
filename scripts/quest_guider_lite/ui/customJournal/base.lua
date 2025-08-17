@@ -321,6 +321,10 @@ function journalMeta.fillQuestsContent(self)
             goto continue
         end
 
+        if params.isQuestList and (not dt.name or dt.name == "") then
+            goto continue
+        end
+
         if self.textFilter ~= "" and not hasText(dt, self.textFilter) then
             goto continue
         end
