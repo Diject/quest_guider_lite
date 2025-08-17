@@ -78,7 +78,7 @@ function this.createQuestGiverMarker(ref)
         iconRatio = 2,
         iconColor = commonInfo.defaultColorData,
         nameColor = commonInfo.defaultColorData,
-        description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("starts").." %s"),
+        description = {stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("starts").." %s"), l10n("clickForInfo")},
         proximity = config.data.tracking.questGiverProximity * 69.99,
         priority = -100,
         temporary = true,
@@ -255,7 +255,7 @@ function this.createQuestGiverMarkerForDoor(ref)
         icon = commonInfo.doorExclMarkPath,
         iconColor = commonInfo.defaultColorData,
         nameColor = commonInfo.defaultColorData,
-        description = stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("doorGiverMessage")),
+        description = {stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("doorGiverMessage")), l10n("clickForInfo")},
         proximity = 400,
         priority = 0,
         userData = {

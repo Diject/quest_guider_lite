@@ -92,6 +92,7 @@ starts: "Starts"
 quest: "Quest"
 quests: "Quests"
 requirementsColon: "Requirements:"
+clickForInfo: "Click for info"
 cellsAway: |-
   Located {count, plural,
     one {one cell away}
