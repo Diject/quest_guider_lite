@@ -498,7 +498,6 @@ local function create(params)
                     mousePress = async:callback(function(coord, layout)
                         layout.userData.contentBackup = meta:getQuestMain().content
                         meta:getQuestMain().content = ui.content{}
-                        meta:resetQuestListColors()
 
                         layout.userData.doDrag = true
                         local screenSize = uiUtils.getScaledScreenSize()
