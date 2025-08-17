@@ -90,6 +90,7 @@ removeTracking: "Untrack objects"
 trackObjects: "Track objects"
 starts: "Starts"
 quest: "Quest"
+quests: "Quests"
 cellsAway: |-
   Located {count, plural,
     one {one cell away}

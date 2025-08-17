@@ -168,7 +168,7 @@ journalMeta.selectQuest = function (self, qName)
     local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
     core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", {
         data = questBoxMeta.dialogueInfo,
-        menuId = self.params.headerName or commonData.journalMenuId,
+        menuId = self.params.menuId,
         useCurrentIndex = self.params.isQuestList,
     })
 end
@@ -427,6 +427,7 @@ end
 
 
 ---@class questGuider.ui.customJournal.params
+---@field menuId string?
 ---@field size any
 ---@field sizeProportional any
 ---@field fontSize integer
@@ -453,6 +454,10 @@ local function create(params)
     if not params.size then
         local scaledScreenSize = uiUtils.getScaledScreenSize()
         params.size = util.vector2(scaledScreenSize.x * params.sizeProportional.x, scaledScreenSize.y * params.sizeProportional.y)
+    end
+
+    if not params.menuId then
+        params.menuId = params.headerName and params.headerName or commonData.journalMenuId
     end
 
     meta.params = params

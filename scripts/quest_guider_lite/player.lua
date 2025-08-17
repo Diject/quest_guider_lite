@@ -32,6 +32,8 @@ local realTimer = require("scripts.quest_guider_lite.realTimer")
 local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
 
+local l10n = core.l10n(commonData.l10nKey)
+
 
 ---@type table<string, questGuider.ui.customJournal>
 local activeMenus = {}
@@ -205,7 +207,37 @@ end
 
 
 input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
-    toggleMenu()
+    if input.isCtrlPressed() and input.isShiftPressed() then
+        if activeMenus[commonData.allQuestsMenuId] then
+            activeMenus[commonData.allQuestsMenuId].menu:destroy()
+            activeMenus[commonData.allQuestsMenuId] = nil
+        end
+        I.UI.setMode("Journal", { windows = {} })
+
+        local dialogues = {}
+        for qName, dt in pairs(playerQuests.questData) do
+            for diaId, _ in pairs(dt.records) do
+                table.insert(dialogues, diaId)
+            end
+        end
+
+        activeMenus[commonData.allQuestsMenuId] = createQuestMenu{
+            fontSize = config.data.ui.fontSize,
+            sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+            relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+            headerName = l10n("quests"),
+            menuId = commonData.allQuestsMenuId,
+            questList = dialogues,
+            isQuestList = true,
+            showReqsForAll = true,
+            onClose = function ()
+                activeMenus[commonData.allQuestsMenuId] = nil
+                I.UI.removeMode("Journal")
+            end
+        }
+    else
+        toggleMenu()
+    end
 end))
 
 if config.data.journal.overrideJournal then
