@@ -282,8 +282,7 @@ function journalMeta.fillQuestsContent(self)
     local content = sBoxMeta:getMainFlex().content
 
     ---@type table<string, questGuider.playerQuest.storageQuestData>
-    local questData = params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList)
-        or playerQuests.getStorageData().questData
+    local questData = self.storageTypeQuestData or playerQuests.getStorageData().questData
 
     local finishedSubVal = 200000000000
     local disabledSubVal = 100000000000
@@ -476,6 +475,8 @@ local function create(params)
     meta.params = params
 
     meta.textFilter = ""
+
+    meta.storageTypeQuestData = params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList)
 
     local mainHeader = {
         type = ui.TYPE.Widget,
