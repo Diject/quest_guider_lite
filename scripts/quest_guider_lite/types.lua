@@ -188,4 +188,18 @@ this.requirementType = require("scripts.quest_guider_lite.types.requirement")
 
 this.operator = require("scripts.quest_guider_lite.types.operator")
 
+function this.areRequirementsEqual(req1, req2)
+    if not req1 or not req2 then return false end
+    if req1.type ~= req2.type then return false end
+    if req1.operator ~= req2.operator then return false end
+    if req1.value ~= req2.value then return false end
+    if req1.variable ~= req2.variable then return false end
+    if req1.object ~= req2.object then return false end
+    if req1.skill ~= req2.skill then return false end
+    if req1.attribute ~= req2.attribute then return false end
+    if req1.script ~= req2.script then return false end
+
+    return true
+end
+
 return this

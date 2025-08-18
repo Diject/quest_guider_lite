@@ -315,7 +315,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
     local checkedDialogObjects = {}
 
     ---@param requirement questDataGenerator.requirementData
-    local function processRequirement(requirement)
+    local function processRequirement(requirement, additionalPriority, skipNested)
         if disallowedRequirementTypes[requirement.type] then goto continue end
 
         if requirement.type == myTypes.requirementType.Journal and requirement.variable == questId then
@@ -323,7 +323,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
         end
 
         ---@type questGuider.quest.getDescriptionDataFromBlock.returnArr
-        local reqOut = {str = "", priority = 0, data = requirement}
+        local reqOut = {str = "", priority = additionalPriority or 0, data = requirement}
 
         if requirement.type == myTypes.requirementType.CustomActor then
             reqOut.reqDataForHandling = requirementChecker.getFilterredRequirementBlock(reqBlock, filterForHandledReqBlock)
@@ -570,7 +570,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
             reqOut.str = str:gsub("^%l", string.upper)
 
             if reqStrDescrData.priority then
-                reqOut.priority = reqStrDescrData.priority
+                reqOut.priority = reqOut.priority + reqStrDescrData.priority
             end
         else
             local reqCopy = tableLib.copy(requirement)
@@ -622,9 +622,62 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 local objs, count = this.getObjectNamesFromLinkTable(scrData.contains)
 
                 if count > 0 then
-                    processRequirement({type = "SCR1", operator = 48, value = environment.script})
+                    processRequirement({type = "SCR1", operator = 48, value = environment.script}, additionalPriority)
                 end
             end
+
+        elseif not skipNested and requirement.type == myTypes.requirementType.CustomLocal and requirement.variable and requirement.value then
+
+            local function process(objectId, addPriority)
+                if not addPriority then addPriority = 0 end
+
+                local localVarDt = dataHandler.localVariablesByScriptId[objectId]
+                if not localVarDt then return end
+                localVarDt = localVarDt[requirement.variable]
+                if not localVarDt then return end
+                ---@type questDataGenerator.requirementBlock[]
+                local resReqBlock = localVarDt.results[tostring(requirement.value)]
+                if not resReqBlock then return end
+                if not next(resReqBlock) then return end
+
+                -- currently only the first requirement block is used
+                -- TODO: Implement support for multiple requirement blocks
+                local reqs = resReqBlock[1]
+
+                local scriptIds = {}
+                for _, req in pairs(reqs) do
+                    local isNew = true
+                    for _, r in pairs(reqBlock) do
+                        if myTypes.areRequirementsEqual(req, r) then
+                            isNew = false
+                            break
+                        end
+                    end
+
+                    if isNew then
+                        processRequirement(req, addPriority - 9000, true)
+                        if req.script then
+                            scriptIds[req.script] = true
+                        end
+                    end
+                end
+
+                for scrId, _ in pairs(scriptIds) do
+                    processRequirement({type = myTypes.requirementType.CustomScript, operator = 48, variable = scrId, script = scrId}, addPriority - 10000, true)
+                end
+            end
+
+            if requirement.object then
+                process(requirement.object)
+
+            else
+                for i, req in pairs(reqBlock) do
+                    if req.type == myTypes.requirementType.CustomActor and req.object then
+                        process(req.object, -i * 10000)
+                    end
+                end
+            end
+
         end
 
         local function addDialogueData(objId)
@@ -641,9 +694,9 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
 
                 if linkData.type == 3 then
                     if requirement.type == myTypes.requirementType.Item then
-                        processRequirement({type = "DIAO", operator = operator, object = variable, variable = linkName, value = value})
+                        processRequirement({type = "DIAO", operator = operator, object = variable, variable = linkName, value = value}, additionalPriority)
                     else
-                        processRequirement({type = "DIAO", operator = operator, variable = linkName})
+                        processRequirement({type = "DIAO", operator = operator, variable = linkName}, additionalPriority)
                     end
                 end
 
