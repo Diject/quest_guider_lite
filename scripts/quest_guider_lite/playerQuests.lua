@@ -186,10 +186,10 @@ function this.generateStorageQuestDataByDiaIdList(list)
     local res = {}
 
     for _, diaId in pairs(list or {}) do
-        local qData = dataHandler.data.quests[diaId]
-        if not qData then goto continue end
+        local dialogue = core.dialogue.journal.records[diaId]
+        if not dialogue then goto continue end
 
-        local qName = qData.name or ""
+        local qName = dialogue.questName or ""
 
         local plData = this.getQuestStorageData(qName)
 
@@ -199,7 +199,7 @@ function this.generateStorageQuestDataByDiaIdList(list)
             ---@type questGuider.playerQuest.storageQuestData
             storDt = {
                 list = {},
-                name = qData.name or "",
+                name = qName,
                 timestamp = plData and plData.timestamp,
                 disabled = plData and plData.disabled,
                 finished = plData and plData.finished,
@@ -208,12 +208,13 @@ function this.generateStorageQuestDataByDiaIdList(list)
         end
 
         local indexes = {}
-        for ind, _ in pairs(qData) do
-            local indInt = tonumber(ind)
-            if indInt then
-                table.insert(indexes, indInt)
+
+        for i, info in pairs(dialogue.infos) do
+            if info.text ~= qName then
+                table.insert(indexes, info.questStage)
             end
         end
+
         table.sort(indexes)
 
         for _, index in ipairs(indexes) do
