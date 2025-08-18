@@ -578,6 +578,7 @@ local function create(params)
                             autoSize = false,
                             textSize = params.fontSize,
                             size = util.vector2(params.size.x * 0.2, params.fontSize + 5),
+                            textColor = config.data.ui.defaultColor,
                         },
                         events = {
                             textChanged = async:callback(function(text, layout)
