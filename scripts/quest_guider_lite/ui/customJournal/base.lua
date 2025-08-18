@@ -369,6 +369,8 @@ function journalMeta.fillQuestsContent(self)
         ---@type questGuider.ui.scrollBox
         local qListScrollBoxMeta = qListScrollBox.userData.scrollBoxMeta
 
+        local textColor = dt.disabled and disabledColor or dt.finished and finishedColor or config.data.ui.defaultColor
+
         content:add{
             type = ui.TYPE.Flex,
             props = {
@@ -421,9 +423,9 @@ function journalMeta.fillQuestsContent(self)
                     template = templates.textNormal,
                     type = ui.TYPE.Text,
                     props = {
-                        text = qNameText,
+                        text = uiUtils.colorize(qNameText, self.textFilter, "#"..config.data.ui.selectionColor:asHex(), "#"..textColor:asHex()),
                         textSize = params.fontSize or 18,
-                        textColor = dt.disabled and disabledColor or dt.finished and finishedColor or config.data.ui.defaultColor,
+                        textColor = textColor,
                         multiline = false,
                         wordWrap = false,
                         textAlignH = ui.ALIGNMENT.Start,
@@ -586,6 +588,14 @@ local function create(params)
                                     meta:fillQuestsContent()
                                     meta:selectQuest(selectedQuest)
                                     searchBar.content[1].content[1].props.text = meta.textFilter
+
+                                    local qBox = meta:getQuestScrollBox()
+                                    if qBox then
+                                        ---@type questGuider.ui.questBoxMeta
+                                        local questBoxMeta = meta:getQuestScrollBox().userData.questBoxMeta
+                                        questBoxMeta:updateColors()
+                                    end
+
                                     updateFunc()
                                 end
                             end),
@@ -606,6 +616,13 @@ local function create(params)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()
                     meta:selectQuest(selectedQuest)
+
+                    local qBox = meta:getQuestScrollBox()
+                    if qBox then
+                        ---@type questGuider.ui.questBoxMeta
+                        local questBoxMeta = meta:getQuestScrollBox().userData.questBoxMeta
+                        questBoxMeta:updateColors()
+                    end
                 end
             },
         }

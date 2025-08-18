@@ -48,6 +48,10 @@ function questBoxMeta.getButtonFlex(self)
     return self:getButtonWidget().content[3]
 end
 
+function questBoxMeta.getHeader(self)
+    return self:getScrollBox().userData.scrollBoxMeta:getMainFlex().content[1]
+end
+
 function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     self:getButtonFlex().content = ui.content{}
     self:getButtonFlex().content:add(button{
@@ -164,12 +168,15 @@ function questBoxMeta._fillJournal(self, content, params)
                         {
                             type = ui.TYPE.Text,
                             props = {
-                                text = dateStr,
+                                text = uiUtils.colorize(dateStr, self.parent.textFilter,
+                                    "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.dateColor:asHex()),
                                 autoSize = true,
                                 textSize = (params.fontSize or 18) * 1.15,
                                 textColor = config.data.ui.dateColor,
                             },
-                            userData = {},
+                            userData = {
+                                defaultTextColor = config.data.ui.dateColor,
+                            },
                             events = {
                                 mouseMove = async:callback(function(coord, layout)
                                     tooltip.createOrMove(coord, layout, tooltipContent)
@@ -193,8 +200,12 @@ function questBoxMeta._fillJournal(self, content, params)
                         {
                             template = templates.textNormal,
                             type = ui.TYPE.Text,
+                            userData = {
+                                defaultTextColor = config.data.ui.defaultColor,
+                            },
                             props = {
-                                text = text,
+                                text = uiUtils.colorize(text, self.parent.textFilter,
+                                    "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
                                 textColor = config.data.ui.defaultColor,
                                 autoSize = false,
                                 size = textElemSize,
@@ -226,6 +237,44 @@ function questBoxMeta._fillJournal(self, content, params)
 end
 
 
+function questBoxMeta:updateColors()
+
+    local scrBox = self:getScrollBox()
+    if not scrBox then return end
+
+    ---@type questGuider.ui.scrollBox
+    local scrollBoxElem = self:getScrollBox().userData.scrollBoxMeta
+    local mainFlex = scrollBoxElem:getMainFlex()
+
+    local header = mainFlex.content[1]
+    if not header then return end
+
+    header.content[1].props.text = uiUtils.removeColorMarkers(header.content[1].props.text)
+    if self.parent.textFilter ~= "" then
+        header.content[1].props.text = uiUtils.colorize(header.content[1].props.text, self.parent.textFilter,
+            "#"..config.data.ui.selectionColor:asHex(), "#"..header.content[1].userData.defaultTextColor:asHex())
+    end
+
+    for i = 2, #mainFlex.content do
+        local dateElem = mainFlex.content[i].content[2].content[2]
+
+        dateElem.props.text = uiUtils.removeColorMarkers(dateElem.props.text)
+        if self.parent.textFilter ~= "" then
+            dateElem.props.text = uiUtils.colorize(dateElem.props.text, self.parent.textFilter,
+                "#"..config.data.ui.selectionColor:asHex(), "#"..dateElem.userData.defaultTextColor:asHex())
+        end
+
+        local stageTextElem = mainFlex.content[i].content[3].content[2]
+
+        stageTextElem.props.text = uiUtils.removeColorMarkers(stageTextElem.props.text)
+        if self.parent.textFilter ~= "" then
+            stageTextElem.props.text = uiUtils.colorize(stageTextElem.props.text, self.parent.textFilter,
+                "#"..config.data.ui.selectionColor:asHex(), "#"..stageTextElem.userData.defaultTextColor:asHex())
+        end
+    end
+end
+
+
 ---@class questGuider.ui.questBox.params
 ---@field size any
 ---@field fontSize integer
@@ -236,6 +285,7 @@ end
 ---@field showReqsForAll boolean?
 ---@field showOnlyFirst boolean?
 ---@field updateFunc function
+---@field parent questGuider.ui.customJournal
 
 
 ---@param params questGuider.ui.questBox.params
@@ -250,6 +300,7 @@ function this.create(params)
         params.updateFunc()
     end
 
+    meta.parent = params.parent
 
     local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{meta = meta}
 
@@ -267,7 +318,8 @@ function this.create(params)
                 template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
-                    text = params.questName,
+                    text = uiUtils.colorize(params.questName, meta.parent.textFilter,
+                        "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
                     textColor = config.data.ui.defaultColor,
                     autoSize = false,
                     size = util.vector2(params.size.x, (params.fontSize or 18) * 1.2),
@@ -276,7 +328,9 @@ function this.create(params)
                     wordWrap = false,
                     textAlignH = ui.ALIGNMENT.Center,
                 },
-                userData = {},
+                userData = {
+                    defaultTextColor = config.data.ui.defaultColor,
+                },
                 events = {
                     mouseMove = async:callback(function(coord, layout)
                         tooltip.createOrMove(coord, layout, tooltipContent)
