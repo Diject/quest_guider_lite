@@ -14,7 +14,7 @@ local l10n = core.l10n(commonData.l10nKey)
 local this = {}
 
 
----@param params {meta : questGuider.ui.questBoxMeta?, recordInfo : questGuider.playerQuest.storageQuestInfo?, fontSize : integer?}
+---@param params {meta : questGuider.ui.questBoxMeta?, recordInfo : questGuider.playerQuest.storageQuestInfo?, fontSize : integer?, filter : string?}
 function this.getContentForTooltip(params)
     if not params or (not params.meta and not params.recordInfo) then return ui.content{} end
 
@@ -64,6 +64,10 @@ function this.getContentForTooltip(params)
     local fontSize = params.fontSize or (meta and meta.params.fontSize) or 18
     local idTextHeight = uiUtils.getTextHeight(idStr, fontSize, width, config.data.journal.textHeightMul)
     local startedInHeight = uiUtils.getTextHeight(startedInStr, fontSize, width, config.data.journal.textHeightMul)
+
+    if params.filter then
+        idStr = uiUtils.colorize(idStr, params.filter, "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+    end
 
     return ui.content{
         {

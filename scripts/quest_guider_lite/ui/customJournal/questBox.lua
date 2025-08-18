@@ -143,7 +143,8 @@ function questBoxMeta._fillJournal(self, content, params)
         local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12, config.data.journal.textHeightMulRecord)
         local textElemSize = util.vector2(params.size.x - 12, height)
 
-        local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize}
+        local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize,
+            filter = self.parent.textFilter}
 
         content:add{
             type = ui.TYPE.Flex,
@@ -302,7 +303,7 @@ function this.create(params)
 
     meta.parent = params.parent
 
-    local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{meta = meta}
+    local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{meta = meta, filter = meta.parent.textFilter}
 
     local headerSize = util.vector2(params.size.x, params.fontSize * 3)
     local checkBoxBlockSize = util.vector2(params.size.x, params.fontSize * 2)
