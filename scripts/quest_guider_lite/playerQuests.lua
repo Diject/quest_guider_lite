@@ -199,6 +199,7 @@ function this.generateStorageQuestDataByDiaIdList(list)
             ---@type questGuider.playerQuest.storageQuestData
             storDt = {
                 list = {},
+                tempDias = {},
                 name = qName,
                 timestamp = plData and plData.timestamp,
                 disabled = plData and plData.disabled,
@@ -217,6 +218,8 @@ function this.generateStorageQuestDataByDiaIdList(list)
 
         table.sort(indexes)
 
+        local tempDia = {indexData = {}, count = 0}
+
         for _, index in ipairs(indexes) do
             ---@type questGuider.playerQuest.storageQuestInfo
             local dt = {
@@ -225,10 +228,26 @@ function this.generateStorageQuestDataByDiaIdList(list)
                 timestamp = nil,
             }
 
-            table.insert(storDt.list, dt)
+            table.insert(tempDia.indexData, dt)
+            tempDia.count = tempDia.count + 1
         end
 
+        table.insert(storDt.tempDias, tempDia) ---@diagnostic disable-line: undefined-field
+
         ::continue::
+    end
+
+    for qName, qDt in pairs(res) do
+        table.sort(qDt.tempDias, function (a, b) ---@diagnostic disable-line: undefined-field
+            return a.count > b.count
+        end)
+
+        for _, diaDt in ipairs(qDt.tempDias) do ---@diagnostic disable-line: undefined-field
+            for _, dt in ipairs(diaDt.indexData) do
+                table.insert(qDt.list, dt)
+            end
+        end
+        qDt.tempDias = nil ---@diagnostic disable-line: inject-field
     end
 
     return res
