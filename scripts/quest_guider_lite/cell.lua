@@ -105,24 +105,33 @@ end
 local findExitPositionsCache = {}
 
 ---@param cell tes3cell
----@return tes3vector3[]?
+---@return {pos : tes3vector3, depth : number}[]?
 ---@return table<string, tes3cell>?
 ---@return table<string, tes3cell>? entranceCells
-function this.findExitPositions(cell, checked, res, resCells, entranceCells)
+---@return number? lowestDepth
+function this.findExitPositions(cell, checked, res, resCells, entranceCells, depth)
     if not checked then checked = {} end
     if not entranceCells then entranceCells = {} end
     if not res then res = {} end
+    if not depth then depth = 0 end
+
     if cell.isExterior then
         resCells[cell.id] = cell
         return
     end
-    if checked[cell.id] then return end
+    if checked[cell.id] then
+        checked[cell.id] = math.min(checked[cell.id], depth)
+        if entranceCells[cell.id] then
+            entranceCells[cell.id] = math.min(entranceCells[cell.id], depth)
+        end
+        return
+    end
 
     if findExitPositionsCache[cell.id] then
         return table.unpack(findExitPositionsCache[cell.id]) ---@diagnostic disable-line: redundant-return-value
     end
 
-    checked[cell.id] = true
+    checked[cell.id] = depth
 
     for _, door in pairs(cell:getAll(types.Door)) do
         if not types.Door.isTeleport(door) or not door.enabled then goto continue end
@@ -133,17 +142,24 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells)
         if not destCell or not destPos then goto continue end
 
         if destCell.isExterior then
-            table.insert(res, utils.copyVector3(destPos))
-            entranceCells[cell.id] = cell
+            table.insert(res, {pos = utils.copyVector3(destPos), depth = depth})
+            entranceCells[cell.id] = depth
         else
-            this.findExitPositions(destCell, checked, res, resCells, entranceCells)
+            this.findExitPositions(destCell, checked, res, resCells, entranceCells, depth + 1)
         end
 
         ::continue::
     end
 
-    findExitPositionsCache[cell.id] = {res, resCells, entranceCells}
-    return res, resCells, entranceCells
+    local lowestDepth = 9999
+    for _, dpt in pairs(entranceCells) do
+        lowestDepth = math.min(lowestDepth, dpt)
+    end
+
+    if depth == 0 then
+        findExitPositionsCache[cell.id] = {res, resCells, entranceCells, lowestDepth}
+    end
+    return res, resCells, entranceCells, lowestDepth
 end
 
 

@@ -1056,18 +1056,22 @@ function this.getRequirementPositionData(requirement, customConfig)
 
                             local exits = {}
                             local firstEntranceCellIds = {}
-                            local exitPositions, _, entranceCells = cellLib.findExitPositions(cell)
+                            local exitPositions, _, entranceCells, lowestDepth = cellLib.findExitPositions(cell)
                             if exitPositions then
-                                for _, pos in pairs(exitPositions) do
-                                    local nearestDoor = cellLib.findNearestDoor(pos)
-                                    if nearestDoor then
-                                        table.insert(exits, nearestDoor.position)
-                                    else
-                                        table.insert(exits, pos)
+                                for _, pDt in pairs(exitPositions) do
+                                    if pDt.depth <= lowestDepth + 2 then
+                                        local nearestDoor = cellLib.findNearestDoor(pDt.pos)
+                                        if nearestDoor then
+                                            table.insert(exits, nearestDoor.position)
+                                        else
+                                            table.insert(exits, pDt.pos)
+                                        end
                                     end
                                 end
-                                for cellId, _ in pairs(entranceCells or {}) do
-                                    firstEntranceCellIds[cellId] = cellId
+                                for cellId, depth in pairs(entranceCells or {}) do
+                                    if depth <= lowestDepth + 2 then
+                                        firstEntranceCellIds[cellId] = cellId
+                                    end
                                 end
                             end
 
@@ -1155,18 +1159,22 @@ function this.getRequirementPositionData(requirement, customConfig)
 
                 local exits = {}
                 local firstEntranceCellIds = {}
-                local exitPositions, _, entranceCells = cellLib.findExitPositions(cell)
+                local exitPositions, _, entranceCells, lowestDepth = cellLib.findExitPositions(cell)
                 if exitPositions then
-                    for _, pos in pairs(exitPositions) do
-                        local nearestDoor = cellLib.findNearestDoor(pos)
-                        if nearestDoor then
-                            table.insert(exits, nearestDoor.position)
-                        else
-                            table.insert(exits, pos)
+                    for _, pDt in pairs(exitPositions) do
+                        if pDt.depth <= lowestDepth + 1 then
+                            local nearestDoor = cellLib.findNearestDoor(pDt.pos)
+                            if nearestDoor then
+                                table.insert(exits, nearestDoor.position)
+                            else
+                                table.insert(exits, pDt.pos)
+                            end
                         end
                     end
-                    for cellId, _ in pairs(entranceCells or {}) do
-                        firstEntranceCellIds[cellId] = cellId
+                    for cellId, depth in pairs(entranceCells or {}) do
+                        if depth <= lowestDepth + 1 then
+                            firstEntranceCellIds[cellId] = cellId
+                        end
                     end
                 end
 
