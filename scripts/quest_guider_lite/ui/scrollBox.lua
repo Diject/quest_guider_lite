@@ -43,6 +43,24 @@ scrollBoxMeta.scrollDown = function(self, val)
     self:update()
 end
 
+scrollBoxMeta.getScrollPosition = function(self)
+    local fl = self:getMainFlex()
+    local pos = fl.props.position
+    if not pos then return end
+
+    return -pos.y
+end
+
+---@param height number
+scrollBoxMeta.setScrollPositiom = function(self, height)
+    local fl = self:getMainFlex()
+    local pos = fl.props.position
+    if not pos then return end
+print(-height)
+    fl.props.position = util.vector2(2, -height)
+    self:update()
+end
+
 scrollBoxMeta.clearContent = function (self)
     local mainFlex = self:getMainFlex()
     mainFlex.content = ui.content{}

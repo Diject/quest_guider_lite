@@ -435,6 +435,13 @@ function journalMeta.fillQuestsContent(self)
 
         ::continue::
     end
+
+    local height = #content * (params.fontSize or 18)
+    local scrollPos = sBoxMeta:getScrollPosition()
+    local scrollElemHeight = sBoxMeta.params.size.y
+    if scrollPos > height then
+        sBoxMeta:setScrollPositiom(math.max(0, height - scrollElemHeight))
+    end
 end
 
 
