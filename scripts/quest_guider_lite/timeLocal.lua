@@ -2,23 +2,30 @@ local this = {}
 
 this.time = 0
 
+local morrowind_months = {
+    {"Morning Star", 31},
+    {"Sun's Dawn", 28},
+    {"First Seed", 31},
+    {"Rain's Hand", 30},
+    {"Second Seed", 31},
+    {"Mid Year", 30},
+    {"Sun's Height", 31},
+    {"Last Seed", 31},
+    {"Hearthfire", 30},
+    {"Frostfall", 31},
+    {"Sun's Dusk", 30},
+    {"Evening Star", 31},
+}
 
 ---@param time number
 ---@return string
 function this.getDateByTime(time)
-    local start_hour = 6
-    local start_day = 1
+    local start_hour = 0
+    local start_day = 0
     local start_month = 8
     local start_year = 427
 
-    local month_days = 30
     local months_in_year = 12
-
-    local morrowind_months = {
-        "Morning Star", "Sun's Dawn", "First Seed", "Rain's Hand",
-        "Second Seed", "Mid Year", "Sun's Height", "Last Seed",
-        "Hearthfire", "Frostfall", "Sun's Dusk", "Evening Star"
-    }
 
     local total_seconds = time + (start_hour * 3600)
 
@@ -33,8 +40,8 @@ function this.getDateByTime(time)
     local month = start_month
     local year = start_year
 
-    while day > month_days do
-        day = day - month_days
+    while day > morrowind_months[month][2] do
+        day = day - morrowind_months[month][2]
         month = month + 1
         if month > months_in_year then
             month = 1
@@ -52,7 +59,7 @@ function this.getDateByTime(time)
     end
 
     local suffix = day_suffix(day)
-    local month_name = morrowind_months[month]
+    local month_name = morrowind_months[month][1]
 
     local result = string.format("%d%s %s, 3E %d %02d:%02d",
         day, suffix, month_name, year, hour, minute)
