@@ -4,6 +4,7 @@ local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local commonData = require("scripts.quest_guider_lite.common")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local cellData = require("scripts.quest_guider_lite.core.cellData")
+local stringLib = require("scripts.quest_guider_lite.utils.string")
 
 local playerFunc = require('openmw.types').Player
 local core = require('openmw.core')
@@ -283,7 +284,7 @@ function this.getJournalText(diaId, index)
 
     for _, info in pairs(dia.infos) do
         if info.questStage == index then
-            return info.text
+            return stringLib.removeSpecialCharactersFromJournalText(info.text or "")
         end
     end
 end

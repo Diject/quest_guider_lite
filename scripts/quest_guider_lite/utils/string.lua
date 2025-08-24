@@ -55,4 +55,12 @@ function this.convertDialogueName(name)
     return string.sub(name, 7)
 end
 
+
+---@param text string
+---@return string
+function this.removeSpecialCharactersFromJournalText(text)
+    return text:gsub("@", ""):gsub("#", "") ---@diagnostic disable-line: redundant-return-value
+end
+
+
 return this
