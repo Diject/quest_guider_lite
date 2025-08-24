@@ -16,7 +16,7 @@ function this.getTextHeight(text, fontSize, width, mul)
     for line in text:gmatch("[^\n]+") do
         local currentRowSize = 0
         for word in line:gmatch("%S+") do
-            local wordSize = utf8.len(word)
+            local wordSize = utf8.len(word) or string.len(word)
             if currentRowSize + wordSize <= rowMaxSize then
                 currentRowSize = currentRowSize + wordSize + 1
             else
@@ -45,7 +45,8 @@ end
 
 
 function this.colorize(text, search, color, defaultColor)
-    if utf8.len(search) == 0 then return text end
+    local strLen = utf8.len(search) or string.len(search)
+    if strLen == 0 then return text end
 
     color = color or "#000000"
     defaultColor = defaultColor or ("#"..config.data.ui.defaultColor:asHex())
