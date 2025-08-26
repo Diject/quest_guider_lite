@@ -44,6 +44,21 @@ function this.getScaledScreenSize()
 end
 
 
+local specialCharacters = {
+    ["("] = "(",
+    [")"] = ")",
+    ["."] = ".",
+    ["%"] = "%",
+    ["+"] = "+",
+    ["-"] = "-",
+    ["*"] = "*",
+    ["?"] = "?",
+    ["["] = "[",
+    ["]"] = "]",
+    ["^"] = "^",
+    ["$"] = "$"
+}
+
 function this.colorize(text, search, color, defaultColor)
     local strLen = utf8.len(search) or string.len(search)
     if strLen == 0 then return text end
@@ -56,8 +71,10 @@ function this.colorize(text, search, color, defaultColor)
         local c = search:sub(i, i)
         if c:match("%a") then
             pattern = pattern .. "[" .. c:lower() .. c:upper() .. "]"
-        else
+        elseif specialCharacters[c] then
             pattern = pattern .. "%" .. c
+        else
+            pattern = pattern .. c
         end
     end
 
