@@ -253,7 +253,7 @@ if config.data.journal.overrideJournal then
 end
 
 local function onKeyRelease(key)
-    if not core.isWorldPaused() then
+    if key.code == input.KEY.Escape then
         for _, menuHandler in pairs(activeMenus) do
             menuHandler.menu:destroy()
         end

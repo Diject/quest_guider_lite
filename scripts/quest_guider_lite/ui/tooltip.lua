@@ -1,6 +1,9 @@
 local ui = require('openmw.ui')
 local util = require('openmw.util')
 local async = require('openmw.async')
+local core = require('openmw.core')
+local time = require('openmw_aux.time')
+local UI = require('openmw.interfaces').UI
 local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
@@ -54,12 +57,25 @@ function this.createOrMove(coord, parent, layoutContent)
 
         parent.userData["tooltip"] = ui.create(tooltipLayout)
 
-        local timer = async:newUnsavableSimulationTimer(0.1, function ()
-            if not parent.userData.tooltip then return end
-            local tooltipHandler = parent.userData.tooltip
-            parent.userData.tooltip = nil
-            tooltipHandler:destroy()
-        end)
+        if core.isWorldPaused() then
+            local timer = async:newUnsavableSimulationTimer(0.1, function ()
+                if not parent.userData.tooltip then return end
+                local tooltipHandler = parent.userData.tooltip
+                parent.userData.tooltip = nil
+                tooltipHandler:destroy()
+            end)
+        else
+            local timer
+            timer = time.runRepeatedly(function ()
+                if UI.getMode() == nil then
+                    timer()
+                    if not parent.userData.tooltip then return end
+                    local tooltipHandler = parent.userData.tooltip
+                    parent.userData.tooltip = nil
+                    tooltipHandler:destroy()
+                end
+            end, 0.2)
+        end
 
         return
     end
