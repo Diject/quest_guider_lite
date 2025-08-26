@@ -114,7 +114,7 @@ function this.descriptionLines()
 end
 
 
-function this.printRandomQuestList()
+function this.printRandomQuestList(showGiverData)
     ---@type { name: string, links: string[]?, hasFinished: boolean?, [string]: questDataGenerator.stageData }[]
     local dias = tableLib.keys(dataHandler.quests)
     tableLib.shuffle(dias)
@@ -146,6 +146,18 @@ function this.printRandomQuestList()
 
                 if ret then
                     print(string.format("Journal \"%s\" %s", diaId, tostring(firstInd)))
+                    if showGiverData then
+                        for _, req in pairs(reqBlock) do
+                            if req.type == "ACT" and req.object then
+                                local objData = dataHandler.questObjects[req.object]
+                                log((objData or {}).positions)
+                            end
+
+                            if req.type == "DIA" then
+                                print(req.variable)
+                            end
+                        end
+                    end
                     i = i + 1
                     break
                 end
