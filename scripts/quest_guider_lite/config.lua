@@ -44,6 +44,7 @@ this.default = {
         textHeightMul = 0.5,
         textHeightMulRecord = 0.7,
         ssqnIcons = true,
+        mouseScrollAmount = 40,
     },
     ui = {
         fontSize = 20,

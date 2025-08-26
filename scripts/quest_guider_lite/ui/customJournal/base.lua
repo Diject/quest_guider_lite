@@ -370,7 +370,8 @@ function journalMeta.fillQuestsContent(self)
 
         local textColor = dt.disabled and disabledColor or dt.finished and finishedColor or config.data.ui.defaultColor
 
-        content:add{
+        local contentData
+        contentData = {
             type = ui.TYPE.Flex,
             props = {
                 autoSize = true,
@@ -432,6 +433,8 @@ function journalMeta.fillQuestsContent(self)
                 }
             }
         }
+
+        content:add(contentData)
 
         ::continue::
     end
@@ -757,6 +760,26 @@ local function create(params)
     meta.menu = ui.create(mainFlex)
 
     meta:fillQuestsContent()
+
+    local function onMouseWheelCallback(content, value)
+        for _, dt in pairs(content) do
+            if not type(dt) == "table" then goto continue end
+            if dt.userData and dt.userData.onMouseWheel then
+                dt.userData.onMouseWheel(value)
+            end
+
+            if dt.content then
+                onMouseWheelCallback(dt.content, value)
+            end
+
+            ::continue::
+        end
+    end
+
+    meta.onMouseWheel = function (self, vertical)
+        local layout = meta.menu.layout
+        onMouseWheelCallback(layout.content, vertical)
+    end
 
     return meta
 end

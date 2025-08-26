@@ -125,6 +125,13 @@ local function onSave()
 end
 
 
+local function onMouseWheel(vertical)
+    for _, menu in pairs(activeMenus) do
+        menu:onMouseWheel(vertical)
+    end
+end
+
+
 local function questBoxUpdateTimerCallback()
     for func, _ in pairs(questBoxUpdateQueue) do
         func()
@@ -303,6 +310,7 @@ return {
         onFrame = function(dt)
             realTimer.updateTimers()
         end,
+        onMouseWheel = onMouseWheel,
     },
     eventHandlers = {
         ["QGL:addMarker"] = function(data)

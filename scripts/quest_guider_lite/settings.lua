@@ -172,6 +172,7 @@ I.Settings.registerGroup{
         numberSetting{key = "journal.listRelativeSize", name = "questListRelativeSize", description = "questListRelativeSizeDescription", integer = false, min = 5, max = 50, default = config.default.journal.listRelativeSize},
         boolSetting{key = "journal.trackedColorMarks", name = "colorFlags", description = "colorFlagsDescription", default = config.data.journal.trackedColorMarks},
         boolSetting{key = "journal.ssqnIcons", name = "ssqnIcons", description = "ssqnIconsDescription", default = config.data.journal.ssqnIcons},
+        numberSetting{key = "journal.mouseScrollAmount", name = "mouseScrollAmount", description = "mouseScrollAmountDescription", integer = true, min = 1, max = 200, default = config.default.journal.mouseScrollAmount},
         numberSetting{key = "journal.textHeightMul", name = "textHeightMul", description = "textHeightMulDescription", integer = false, min = 0.1, max = 2, default = config.default.journal.textHeightMul},
         numberSetting{key = "journal.textHeightMulRecord", name = "textHeightMulJournal", integer = false, min = 0.1, max = 2, default = config.default.journal.textHeightMulRecord},
     },

@@ -85,11 +85,13 @@ end
 scrollBoxMeta.focusLoss = function (self, e)
     local layout = self:getLayout()
     layout.userData.lastMousePos = nil
+    layout.userData.inFocus = false
     self.lastMovedDistance = 0
 end
 
 scrollBoxMeta.mouseMove = function (self, e)
     local layout = self:getLayout()
+    layout.userData.inFocus = true
     if not layout.userData.lastMousePos then return end
 
     local posDIff = e.position - layout.userData.lastMousePos
@@ -197,6 +199,16 @@ return function(params)
         userData = {
             scrollBoxMeta = meta,
             movedDistance = 0,
+            inFocus = false,
+            onMouseWheel = function (vertical)
+                if not contentData.userData.inFocus then return end
+
+                if vertical > 0 then
+                    meta:scrollUp(config.data.journal.mouseScrollAmount)
+                elseif vertical < 0 then
+                    meta:scrollDown(config.data.journal.mouseScrollAmount)
+                end
+            end,
         },
         content = ui.content {
             flex,

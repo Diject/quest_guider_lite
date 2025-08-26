@@ -72,6 +72,8 @@ textHeightMul: "Text height multiplier"
 textHeightMulDescription: |-
   This constant is used to estimate the height of text elements based on their font size. OpenMW does not provide a way to retrieve the actual size of text elements, so an approximate height is calculated using this multiplier.
   Lower values may cause text to be clipped. Higher values can result in excessive spacing between UI components.
+mouseScrollAmount: "Mouse scroll amount"
+mouseScrollAmountDescription: "The amount of scrolling that occurs when using the mouse wheel. In pixels."
 
 hidden: "Hidden"
 finished: "Finished"

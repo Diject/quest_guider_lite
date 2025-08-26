@@ -180,10 +180,14 @@ function questBoxMeta._fillJournal(self, content, params)
                             },
                             events = {
                                 mouseMove = async:callback(function(coord, layout)
+                                    local scrollMeta = self.getLayout().userData.scrollBoxMeta
+                                    scrollMeta:mouseMove(coord)
                                     tooltip.createOrMove(coord, layout, tooltipContent)
                                 end),
 
                                 focusLoss = async:callback(function(e, layout)
+                                    local scrollMeta = self.getLayout().userData.scrollBoxMeta
+                                    scrollMeta:focusLoss(e)
                                     tooltip.destroy(layout)
                                 end),
                             },
@@ -307,7 +311,8 @@ function this.create(params)
 
     local headerSize = util.vector2(params.size.x, params.fontSize * 3)
     local checkBoxBlockSize = util.vector2(params.size.x, params.fontSize * 2)
-    local header = {
+    local header
+    header = {
         type = ui.TYPE.Flex,
         props = {
             autoSize = false,
@@ -334,10 +339,14 @@ function this.create(params)
                 },
                 events = {
                     mouseMove = async:callback(function(coord, layout)
+                        local scrollMeta = meta.getLayout().userData.scrollBoxMeta
+                        scrollMeta:mouseMove(coord)
                         tooltip.createOrMove(coord, layout, tooltipContent)
                     end),
 
                     focusLoss = async:callback(function(e, layout)
+                        local scrollMeta = meta.getLayout().userData.scrollBoxMeta
+                        scrollMeta:focusLoss(e)
                         tooltip.destroy(layout)
                     end),
                 },
