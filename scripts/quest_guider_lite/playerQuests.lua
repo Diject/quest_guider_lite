@@ -5,6 +5,7 @@ local commonData = require("scripts.quest_guider_lite.common")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local cellData = require("scripts.quest_guider_lite.core.cellData")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
+local dateLib = require("scripts.quest_guider_lite.utils.date")
 
 local playerFunc = require('openmw.types').Player
 local core = require('openmw.core')
@@ -113,6 +114,32 @@ function this.init()
         end
     end
 
+    local qEntries = {}
+
+    if core.API_REVISION >= 93 then
+
+        local journalFuncs = playerFunc.journal(playerRef)
+
+        local year = 427
+        local lastMonth
+
+        for _, entry in ipairs(journalFuncs.journalTextEntries) do
+            if (lastMonth or entry.month) > entry.month then year = year + 1 end
+
+            local dia = core.dialogue.journal.records[entry.questId or ""]
+            if dia then
+                local questName = dia.questName or ""
+
+                qEntries[questName] = qEntries[questName] or {}
+                table.insert(qEntries[questName], {entry = entry, dia = dia, year = year})
+
+            end
+
+            lastMonth = entry.month
+        end
+
+    end
+
     for qId, q in pairs(playerFunc.quests(playerRef)) do
         if q.finished then
             this.finished[q.id] = true
@@ -125,16 +152,53 @@ function this.init()
         local qData = this.questData[qName]
         if not qData then goto continue end
 
-        if storageData and not storageData.questData[qName] then
+        if core.API_REVISION >= 93 and storageData then
+
+            if not storageData.questData[qName] and qEntries[qName] then
+                local storageQuestData = initStorageQuestData(qName)
+
+                if storageQuestData then
+
+                    storageQuestData.timestamp = 0
+                    storageQuestData.finished = storageQuestData.finished or q.finished
+                    for _, entryData in ipairs(qEntries[qName]) do
+
+                        local entry = entryData.entry
+                        local diaRecord = entryData.dia
+                        local index = 0
+
+                        for _, info in pairs(diaRecord.infos) do
+                            if info.id == entry.id then
+                                index = info.questStage
+                            end
+                        end
+
+                        local timestamp = dateLib.getTimestampByDate(entry.day, entry.month, entryData.year)
+                        storageQuestData.timestamp = math.max(storageQuestData.timestamp, timestamp)
+
+                        table.insert(storageQuestData.list, {
+                            diaId = diaRecord.id,
+                            index = index,
+                            timestamp = timestamp,
+                        })
+                    end
+
+                end
+
+            end
+
+        elseif storageData and not storageData.questData[qName] then
             local storageQuestData = initStorageQuestData(qName)
             if storageQuestData then
                 storageQuestData.finished = storageQuestData.finished or q.finished
+                storageQuestData.timestamp = timeLib.time
                 table.insert(storageQuestData.list, {
                     diaId = q.id,
                     index = q.stage,
                     timestamp = timeLib.time,
                 })
             end
+
         end
 
         if q.finished then
