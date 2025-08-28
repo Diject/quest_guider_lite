@@ -63,4 +63,21 @@ function this.removeSpecialCharactersFromJournalText(text)
 end
 
 
+---@param text string
+---@param phrase string
+---@return boolean
+function this.hasPhrase(text, phrase)
+    local escapedPhrase = phrase:gsub("([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1")
+
+    local pattern = "%f[%w]" .. escapedPhrase .. "%f[^%w]"
+
+    if text:find(pattern) then
+        return true
+    else
+        return false
+    end
+end
+
+
+
 return this
