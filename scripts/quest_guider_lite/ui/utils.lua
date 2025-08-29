@@ -6,14 +6,17 @@ local config = require("scripts.quest_guider_lite.config")
 local this = {}
 
 
-function this.getTextHeight(text, fontSize, width, mul)
+function this.getTextHeight(text, fontSize, width, mul, removeColors)
+    if removeColors then
+        text = this.removeColorMarkers(text)
+    end
     if not mul then mul = 0.7 end
     if #text == 0 then return 0 end
     local words = {}
     local charWidth = fontSize * mul
     local rowMaxSize = math.floor(width / charWidth)
     local rowCount = 1
-    for line in text:gmatch("[^\n]+") do
+    for line in text:gmatch("([^\n]*)\n?") do
         local currentRowSize = 0
         for word in line:gmatch("%S+") do
             local wordSize = utf8.len(word) or string.len(word)
