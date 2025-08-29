@@ -14,6 +14,7 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local common = require('scripts.quest_guider_lite.common')
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
+local stringLib = require("scripts.quest_guider_lite.utils.string")
 
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -143,6 +144,17 @@ function questBoxMeta._fillJournal(self, content, params)
         local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12, config.data.journal.textHeightMulRecord)
         local textElemSize = util.vector2(params.size.x - 12, height)
 
+        local topicTexts = {}
+        for topicId, topic in pairs(playerQuests.getDialogueList()) do
+            if stringLib.hasPhrase(text, topic.name) then
+                topicTexts[topicId] = topic.name
+            end
+        end
+        for _, topicText in pairs(topicTexts) do
+            text = uiUtils.colorize(text, topicText,
+                "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+        end
+
         local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize,
             filter = self.parent.textFilter}
 
@@ -155,6 +167,7 @@ function questBoxMeta._fillJournal(self, content, params)
             userData = {
                 contentIndex = contentIndex,
                 info = qInfo,
+                topicTexts = topicTexts,
             },
             content = ui.content {
                 interval(0, params.fontSize),
@@ -177,6 +190,7 @@ function questBoxMeta._fillJournal(self, content, params)
                             },
                             userData = {
                                 defaultTextColor = config.data.ui.dateColor,
+                                topicTexts = topicTexts,
                             },
                             events = {
                                 mouseMove = async:callback(function(coord, layout)
@@ -207,9 +221,10 @@ function questBoxMeta._fillJournal(self, content, params)
                             type = ui.TYPE.Text,
                             userData = {
                                 defaultTextColor = config.data.ui.defaultColor,
+                                topicTexts = topicTexts,
                             },
                             props = {
-                                text = uiUtils.colorize(text, self.parent.textFilter,
+                                text = uiUtils.colorizeNested(text, self.parent.textFilter,
                                     "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
                                 textColor = config.data.ui.defaultColor,
                                 autoSize = false,
@@ -272,8 +287,14 @@ function questBoxMeta:updateColors()
         local stageTextElem = mainFlex.content[i].content[3].content[2]
 
         stageTextElem.props.text = uiUtils.removeColorMarkers(stageTextElem.props.text)
+
+        for _, name in pairs(stageTextElem.userData.topicTexts) do
+            stageTextElem.props.text = uiUtils.colorize(stageTextElem.props.text, name,
+                "#"..config.data.ui.linkColor:asHex(), "#"..stageTextElem.userData.defaultTextColor:asHex())
+        end
+
         if self.parent.textFilter ~= "" then
-            stageTextElem.props.text = uiUtils.colorize(stageTextElem.props.text, self.parent.textFilter,
+            stageTextElem.props.text = uiUtils.colorizeNested(stageTextElem.props.text, self.parent.textFilter,
                 "#"..config.data.ui.selectionColor:asHex(), "#"..stageTextElem.userData.defaultTextColor:asHex())
         end
     end

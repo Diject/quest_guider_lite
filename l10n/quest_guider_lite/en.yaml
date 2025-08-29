@@ -74,6 +74,8 @@ textHeightMulDescription: |-
   Lower values may cause text to be clipped. Higher values can result in excessive spacing between UI components.
 mouseScrollAmount: "Mouse scroll amount"
 mouseScrollAmountDescription: "The amount of scrolling that occurs when using the mouse wheel. In pixels."
+linkColor: "Link color"
+linkColorDescription: "Color for dialogue names in the quest text. Default is \"707ecf\""
 
 hidden: "Hidden"
 finished: "Finished"

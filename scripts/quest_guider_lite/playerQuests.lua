@@ -413,4 +413,12 @@ function this.getQuestNameByDiaId(diaId)
 end
 
 
+---@return table<string, {id : string, name : string, entries : {id : string, text : string, actor : string}[]}>
+function this.getDialogueList()
+    if core.API_REVISION < 93 then return {} end
+
+    return playerFunc.journal(playerRef).topics
+end
+
+
 return this
