@@ -75,7 +75,9 @@ textHeightMulDescription: |-
 mouseScrollAmount: "Mouse scroll amount"
 mouseScrollAmountDescription: "The amount of scrolling that occurs when using the mouse wheel. In pixels."
 linkColor: "Link color"
-linkColorDescription: "Color for dialogue names in the quest text. Default is \"707ecf\""
+linkColorDescription: "Color for topic names in the quest text. Default is \"707ecf\""
+objectColor: "Object color"
+objectColorDescription: "Color for objects in the quest text. Default is \"66e566\""
 
 hidden: "Hidden"
 finished: "Finished"
@@ -113,6 +115,7 @@ receivedIn: "Received in \"%s\""
 startedIn: "Started in \"%s\""
 tooltipIDStringStart: "ID: \"%s\" (%s)"
 tooltipIDString: "%s, \"%s\" (%s)"
+topics: "Topics"
 
 
 true_l: "true"

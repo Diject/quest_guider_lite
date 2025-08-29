@@ -55,6 +55,7 @@ this.default = {
         selectionColor = commonData.selectedColor,
         shadowColor = commonData.selectedShadowColor,
         linkColor = commonData.journalLinkColor,
+        objectColor = commonData.objectColor,
         scrollArrowSize = 16,
     },
 }

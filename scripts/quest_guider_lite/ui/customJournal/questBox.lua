@@ -144,13 +144,13 @@ function questBoxMeta._fillJournal(self, content, params)
         local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12, config.data.journal.textHeightMulRecord)
         local textElemSize = util.vector2(params.size.x - 12, height)
 
-        local topicTexts = {}
-        for topicId, topic in pairs(playerQuests.getDialogueList()) do
+        local topicData = {}
+        for topicId, topic in pairs(playerQuests.getTopicList()) do
             if stringLib.hasPhrase(text, topic.name) then
-                topicTexts[topicId] = topic.name
+                topicData[topic.name] = topic
             end
         end
-        for _, topicText in pairs(topicTexts) do
+        for topicText, _ in pairs(topicData) do
             text = uiUtils.colorize(text, topicText,
                 "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
         end
@@ -158,7 +158,57 @@ function questBoxMeta._fillJournal(self, content, params)
         local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize,
             filter = self.parent.textFilter}
 
-        content:add{
+        local element
+
+
+        local function changeEntryBlockText(toggle)
+            local textElem = element.content[3].content[2]
+            local withTopics
+            if toggle then
+                withTopics = not textElem.userData.withTopics
+            else
+                withTopics = textElem.userData.withTopics
+            end
+
+            local newText = uiUtils.colorizeNested(text, self.parent.textFilter,
+                "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+
+            if withTopics then
+                newText = newText.."\n\n\n"
+                for topicName, topic in pairs(topicData) do
+                    local topicText = string.format("#%s%s#%s:\n\n", config.data.ui.linkColor:asHex(),
+                        topicName, config.data.ui.defaultColor:asHex())
+
+                    for _, entry in ipairs(topic.entries) do
+                        topicText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
+                            topicText,
+                            config.data.ui.objectColor:asHex(),
+                            entry.actor,
+                            config.data.ui.defaultColor:asHex(),
+                            entry.text
+                        )
+                    end
+
+                    newText = newText..topicText
+                end
+            end
+
+            local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, params.size.x - 12, config.data.journal.textHeightMulRecord, true)
+            if withTopics then
+                newTextHeight = math.max(0, newTextHeight - 2 * params.fontSize)
+            end
+            local newTextElemSize = util.vector2(params.size.x - 12, newTextHeight)
+
+            textElem.props.size = newTextElemSize
+
+            textElem.props.text = newText
+
+            textElem.userData.withTopics = withTopics
+            return withTopics
+        end
+
+
+        element = {
             type = ui.TYPE.Flex,
             props = {
                 autoSize = true,
@@ -167,18 +217,17 @@ function questBoxMeta._fillJournal(self, content, params)
             userData = {
                 contentIndex = contentIndex,
                 info = qInfo,
-                topicTexts = topicTexts,
+                topicData = topicData,
             },
             content = ui.content {
                 interval(0, params.fontSize),
                 {
-                    type = ui.TYPE.Flex,
+                    type = ui.TYPE.Widget,
                     props = {
-                        autoSize = true,
-                        horizontal = true,
+                        autoSize = false,
+                        size = util.vector2(textElemSize.x, (params.fontSize or 18) * 1.15),
                     },
                     content = ui.content {
-                        interval(4, 1),
                         {
                             type = ui.TYPE.Text,
                             props = {
@@ -190,7 +239,7 @@ function questBoxMeta._fillJournal(self, content, params)
                             },
                             userData = {
                                 defaultTextColor = config.data.ui.dateColor,
-                                topicTexts = topicTexts,
+                                topicData = topicData,
                             },
                             events = {
                                 mouseMove = async:callback(function(coord, layout)
@@ -205,6 +254,19 @@ function questBoxMeta._fillJournal(self, content, params)
                                     tooltip.destroy(layout)
                                 end),
                             },
+                        },
+                        button{
+                            text = l10n("topics"),
+                            textSize = self.params.fontSize * 0.8,
+                            visible = tracking.initialized and not self.params.isQuestList and next(topicData) and true,
+                            position = util.vector2(textElemSize.x, 0),
+                            anchor = util.vector2(1, 0),
+                            event = function (layout)
+                                changeEntryBlockText(true)
+                            end,
+                            updateFunc = function ()
+                                self.params.updateFunc()
+                            end
                         }
                     }
                 },
@@ -221,7 +283,10 @@ function questBoxMeta._fillJournal(self, content, params)
                             type = ui.TYPE.Text,
                             userData = {
                                 defaultTextColor = config.data.ui.defaultColor,
-                                topicTexts = topicTexts,
+                                topicData = topicData,
+                                text = text,
+                                withTopics = false,
+                                changeEntryBlockTextFunc = changeEntryBlockText,
                             },
                             props = {
                                 text = uiUtils.colorizeNested(text, self.parent.textFilter,
@@ -239,6 +304,8 @@ function questBoxMeta._fillJournal(self, content, params)
                 },
             }
         }
+
+        content:add(element)
 
         contentIndex = contentIndex + 1
 
@@ -276,7 +343,7 @@ function questBoxMeta:updateColors()
     end
 
     for i = 2, #mainFlex.content do
-        local dateElem = mainFlex.content[i].content[2].content[2]
+        local dateElem = mainFlex.content[i].content[2].content[1]
 
         dateElem.props.text = uiUtils.removeColorMarkers(dateElem.props.text)
         if self.parent.textFilter ~= "" then
@@ -288,15 +355,7 @@ function questBoxMeta:updateColors()
 
         stageTextElem.props.text = uiUtils.removeColorMarkers(stageTextElem.props.text)
 
-        for _, name in pairs(stageTextElem.userData.topicTexts) do
-            stageTextElem.props.text = uiUtils.colorize(stageTextElem.props.text, name,
-                "#"..config.data.ui.linkColor:asHex(), "#"..stageTextElem.userData.defaultTextColor:asHex())
-        end
-
-        if self.parent.textFilter ~= "" then
-            stageTextElem.props.text = uiUtils.colorizeNested(stageTextElem.props.text, self.parent.textFilter,
-                "#"..config.data.ui.selectionColor:asHex(), "#"..stageTextElem.userData.defaultTextColor:asHex())
-        end
+        stageTextElem.userData.changeEntryBlockTextFunc()
     end
 end
 
@@ -330,7 +389,7 @@ function this.create(params)
 
     local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{meta = meta, filter = meta.parent.textFilter}
 
-    local headerSize = util.vector2(params.size.x, params.fontSize * 3)
+    local headerSize = util.vector2(params.size.x, params.fontSize * 4)
     local checkBoxBlockSize = util.vector2(params.size.x, params.fontSize * 2)
     local header
     header = {
