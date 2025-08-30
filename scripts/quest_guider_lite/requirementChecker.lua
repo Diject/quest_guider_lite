@@ -11,6 +11,8 @@ local reqTypes = require("scripts.quest_guider_lite.types")
 local operator = reqTypes.operator
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 
+local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+
 local getObject = require("scripts.quest_guider_lite.core.getObject")
 
 local this = {}
@@ -141,17 +143,14 @@ local dataFuncs = {
     --     return dialogueInfo:filter(ref.object, ref, 0, dialogue)
     -- end,
 
-    -- [reqTypes.requirementType.CustomDialogue] = function (req)
-    --     if not req.variable then return end
-    --     if not tes3.mobilePlayer then return end
-    --     local dialogueId = stringLib.convertDialogueName(req.variable)
-    --     for _, dia in pairs(tes3.mobilePlayer.dialogueList) do
-    --         if dialogueId == dia.id:lower() then
-    --             return operator.check(true, true, req.operator)
-    --         end
-    --     end
-    --     return operator.check(false, true, req.operator)
-    -- end,
+    [reqTypes.requirementType.CustomDialogue] = function (req)
+        if not req.variable then return end
+        local dialogueId = stringLib.convertDialogueName(req.variable)
+        if playerQuests.getTopicData(dialogueId) then
+            return operator.check(true, true, req.operator)
+        end
+        return operator.check(false, true, req.operator)
+    end,
 }
 
 
