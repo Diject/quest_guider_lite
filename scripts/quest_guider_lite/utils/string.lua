@@ -79,5 +79,11 @@ function this.hasPhrase(text, phrase)
 end
 
 
+---@param str string
+---@return number
+function this.length(str)
+    return utf8.len(str) or string.len(str) or 0
+end
+
 
 return this
