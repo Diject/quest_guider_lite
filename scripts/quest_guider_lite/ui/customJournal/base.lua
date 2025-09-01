@@ -443,7 +443,7 @@ function journalMeta.fillQuestsContent(self)
     local scrollPos = sBoxMeta:getScrollPosition()
     local scrollElemHeight = sBoxMeta.params.size.y
     if scrollPos > height then
-        sBoxMeta:setScrollPositiom(math.max(0, height - scrollElemHeight))
+        sBoxMeta:setScrollPosition(math.max(0, height - scrollElemHeight))
     end
 end
 
@@ -460,6 +460,7 @@ end
 ---@field showReqsForAll boolean?
 ---@field hideStageText boolean?
 ---@field showOnlyFirst boolean?
+---@field createTopicMenuFunc function?
 ---@field onClose function?
 
 ---@param params questGuider.ui.customJournal.params
@@ -543,24 +544,54 @@ local function create(params)
                 }
             },
             {
-                template = templates.textNormal,
-                type = ui.TYPE.Text,
+                type = ui.TYPE.Flex,
                 props = {
-                    text = l10n("close"),
-                    textSize = params.fontSize * 1.25,
-                    autoSize = true,
+                    horizontal = true,
                     anchor = util.vector2(1, 1),
                     relativePosition = util.vector2(1, 1),
-                    textColor = config.data.ui.defaultColor,
-                    textShadow = true,
-                    textShadowColor = config.data.ui.shadowColor,
                 },
-                userData = {},
-                events = {
-                    mouseRelease = async:callback(function(_, layout)
-                        if params.onClose then params.onClose() end
-                        meta.menu:destroy()
-                    end),
+                content = ui.content {
+                    {
+                        template = templates.textNormal,
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = l10n("topics"),
+                            visible = core.API_REVISION >= 93,
+                            textSize = params.fontSize * 1.25,
+                            autoSize = true,
+                            textColor = config.data.ui.defaultColor,
+                            textShadow = true,
+                            textShadowColor = config.data.ui.shadowColor,
+                        },
+                        userData = {},
+                        events = {
+                            mouseRelease = async:callback(function(_, layout)
+                                if params.createTopicMenuFunc then
+                                    params.createTopicMenuFunc()
+                                end
+                            end),
+                        }
+                    },
+                    interval(params.fontSize * 3, 0),
+                    {
+                        template = templates.textNormal,
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = l10n("close"),
+                            textSize = params.fontSize * 1.25,
+                            autoSize = true,
+                            textColor = config.data.ui.defaultColor,
+                            textShadow = true,
+                            textShadowColor = config.data.ui.shadowColor,
+                        },
+                        userData = {},
+                        events = {
+                            mouseRelease = async:callback(function(_, layout)
+                                if params.onClose then params.onClose() end
+                                meta.menu:destroy()
+                            end),
+                        }
+                    },
                 }
             },
         },

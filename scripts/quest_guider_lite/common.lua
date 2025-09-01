@@ -35,7 +35,7 @@ this.journalDateColor = util.color.rgb(this.journalDateColorData[1], this.journa
 this.journalLinkColorData = {112 / 255, 126 / 255, 207 / 255}
 this.journalLinkColor = util.color.rgb(this.journalLinkColorData[1], this.journalLinkColorData[2], this.journalLinkColorData[3])
 
-this.objectColorData = {0.4, 0.9, 0.4}
+this.objectColorData = {51 / 255, 229 / 255, 153 / 255}
 this.objectColor = util.color.rgb(this.objectColorData[1], this.objectColorData[2], this.objectColorData[3])
 
 this.disabledColorData = {0.5, 0.5, 0.5}
@@ -72,6 +72,7 @@ this.forbiddenForTracking = {
 
 this.journalMenuId = "__QGL:Journal__"
 this.allQuestsMenuId = "__QGL:AllQuests__"
+this.topicsMenuId = "__QGL:Topics__"
 
 
 function this.colorToArray(color)

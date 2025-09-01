@@ -77,7 +77,7 @@ mouseScrollAmountDescription: "The amount of scrolling that occurs when using th
 linkColor: "Link color"
 linkColorDescription: "Color for topic names in the quest text. Default is \"707ecf\""
 objectColor: "Object color"
-objectColorDescription: "Color for objects in the quest text. Default is \"66e566\""
+objectColorDescription: "Color for objects in the quest text. Default is \"33e599\""
 
 hidden: "Hidden"
 finished: "Finished"
@@ -116,6 +116,8 @@ startedIn: "Started in \"%s\""
 tooltipIDStringStart: "ID: \"%s\" (%s)"
 tooltipIDString: "%s, \"%s\" (%s)"
 topics: "Topics"
+next: "Next"
+previous: "Previous"
 
 
 true_l: "true"

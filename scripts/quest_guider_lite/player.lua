@@ -30,12 +30,13 @@ local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 
 local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
+local createTopicMenu = require("scripts.quest_guider_lite.ui.topicMenu")
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
 
 local l10n = core.l10n(commonData.l10nKey)
 
 
----@type table<string, questGuider.ui.customJournal>
+---@type table<string, questGuider.ui.customJournal|questGuider.ui.topicMenuMeta>
 local activeMenus = {}
 
 local questBoxUpdateQueue = {}
@@ -132,6 +133,15 @@ local function onMouseWheel(vertical)
 end
 
 
+local function onMouseButtonRelease(buttonId)
+    for _, menu in pairs(activeMenus) do
+        if menu.onMouseClick then
+            menu:onMouseClick(buttonId)
+        end
+    end
+end
+
+
 local function questBoxUpdateTimerCallback()
     for func, _ in pairs(questBoxUpdateQueue) do
         func()
@@ -205,9 +215,29 @@ local function toggleMenu()
             fontSize = config.data.ui.fontSize,
             sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
             relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+            createTopicMenuFunc = function ()
+                if activeMenus[commonData.topicsMenuId] then
+                    activeMenus[commonData.topicsMenuId].menu:destroy()
+                    activeMenus[commonData.topicsMenuId] = nil
+                end
+
+                activeMenus[commonData.topicsMenuId] = createTopicMenu{
+                    fontSize = config.data.ui.fontSize,
+                    sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
+                    relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
+                    onClose = function ()
+                        activeMenus[commonData.topicsMenuId] = nil
+                        if not activeMenus[commonData.journalMenuId] then
+                            I.UI.removeMode("Journal")
+                        end
+                    end
+                }
+            end,
             onClose = function ()
                 activeMenus[commonData.journalMenuId] = nil
-                I.UI.removeMode("Journal")
+                if not activeMenus[commonData.topicsMenuId] then
+                    I.UI.removeMode("Journal")
+                end
             end
         }
     end
@@ -311,6 +341,7 @@ return {
             realTimer.updateTimers()
         end,
         onMouseWheel = onMouseWheel,
+        onMouseButtonRelease = onMouseButtonRelease,
     },
     eventHandlers = {
         ["QGL:addMarker"] = function(data)

@@ -1,0 +1,865 @@
+local async = require('openmw.async')
+local ui = require('openmw.ui')
+local util = require('openmw.util')
+local core = require('openmw.core')
+local input = require('openmw.input')
+local I = require('openmw.interfaces')
+local vfs = require('openmw.vfs')
+local templates = require('openmw.interfaces').MWUI.templates
+local customTemplates = require("scripts.quest_guider_lite.ui.templates")
+
+local config = require("scripts.quest_guider_lite.configLib")
+local commonData = require("scripts.quest_guider_lite.common")
+local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local tracking = require("scripts.quest_guider_lite.trackingLocal")
+local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
+
+local stringLib = require("scripts.quest_guider_lite.utils.string")
+local timeLib = require("scripts.quest_guider_lite.timeLocal")
+local tableLib = require("scripts.quest_guider_lite.utils.table")
+local uiUtils = require("scripts.quest_guider_lite.ui.utils")
+local log = require("scripts.quest_guider_lite.utils.log")
+
+local button = require("scripts.quest_guider_lite.ui.button")
+local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
+local interval = require("scripts.quest_guider_lite.ui.interval")
+local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
+
+local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
+
+local l10n = core.l10n(commonData.l10nKey)
+
+
+---@class questGuider.ui.topicMenuMeta
+local topicMenuMeta = {}
+topicMenuMeta.__index = topicMenuMeta
+
+topicMenuMeta.menu = nil
+
+
+topicMenuMeta.getTopicList = function (self)
+    return self.menu.layout.content[2].content[1].content[1].content[3]
+end
+
+topicMenuMeta.getSearchBar = function (self)
+    return self.menu.layout.content[2].content[1].content[1].content[1]
+end
+
+topicMenuMeta.getTopicMain = function (self)
+    return self.menu.layout.content[2].content[1].content[2]
+end
+
+topicMenuMeta.getTopicScrollBox = function (self)
+    return self:getTopicMain().content[1]
+end
+
+topicMenuMeta.resetTopicListColors = function (self)
+    local topicList = self:getTopicList()
+
+    ---@type questGuider.ui.scrollBox
+    local topicBoxMeta = topicList.userData.scrollBoxMeta
+    local layout = topicBoxMeta:getMainFlex()
+
+    for _, elem in ipairs(layout.content) do
+        elem.content[1].props.textShadow = false
+    end
+end
+
+topicMenuMeta.setTextFilter = function (self, value)
+    local searchBar = self:getSearchBar()
+    self.textFilter = value or ""
+    searchBar.content[1].content[1].props.text = self.textFilter
+end
+
+topicMenuMeta.setTopicListSelectedFlad = function (self, value)
+    self:getTopicList().userData.selected = value
+end
+
+topicMenuMeta.getQuestListSelectedFladValue = function (self)
+    return self:getTopicList().userData.selected
+end
+
+topicMenuMeta.resetTopicListSelection = function (self)
+    self:resetTopicListColors()
+    self:setTopicListSelectedFlad(nil)
+end
+
+topicMenuMeta.clearTopicInfo = function (self)
+    local topicInfoSB = self:getTopicScrollBox()
+    if not topicInfoSB then return end
+
+    topicInfoSB.name = nil
+
+    ---@type questGuider.ui.scrollBox
+    local sBoxMeta = topicInfoSB.userData.scrollBoxMeta
+    sBoxMeta:clearContent()
+end
+
+
+topicMenuMeta.addToHistory = function (self, topicId)
+    if self.menuHistory[self.menuHistoryIndex] ~= topicId then
+        if self.menuHistoryIndex ~= #self.menuHistory then
+            for i = self.menuHistoryIndex + 1, #self.menuHistory do
+                self.menuHistory[i] = nil
+            end
+        end
+
+        table.insert(self.menuHistory, topicId)
+        self.menuHistoryIndex = #self.menuHistory
+    end
+end
+
+
+topicMenuMeta.jumpInHistory = function (self, value)
+    local nextTopicId = self.menuHistory[self.menuHistoryIndex + value]
+    if not nextTopicId then return end
+
+    self.menuHistoryIndex = self.menuHistoryIndex + value
+    self:setTextFilter()
+    self:fillTopicsContent()
+    self:selectTopic(nextTopicId)
+end
+
+
+topicMenuMeta.selectTopic = function (self, topicId)
+    local params = self.params
+
+    local topic = topicId and playerQuests.getTopicData(topicId)
+    if topic == nil then
+        self:resetTopicListSelection()
+        self:clearTopicInfo()
+        return
+    end
+
+    ---@type questGuider.ui.scrollBox
+    local topicListSBMeta = self:getTopicList().userData.scrollBoxMeta
+    local qListLayout = topicListSBMeta:getMainFlex()
+
+    local qMainLay = self:getTopicMain()
+
+    local succ, selectedLayout = pcall(function() return qListLayout.content[topicId] end)
+    if not succ or not selectedLayout then
+        self:clearTopicInfo()
+        self:setTopicListSelectedFlad(nil)
+        return
+    end
+
+    if (selectedLayout.userData.heightInList or 0) < topicListSBMeta:getScrollPosition()
+            or (selectedLayout.userData.heightInList or 0) > (topicListSBMeta:getScrollPosition() + topicListSBMeta:getSize().y) then
+        topicListSBMeta:setScrollPosition((selectedLayout.userData.heightInList or 0) - topicListSBMeta:getSize().y / 2)
+    end
+
+    local function applyTextShadow()
+        selectedLayout.content[1].props.textShadow = true
+        selectedLayout.content[1].props.textShadowColor = config.data.ui.shadowColor
+    end
+
+    if self:getTopicScrollBox() and self:getTopicScrollBox().name == topicId then
+        applyTextShadow()
+        return
+    end
+
+    local headerSize = util.vector2(qMainLay.userData.size.x - params.fontSize * 0.5 - 6, (params.fontSize or 18) * 2.5)
+
+    local topicContent = ui.content{
+        {
+            type = ui.TYPE.Text,
+            props = {
+                text = nil,
+                textColor = config.data.ui.defaultColor,
+                autoSize = false,
+                size = headerSize,
+                textSize = (params.fontSize or 18) * 1.25,
+                multiline = true,
+                wordWrap = true,
+                textAlignH = ui.ALIGNMENT.Center,
+                textAlignV = ui.ALIGNMENT.Center,
+            },
+        },
+        {
+            type = ui.TYPE.Widget,
+            props = {
+                autoSize = false,
+            },
+            content = ui.content{},
+        },
+        {
+            type = ui.TYPE.Flex,
+            props = {
+                autoSize = true,
+                horizontal = true,
+            },
+            content = ui.content{
+                interval(params.fontSize * 0.25, 0),
+                {
+                    type = ui.TYPE.Text,
+                    props = {
+                        text = "",
+                        textColor = config.data.ui.defaultColor,
+                        autoSize = false,
+                        size = util.vector2(headerSize.x, params.fontSize),
+                        position = util.vector2(params.fontSize * 0.25, 0),
+                        textSize = params.fontSize,
+                        multiline = true,
+                        wordWrap = true,
+                        -- textAlignH = ui.ALIGNMENT.Center,
+                    },
+                },
+            },
+        },
+    }
+
+
+    local function updateTopicText(topicInfoContent)
+        if not topicInfoContent then
+            ---@type questGuider.ui.scrollBox
+            local topicSBMeta = self:getTopicScrollBox().userData.scrollBoxMeta
+            topicInfoContent = topicSBMeta:getMainFlex().content
+        end
+
+        local success, pcallRes = pcall(function ()
+            return topicInfoContent[3]
+        end)
+        if not success or not pcallRes then return end
+
+        local headerElem = topicInfoContent[1]
+        local textElem = topicInfoContent[3].content[2]
+        local buttonFlex = topicInfoContent[2]
+
+        headerElem.props.text = topic.name
+
+        local newText = "\n"
+
+        for _, entry in ipairs(topic.entries) do
+            newText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
+                newText,
+                config.data.ui.objectColor:asHex(),
+                entry.actor,
+                config.data.ui.defaultColor:asHex(),
+                entry.text
+            )
+        end
+
+        local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, headerSize.x, config.data.journal.textHeightMulRecord, true)
+        newTextHeight = math.max(0, newTextHeight - 2 * params.fontSize)
+
+        local newTextElemSize = util.vector2(headerSize.x, newTextHeight)
+
+        textElem.props.size = newTextElemSize
+
+
+        local nestedTopics = {}
+        local topicsInListCount = 0
+        for tId, tp in pairs(playerQuests.getTopicList()) do
+            if stringLib.hasPhrase(newText, tp.name) then
+                nestedTopics[tp.name] = tp
+                topicsInListCount = topicsInListCount + 1
+            end
+        end
+
+        nestedTopics = tableLib.values(nestedTopics, function (a, b)
+            return (stringLib.length(a.name or "") > stringLib.length(b.name or ""))
+        end)
+
+
+        buttonFlex.content = ui.content{}
+
+        local buttonFlexYPos = 0
+
+        if topicsInListCount > 0 then
+
+            nestedTopics = tableLib.values(nestedTopics, function (a, b)
+                return (stringLib.length(a.name or "") > stringLib.length(b.name or ""))
+            end)
+
+            for _, topicData in ipairs(nestedTopics) do
+                local topicText = topicData.name
+
+                newText = uiUtils.colorizeNested(newText, topicText,
+                    "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+            end
+
+
+            table.sort(nestedTopics, function (a, b)
+                return (a.name or ""):lower() < (b.name or ""):lower()
+            end)
+
+            local buttonLineData = {}
+            local function placeButtons()
+                if not next(buttonLineData) then return end
+
+                local currentStep = params.fontSize * 0.25
+                local step = (newTextElemSize.x - currentStep * 2) / #buttonLineData
+
+                for _, topicData in ipairs(buttonLineData) do
+                    local topicText = topicData.name
+
+                    buttonFlex.content:add(
+                        button{
+                            updateFunc = function ()
+                                self:update()
+                            end,
+                            text = topicText,
+                            textSize = params.fontSize,
+                            anchor = util.vector2(0.5, 0),
+                            position = util.vector2(currentStep + step / 2, buttonFlexYPos),
+                            userData = {
+                                topicId = topicData.id
+                            },
+                            event = function (layout)
+                                self:addToHistory(topicData.id)
+                                self:setTextFilter()
+                                self:fillTopicsContent()
+                                self:selectTopic(layout.userData.topicId)
+                            end
+                        }
+                    )
+
+                    currentStep = currentStep + step
+                end
+
+                buttonFlexYPos = buttonFlexYPos + params.fontSize * 1.5
+            end
+
+            local maxBtnWidt = 0
+            local maxBlockWidth = newTextElemSize.x - params.fontSize * 0.5
+            for _, topicData in ipairs(nestedTopics) do
+                local topicText = topicData.name
+
+                if topicText ~= topic.name then
+                    local count = #buttonLineData
+                    local textLen = stringLib.length(topicText)
+                    local btnWidth = textLen * config.data.journal.textHeightMul * params.fontSize
+                    local maxWidth = math.max(maxBtnWidt, btnWidth)
+
+                    if (count * maxWidth) + maxWidth < maxBlockWidth or count == 0 then
+                        table.insert(buttonLineData, topicData)
+                    else
+                        placeButtons()
+                        buttonLineData = {}
+                        table.insert(buttonLineData, topicData)
+                    end
+
+                    maxBtnWidt = maxWidth
+                end
+            end
+
+            placeButtons()
+        end
+
+        buttonFlex.props.size = util.vector2(newTextElemSize.x, buttonFlexYPos)
+
+        if self.textFilter ~= "" then
+            newText = uiUtils.colorizeNested(newText, self.textFilter,
+                "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+        end
+
+        textElem.props.text = newText
+    end
+
+
+    updateTopicText(topicContent)
+
+    qMainLay.content = ui.content{
+        scrollBox{
+            updateFunc = function ()
+                self.menu:update()
+            end,
+            size = qMainLay.userData.size,
+            scrollAmount = self.params.size.y / 5,
+            userData = {
+                updateText = updateTopicText,
+            },
+            content = topicContent
+        }
+    }
+
+    self:resetTopicListSelection()
+    self:setTopicListSelectedFlad(topicId)
+    applyTextShadow()
+
+    self:update()
+end
+
+
+topicMenuMeta.update = function(self)
+    self.menu:update()
+end
+
+
+---@param topicData questGuider.PlayerJournalTopic
+---@param text string
+---@return boolean
+local function hasText(topicData, text)
+    text = text:lower()
+    if topicData.id:find(text, 1, true) then
+        return true
+    end
+
+    for _, dt in pairs(topicData.entries) do
+        if dt.text:lower():find(text, 1, true) then return true end
+        if dt.actor:lower():find(text, 1, true) then return true end
+    end
+
+    return false
+end
+
+
+function topicMenuMeta.fillTopicsContent(self)
+    local params = self.params
+
+    local qList = self:getTopicList()
+    ---@type questGuider.ui.scrollBox
+    local sBoxMeta = qList.userData.scrollBoxMeta
+    sBoxMeta:clearContent()
+
+    local content = sBoxMeta:getMainFlex().content
+
+    local topicData = playerQuests.getTopicList()
+
+    ---@type questGuider.PlayerJournalTopic[]
+    local sortedData = tableLib.values(topicData, function (a, b)
+        return (a.id or "") < (b.id or "")
+    end)
+
+    local heightInList = 0
+    for _, dt in pairs(sortedData) do
+
+        if self.textFilter ~= "" and not hasText(dt, self.textFilter) then
+            goto continue
+        end
+
+        local topicName = dt.name or "???"
+
+        local topicListSB = self:getTopicList()
+        ---@type questGuider.ui.scrollBox
+        local topicListSBMeta = topicListSB.userData.scrollBoxMeta
+
+        local textColor = config.data.ui.defaultColor
+
+        local contentData
+        contentData = {
+            type = ui.TYPE.Flex,
+            props = {
+                autoSize = true,
+                -- size = util.vector2(sBoxMeta.innnerSize.x, self.params.fontSize),
+                horizontal = true,
+                propagateEvents = false,
+            },
+            name = dt.id,
+            userData = {
+                topicName = topicName,
+                topicData = dt,
+                heightInList = heightInList,
+            },
+            events = {
+                mousePress = async:callback(function(e, layout)
+                    topicListSBMeta:mousePress(e)
+                end),
+
+                focusLoss = async:callback(function(e, layout)
+                    topicListSBMeta:focusLoss(e)
+                end),
+
+                mouseMove = async:callback(function(e, layout)
+                    topicListSBMeta:mouseMove(e)
+                end),
+
+                mouseRelease = async:callback(function(e, layout)
+                    if e.button ~= 1 then return end
+
+                    topicListSBMeta:mouseRelease(e)
+
+                    if topicListSBMeta.lastMovedDistance < 30 then
+                        self:addToHistory(dt.id)
+                        self:fillTopicsContent()
+                        self:selectTopic(dt.id)
+                    end
+                end),
+            },
+            content = ui.content {
+                {
+                    template = templates.textNormal,
+                    type = ui.TYPE.Text,
+                    props = {
+                        text = uiUtils.colorize(topicName, self.textFilter, "#"..config.data.ui.selectionColor:asHex(), "#"..textColor:asHex()),
+                        textSize = params.fontSize or 18,
+                        textColor = textColor,
+                        multiline = false,
+                        wordWrap = false,
+                        textAlignH = ui.ALIGNMENT.Start,
+                    },
+                }
+            }
+        }
+
+        content:add(contentData)
+
+        heightInList = heightInList + params.fontSize
+
+        ::continue::
+    end
+
+    local height = #content * (params.fontSize or 18)
+    local scrollPos = sBoxMeta:getScrollPosition()
+    local scrollElemHeight = sBoxMeta.params.size.y
+    if scrollPos > height then
+        sBoxMeta:setScrollPosition(math.max(0, height - scrollElemHeight))
+    end
+end
+
+
+---@class questGuider.ui.topicMenu.params
+---@field menuId string?
+---@field size any
+---@field sizeProportional any
+---@field fontSize integer?
+---@field relativePosition any?
+---@field headerName string?
+---@field questList string[]?
+---@field isQuestList boolean?
+---@field showReqsForAll boolean?
+---@field hideStageText boolean?
+---@field showOnlyFirst boolean?
+---@field onClose function?
+
+---@param params questGuider.ui.topicMenu.params
+local function create(params)
+
+    params.fontSize = params.fontSize or 18
+
+    ---@class questGuider.ui.topicMenuMeta
+    local meta = setmetatable({}, topicMenuMeta)
+
+    local function updateFunc()
+        if not meta.menu then return end
+        meta:update()
+    end
+
+    if not params.size then
+        local scaledScreenSize = uiUtils.getScaledScreenSize()
+        params.size = util.vector2(scaledScreenSize.x * params.sizeProportional.x, scaledScreenSize.y * params.sizeProportional.y)
+    end
+
+    if not params.menuId then
+        params.menuId = params.headerName and params.headerName or commonData.journalMenuId
+    end
+
+    meta.params = params
+
+    meta.textFilter = ""
+
+    meta.menuHistory = {}
+    meta.menuHistoryIndex = 0
+
+    local mainHeader = {
+        type = ui.TYPE.Widget,
+        props = {
+            size = util.vector2(params.size.x, params.fontSize * 1.5),
+        },
+        userData = {},
+        content = ui.content{
+            {
+                template = templates.textNormal,
+                type = ui.TYPE.Text,
+                props = {
+                    text = params.headerName and params.headerName or l10n("topics"),
+                    textSize = params.fontSize * 1.5,
+                    autoSize = true,
+                    textColor = config.data.ui.defaultColor,
+                    textShadow = true,
+                    textShadowColor = config.data.ui.shadowColor,
+                },
+                userData = {},
+                events = {
+                    mousePress = async:callback(function(coord, layout)
+                        layout.userData.contentBackup = meta:getTopicMain().content
+                        meta:getTopicMain().content = ui.content{}
+
+                        layout.userData.doDrag = true
+                        local screenSize = uiUtils.getScaledScreenSize()
+                        layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
+                    end),
+
+                    mouseRelease = async:callback(function(_, layout)
+                        local relativePos = meta.menu.layout.props.relativePosition
+                        config.setValue("journal.topic.position.x", relativePos.x * 100)
+                        config.setValue("journal.topic.position.y", relativePos.y * 100)
+                        layout.userData.lastMousePos = nil
+
+                        meta:getTopicMain().content = layout.userData.contentBackup
+                        layout.userData.contentBackup = nil
+                        meta:update()
+                    end),
+
+                    mouseMove = async:callback(function(coord, layout)
+                        if not layout.userData.lastMousePos then return end
+
+                        local screenSize = uiUtils.getScaledScreenSize()
+                        local props = meta.menu.layout.props
+                        local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
+
+                        props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
+                        meta:update()
+
+                        layout.userData.lastMousePos = relativePos
+                    end),
+                }
+            },
+            {
+                template = templates.textNormal,
+                type = ui.TYPE.Text,
+                props = {
+                    text = l10n("close"),
+                    textSize = params.fontSize * 1.25,
+                    autoSize = true,
+                    anchor = util.vector2(1, 1),
+                    relativePosition = util.vector2(1, 1),
+                    textColor = config.data.ui.defaultColor,
+                    textShadow = true,
+                    textShadowColor = config.data.ui.shadowColor,
+                },
+                userData = {},
+                events = {
+                    mouseRelease = async:callback(function(_, layout)
+                        if params.onClose then params.onClose() end
+                        meta.menu:destroy()
+                    end),
+                }
+            },
+        },
+    }
+
+    local topictListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y)
+    local searchBar
+    searchBar = {
+        type = ui.TYPE.Widget,
+        props = {
+            autoSize = false,
+            size = util.vector2(topictListSize.x, params.fontSize + 10)
+        },
+        content = ui.content {
+            {
+                template = templates.box,
+                props = {
+                    position = util.vector2(2, (params.fontSize + 10) / 2),
+                    anchor = util.vector2(0, 0.5),
+                },
+                content = ui.content {
+                    {
+                        template = templates.textEditLine,
+                        props = {
+                            autoSize = false,
+                            textSize = params.fontSize,
+                            size = util.vector2(params.size.x * 0.2, params.fontSize + 4),
+                            textColor = config.data.ui.defaultColor,
+                        },
+                        events = {
+                            textChanged = async:callback(function(text, layout)
+                                meta.textFilter = text
+                            end),
+                            keyRelease = async:callback(function(e, layout)
+                                if e.code == input.KEY.Enter then
+                                    local selectedQuest = meta:getQuestListSelectedFladValue()
+                                    meta:fillTopicsContent()
+                                    meta:selectTopic(selectedQuest)
+                                    searchBar.content[1].content[1].props.text = meta.textFilter
+
+                                    local qBox = meta:getTopicScrollBox()
+                                    if qBox then
+                                        qBox.userData.updateText()
+                                    end
+
+                                    updateFunc()
+                                end
+                            end),
+                            focusLoss = async:callback(function(layout)
+                                searchBar.content[1].content[1].props.text = meta.textFilter
+                            end),
+                        },
+                    },
+                }
+            },
+            button{
+                updateFunc = updateFunc,
+                text = l10n("filter"),
+                textSize = params.fontSize,
+                position = util.vector2(topictListSize.x - 2, (params.fontSize + 10) / 2),
+                anchor = util.vector2(1, 0.5),
+                event = function (layout)
+                    local selectedQuest = meta:getQuestListSelectedFladValue()
+                    meta:fillTopicsContent()
+                    meta:selectTopic(selectedQuest)
+
+                    local qBox = meta:getTopicScrollBox()
+                    if qBox then
+                        qBox.userData.updateText()
+                    end
+                end
+            },
+        }
+    }
+
+    local nextPrevBlock = {
+        type = ui.TYPE.Widget,
+        props = {
+            autoSize = false,
+            size = util.vector2(topictListSize.x, params.fontSize + 6 + params.fontSize * 0.5)
+        },
+        content = ui.content {
+            button{
+                updateFunc = function ()
+                    meta:update()
+                end,
+                text = l10n("previous"),
+                textSize = params.fontSize,
+                anchor = util.vector2(0.5, 0),
+                position = util.vector2(topictListSize.x * 0.25, params.fontSize * 0.25),
+                event = function (layout)
+                    meta:jumpInHistory(-1)
+                end
+            },
+            button{
+                updateFunc = function ()
+                    meta:update()
+                end,
+                text = l10n("next"),
+                textSize = params.fontSize,
+                anchor = util.vector2(0.5, 0),
+                position = util.vector2(topictListSize.x * 0.75, params.fontSize * 0.25),
+                event = function (layout)
+                    meta:jumpInHistory(1)
+                end
+            }
+        }
+    }
+
+    local topicsContent = ui.content{}
+
+    local topicListBox = scrollBox{
+        updateFunc = updateFunc,
+        size = util.vector2(topictListSize.x - 2, topictListSize.y - params.fontSize * 2.5 - 16),
+        scrollAmount = params.size.y / 5,
+        content = topicsContent
+    }
+
+    local topicList = {
+        type = ui.TYPE.Flex,
+        props = {
+            autoSize = false,
+            horizontal = false,
+            size = topictListSize
+        },
+        content = ui.content {
+            searchBar,
+            nextPrevBlock,
+            topicListBox,
+        }
+    }
+
+
+    local topicInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
+    local questInfo = {
+        type = ui.TYPE.Flex,
+        props = {
+            autoSize = false,
+            horizontal = false,
+            size = topicInfoSize,
+        },
+        userData = {
+            size = topicInfoSize,
+        },
+        content = ui.content {
+
+        }
+    }
+
+    local mainWindow = {
+        template = customTemplates.boxSolidThick,
+        props = {
+
+        },
+        events = {
+            focusLoss = async:callback(function(e, layout)
+                meta.inFocus = false
+            end),
+
+            mouseMove = async:callback(function(e, layout)
+                meta.inFocus = true
+            end),
+        },
+        content = ui.content {
+            {
+                type = ui.TYPE.Flex,
+                props = {
+                    autoSize = true,
+                    horizontal = true,
+                },
+                content = ui.content {
+                    topicList,
+                    questInfo
+                }
+            }
+        }
+    }
+
+    local mainFlex = {
+        type = ui.TYPE.Flex,
+        layer = "Windows",
+        props = {
+            autoSize = true,
+            horizontal = false,
+            align = ui.ALIGNMENT.Center,
+            relativePosition = params.relativePosition,
+        },
+        userData = {
+
+        },
+        content = ui.content {
+            mainHeader,
+            mainWindow,
+        }
+    }
+
+    meta.menu = ui.create(mainFlex)
+
+    meta:fillTopicsContent()
+
+    local function onMouseWheelCallback(content, value)
+        for _, dt in pairs(content) do
+            if not type(dt) == "table" then goto continue end
+            if dt.userData and dt.userData.onMouseWheel then
+                dt.userData.onMouseWheel(value)
+            end
+
+            if dt.content then
+                onMouseWheelCallback(dt.content, value)
+            end
+
+            ::continue::
+        end
+    end
+
+    meta.onMouseWheel = function (self, vertical)
+        local layout = meta.menu.layout
+        onMouseWheelCallback(layout.content, vertical)
+    end
+
+    meta.onMouseClick = function (self, buttonId)
+        ---@diagnostic disable-next-line: need-check-nil
+        if not meta.inFocus and not topicListBox.userData.inFocus
+                and (questInfo.content[1] and not questInfo.content[1].userData.inFocus) then
+            return
+        end
+        if buttonId == 4 then
+            self:jumpInHistory(-1)
+        elseif buttonId == 5 then
+            self:jumpInHistory(1)
+        end
+    end
+
+    return meta
+end
+
+
+return create

@@ -31,6 +31,18 @@ end
 local this = {}
 
 
+---@class questGuider.PlayerJournalTopicEntry
+---@field id string
+---@field actor string
+---@field text string
+
+
+---@class questGuider.PlayerJournalTopic
+---@field id string
+---@field name string
+---@field entries questGuider.PlayerJournalTopicEntry[]
+
+
 ---@class questGuider.playerQuest.storageQuestInfo
 ---@field diaId string
 ---@field index integer
@@ -413,14 +425,14 @@ function this.getQuestNameByDiaId(diaId)
 end
 
 
----@return table<string, {id : string, name : string, entries : {id : string, text : string, actor : string}[]}>
+---@return table<string, questGuider.PlayerJournalTopic>
 function this.getTopicList()
     if core.API_REVISION < 93 then return {} end
 
     return playerFunc.journal(playerRef).topics
 end
 
----@return {id : string, name : string, entries : {id : string, text : string, actor : string}}?
+---@return questGuider.PlayerJournalTopic?
 function this.getTopicData(topicId)
     if core.API_REVISION < 93 then return end
 

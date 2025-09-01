@@ -43,6 +43,10 @@ scrollBoxMeta.scrollDown = function(self, val)
     self:update()
 end
 
+scrollBoxMeta.getSize = function(self)
+    return self.innnerSize
+end
+
 scrollBoxMeta.getScrollPosition = function(self)
     local fl = self:getMainFlex()
     local pos = fl.props.position
@@ -52,12 +56,12 @@ scrollBoxMeta.getScrollPosition = function(self)
 end
 
 ---@param height number
-scrollBoxMeta.setScrollPositiom = function(self, height)
+scrollBoxMeta.setScrollPosition = function(self, height)
     local fl = self:getMainFlex()
     local pos = fl.props.position
     if not pos then return end
-print(-height)
-    fl.props.position = util.vector2(2, -height)
+
+    fl.props.position = util.vector2(2, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, -height))
     self:update()
 end
 
