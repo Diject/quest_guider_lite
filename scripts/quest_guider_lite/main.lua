@@ -303,7 +303,7 @@ world.players[1]:sendEvent("QGL:updateTime", {time = world.getGameTime()})
 return {
     interfaceName = common.interfaceName,
     interface = {
-        version = 1,
+        version = 2,
         getQuestsData = function ()
             return dataHandler.quests or {}
         end,
