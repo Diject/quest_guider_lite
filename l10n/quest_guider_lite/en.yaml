@@ -120,6 +120,9 @@ next: "Next"
 previous: "Previous"
 
 
+questDataIncorrectFolder: "Quest Guider Lite: Quest data is installed incorrectly. Quest data files must be in the \"questData\" folder."
+
+
 true_l: "true"
 false_l: "false"
 male_l: "male"

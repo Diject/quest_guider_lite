@@ -2,8 +2,11 @@ local markup = require('openmw.markup')
 local core = require('openmw.core')
 local storage = require('openmw.storage')
 local async = require('openmw.async')
+local ui = require('openmw.ui')
 
 local common = require("scripts.quest_guider_lite.common")
+
+local l10n = core.l10n(common.l10nKey)
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
@@ -44,6 +47,21 @@ function this.initStorage()
         if storageInfoData and storageInfoData.time and this.info.time and storageInfoData.time == this.info.time then
             loadedFromStorage = true
         end
+    else
+        local res, err = pcall(function ()
+            local info = markup.loadYaml("info.yaml")
+            if not (info.version and info.time and info.files and info.format) then
+                error("")
+            end
+        end)
+
+        if res then
+            ui.showMessage(l10n("questDataIncorrectFolder"))
+        end
+
+        stor:setLifeTime(storage.LIFE_TIME.Temporary)
+
+        return false
     end
 
     if not loadedFromStorage then
