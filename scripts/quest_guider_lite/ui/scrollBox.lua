@@ -16,6 +16,7 @@ local button = require("scripts.quest_guider_lite.ui.button")
 local iconUp = "textures/omw_menu_scroll_up.dds"
 local iconDown = "textures/omw_menu_scroll_down.dds"
 
+local whiteTexture = ui.texture { path = "white" }
 
 ---@class questGuider.ui.scrollBox
 local scrollBoxMeta = {}
@@ -31,6 +32,9 @@ scrollBoxMeta.scrollUp = function(self, val)
     if not pos then return end
 
     fl.props.position = util.vector2(2, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, pos.y + val))
+
+    self:updateScrollPosition()
+
     self:update()
 end
 
@@ -40,6 +44,9 @@ scrollBoxMeta.scrollDown = function(self, val)
     if not pos then return end
 
     fl.props.position = util.vector2(2, pos.y - val)
+
+    self:updateScrollPosition()
+
     self:update()
 end
 
@@ -57,17 +64,71 @@ end
 
 ---@param height number
 scrollBoxMeta.setScrollPosition = function(self, height)
+    self:moveScrollPanel(height)
+    self:updateScrollPosition()
+
+    self:update()
+end
+
+---@param height number
+scrollBoxMeta.moveScrollPanel = function(self, height)
     local fl = self:getMainFlex()
     local pos = fl.props.position
     if not pos then return end
 
     fl.props.position = util.vector2(2, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, -height))
-    self:update()
 end
+
+---@param value number [0, 1]
+scrollBoxMeta.moveScrollPanelPercent = function(self, value)
+    if not self.params.contentHeight then return end
+    value = util.clamp(value, 0, 1)
+    local fl = self:getMainFlex()
+    local pos = fl.props.position
+
+    local heightPersent = (self.params.contentHeight - self.innnerSize.y) * value
+
+    fl.props.position = util.vector2(2, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, -heightPersent))
+end
+
 
 scrollBoxMeta.clearContent = function (self)
     local mainFlex = self:getMainFlex()
     mainFlex.content = ui.content{}
+end
+
+
+---@param value number [0, 1]
+scrollBoxMeta.moveScrollBar = function (self, value)
+    value = util.clamp(value, 0, 1)
+    local scrollBar = self.scrollBarElement
+
+    scrollBar.props.position = util.vector2(
+        scrollBar.props.position.x,
+        self.scrollBarMinMax[1] + value * self.scrollBarMinMax[3]
+    )
+end
+
+scrollBoxMeta.updateScrollPosition = function (self)
+    if not self.params.contentHeight then return end
+    local fl = self:getMainFlex()
+    local pos = fl.props.position
+
+    self:moveScrollBar(-fl.props.position.y / (self.params.contentHeight - self.innnerSize.y))
+end
+
+---@return number
+scrollBoxMeta.getScrollBarPositionPercent = function (self)
+    local scrollBar = self.scrollBarElement
+
+    return (scrollBar.props.position.y - self.scrollBarMinMax[1]) / self.scrollBarMinMax[3]
+end
+
+
+---@param value number
+scrollBoxMeta.setContentHeight = function (self, value)
+    self.params.contentHeight = value
+    self:updateScrollBarVisibility()
 end
 
 
@@ -118,6 +179,8 @@ end
 ---@field scrollAmount integer?
 ---@field maxNegativeShift integer?
 ---@field content any
+---@field contentHeight number?
+---@field minHeightForScroll number?
 ---@field updateFunc fun()
 ---@field arrange any?
 ---@field userData table?
@@ -147,6 +210,7 @@ return function(params)
     end
 
     meta.innnerSize = util.vector2(params.size.x - 4, params.size.y - 4)
+    params.minHeightForScroll = params.minHeightForScroll or meta.innnerSize.y * 1.5
 
     meta.params = params
 
@@ -174,6 +238,66 @@ return function(params)
         end
         timer = realTimer.newTimer(1, func)
     end
+
+    meta.scrollBarMinMax = {
+        14 + config.data.ui.scrollArrowSize,
+        meta.innnerSize.y - (10 + 4 * config.data.ui.scrollArrowSize),
+    }
+    meta.scrollBarMinMax[3] = meta.scrollBarMinMax[2] - meta.scrollBarMinMax[1]
+
+    local scroll = {
+        type = ui.TYPE.Image,
+        props = {
+            resource = whiteTexture,
+            size = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize * 3),
+            anchor = util.vector2(1, 0),
+            position = util.vector2(params.size.x - 8, meta.scrollBarMinMax[1]),
+            alpha = 0.5,
+            color = config.data.ui.defaultColor,
+            visible = false,
+        },
+        userData = {
+
+        },
+        events = {
+            mousePress = async:callback(function(e, layout)
+                layout.userData.doDrag = true
+                layout.userData.lastMousePos = e.position
+            end),
+
+            mouseRelease = async:callback(function(_, layout)
+                layout.userData.lastMousePos = nil
+            end),
+
+            mouseMove = async:callback(function(e, layout)
+                if not layout.userData.lastMousePos then return end
+
+                local props = layout.props
+                local pos = e.position
+
+                props.position = util.vector2(
+                    props.position.x,
+                    util.clamp(props.position.y - (layout.userData.lastMousePos.y - e.position.y), meta.scrollBarMinMax[1], meta.scrollBarMinMax[2])
+                )
+                meta:moveScrollPanelPercent(meta:getScrollBarPositionPercent())
+
+                meta:update()
+
+                layout.userData.lastMousePos = e.position
+            end),
+        },
+    }
+
+    meta.scrollBarElement = scroll
+    meta.updateScrollBarVisibility = function (self)
+        if not self.params.contentHeight or self.params.contentHeight < self.params.minHeightForScroll then
+            self.scrollBarElement.props.visible = false
+        else
+            self.scrollBarElement.props.visible = true
+        end
+    end
+
+    meta:updateScrollBarVisibility()
 
     local contentData
     contentData = {
@@ -216,6 +340,7 @@ return function(params)
         },
         content = ui.content {
             flex,
+            scroll,
             button{
                 position = util.vector2(params.size.x - 4, 4),
                 anchor = util.vector2(1, 0),

@@ -440,6 +440,7 @@ function journalMeta.fillQuestsContent(self)
     end
 
     local height = #content * (params.fontSize or 18)
+    sBoxMeta:setContentHeight(height)
     local scrollPos = sBoxMeta:getScrollPosition()
     local scrollElemHeight = sBoxMeta.params.size.y
     if scrollPos > height then
@@ -716,6 +717,7 @@ local function create(params)
         updateFunc = updateFunc,
         size = util.vector2(questListSize.x - 2, questListSize.y - params.fontSize * 2 - 13),
         scrollAmount = params.size.y / 5,
+        contentHeight = 0,
         content = questsContent
     }
 

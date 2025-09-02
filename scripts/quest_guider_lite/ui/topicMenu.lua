@@ -501,6 +501,7 @@ function topicMenuMeta.fillTopicsContent(self)
     end
 
     local height = #content * (params.fontSize or 18)
+    sBoxMeta:setContentHeight(height)
     local scrollPos = sBoxMeta:getScrollPosition()
     local scrollElemHeight = sBoxMeta.params.size.y
     if scrollPos > height then
@@ -740,7 +741,8 @@ local function create(params)
         updateFunc = updateFunc,
         size = util.vector2(topictListSize.x - 2, topictListSize.y - params.fontSize * 2.5 - 16),
         scrollAmount = params.size.y / 5,
-        content = topicsContent
+        content = topicsContent,
+        contentHeight = 0,
     }
 
     local topicList = {
