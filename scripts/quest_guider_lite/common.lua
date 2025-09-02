@@ -13,8 +13,11 @@ this.settingPage = "QuestGuiderLite:Settings"
 
 this.configJournalSectionName = "Settings:QGL:Journal"
 this.configUISectionName = "Settings:QGL:UI"
+this.configQuestDataSectionName = "Settings:QGL:QuestData"
 this.configTrackingSectionName = "Settings:QGL:Tracking"
 this.settingStorageToRemoveId = "Settings:QGL:ToRemove"
+
+this.miscPalyerStorage = "QuestGuider:MiscPlayerStorage"
 
 this.elementMetatableTypes = {
     ["nextStages"] = "nextStages",

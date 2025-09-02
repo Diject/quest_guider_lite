@@ -2,7 +2,6 @@ local markup = require('openmw.markup')
 local core = require('openmw.core')
 local storage = require('openmw.storage')
 local async = require('openmw.async')
-local ui = require('openmw.ui')
 
 local common = require("scripts.quest_guider_lite.common")
 
@@ -33,7 +32,16 @@ local gameFileDataEmpty = false
 function this.initStorage()
     isReady = false
 
+    local settingsStorage = storage.playerSection(common.configQuestDataSectionName)
+    local miscStorage = storage.playerSection(common.miscPalyerStorage)
+
     local stor = storage.playerSection(common.dataStorageName)
+
+    if settingsStorage:get("disabled") then
+        stor:setLifeTime(storage.LIFE_TIME.Temporary)
+        settingsStorage:set("statusMessage", l10n("questDataDisabled"))
+        return false
+    end
 
     local infoSuccess, infoErr = pcall(function ()
         this.info = markup.loadYaml("questData/info.yaml")
@@ -55,11 +63,23 @@ function this.initStorage()
             end
         end)
 
-        if res then
-            ui.showMessage(l10n("questDataIncorrectFolder"))
+        if not miscStorage:get("incorrectFolderErrorMessageCount") then
+            miscStorage:set("incorrectFolderErrorMessageCount", 2)
+        end
+
+        local errorMessageCount = miscStorage:get("incorrectFolderErrorMessageCount")
+
+        if res and (errorMessageCount or 0) > 0 then
+            pcall(function ()
+                local ui = require("openmw.ui")
+                ui.showMessage(l10n("questDataIncorrectFolderError"))
+            end)
+            miscStorage:set("incorrectFolderErrorMessageCount", errorMessageCount - 1)
         end
 
         stor:setLifeTime(storage.LIFE_TIME.Temporary)
+
+        settingsStorage:set("statusMessage", l10n("questDataIncorrectFolder"))
 
         return false
     end
@@ -95,6 +115,13 @@ function this.initStorage()
     end
 
     stor:set("isReady", isReady)
+
+    if isReady then
+        settingsStorage:set("statusMessage", l10n("questDataReady"))
+        miscStorage:set("incorrectFolderErrorMessageCount", 2)
+    else
+        settingsStorage:set("statusMessage", l10n("questDataNotFound"))
+    end
 
     return isReady
 end

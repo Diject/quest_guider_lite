@@ -78,6 +78,8 @@ linkColor: "Link color"
 linkColorDescription: "Color for topic names in the quest text. Default is \"707ecf\""
 objectColor: "Object color"
 objectColorDescription: "Color for objects in the quest text. Default is \"33e599\""
+disableQuestData: "Disable quest data"
+disableQuestDataDescription: "If enabled, quest data will not be loaded when the game starts. If quest data was already loaded, changes will take effect only after restarting the game."
 
 hidden: "Hidden"
 finished: "Finished"
@@ -118,9 +120,15 @@ tooltipIDString: "%s, \"%s\" (%s)"
 topics: "Topics"
 next: "Next"
 previous: "Previous"
+questData: "Quest Data"
+status: "Status"
 
 
-questDataIncorrectFolder: "Quest Guider Lite: Quest data is installed incorrectly. Quest data files must be in the \"questData\" folder."
+questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."
+questDataReady: "Quest data is ready."
+questDataNotFound: "Quest data not found."
+questDataDisabled: "Quest data is disabled."
+questDataIncorrectFolderError: "Quest Guider Lite: Quest data is installed incorrectly. Quest data files must be in the \"questData\" folder."
 
 
 true_l: "true"

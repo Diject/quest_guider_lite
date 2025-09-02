@@ -67,8 +67,8 @@ I.Settings.registerRenderer("QGL:Renderer:text", function(value, set, argument)
             {
                 type = ui.TYPE.Text,
                 props = {
-                    text = argument.text and l10n(argument.text) or "",
-                    textSize = 16,
+                    text = argument.text and l10n(argument.text) or value or "",
+                    textSize = 18,
                     textAlignH = ui.ALIGNMENT.Start,
                     textColor = normalTextColor,
                     multiline = true,
