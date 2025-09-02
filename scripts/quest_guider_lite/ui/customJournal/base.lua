@@ -573,7 +573,7 @@ local function create(params)
                         type = ui.TYPE.Text,
                         props = {
                             text = l10n("topics"),
-                            visible = core.API_REVISION >= 93,
+                            visible = core.API_REVISION >= 93 and params.createTopicMenuFunc and true or false,
                             textSize = params.fontSize * 1.25,
                             autoSize = true,
                             textColor = config.data.ui.defaultColor,

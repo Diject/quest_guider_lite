@@ -208,7 +208,9 @@ local function toggleMenu()
     if activeMenus[commonData.journalMenuId] then
         activeMenus[commonData.journalMenuId].menu:destroy()
         activeMenus[commonData.journalMenuId] = nil
-        I.UI.removeMode("Journal")
+        if not next(activeMenus) then
+            I.UI.removeMode("Journal")
+        end
     else
         I.UI.setMode("Journal", { windows = {} })
         activeMenus[commonData.journalMenuId] = createQuestMenu{
@@ -227,7 +229,7 @@ local function toggleMenu()
                     relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
                     onClose = function ()
                         activeMenus[commonData.topicsMenuId] = nil
-                        if not activeMenus[commonData.journalMenuId] then
+                        if not next(activeMenus) then
                             I.UI.removeMode("Journal")
                         end
                     end
@@ -235,7 +237,7 @@ local function toggleMenu()
             end,
             onClose = function ()
                 activeMenus[commonData.journalMenuId] = nil
-                if not activeMenus[commonData.topicsMenuId] then
+                if not next(activeMenus) then
                     I.UI.removeMode("Journal")
                 end
             end
@@ -270,7 +272,9 @@ input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
             showReqsForAll = true,
             onClose = function ()
                 activeMenus[commonData.allQuestsMenuId] = nil
-                I.UI.removeMode("Journal")
+                if not next(activeMenus) then
+                    I.UI.removeMode("Journal")
+                end
             end
         }
     else
@@ -284,10 +288,10 @@ end
 
 local function onKeyRelease(key)
     if key.code == input.KEY.Escape then
-        for _, menuHandler in pairs(activeMenus) do
+        for id, menuHandler in pairs(activeMenus) do
             menuHandler.menu:destroy()
+            activeMenus[id] = nil
         end
-        activeMenus[commonData.journalMenuId] = nil
     end
 end
 
@@ -449,7 +453,9 @@ return {
                         relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
                         onClose = function ()
                             activeMenus[commonData.journalMenuId] = nil
-                            I.UI.removeMode("Journal")
+                            if not next(activeMenus) then
+                                I.UI.removeMode("Journal")
+                            end
                         end
                     }
                 end
@@ -482,6 +488,9 @@ return {
                 hideStageText = true,
                 onClose = function ()
                     activeMenus[objName] = nil
+                    if not next(activeMenus) then
+                        I.UI.removeMode("Journal")
+                    end
                 end
             }
         end,
