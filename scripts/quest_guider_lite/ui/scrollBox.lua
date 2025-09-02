@@ -2,7 +2,7 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local time = require('openmw_aux.time')
 local I = require('openmw.interfaces')
-local templates = require('openmw.interfaces').MWUI.templates
+local templates = require("scripts.quest_guider_lite.ui.templates")
 local async = require('openmw.async')
 
 local realTimer = require("scripts.quest_guider_lite.realTimer")
@@ -302,6 +302,7 @@ return function(params)
     local contentData
     contentData = {
         template = templates.box,
+        type = ui.TYPE.Widget,
         props = {
             autoSize = false,
             size = params.size,
@@ -379,17 +380,6 @@ return function(params)
                     stopScrollTimer()
                 end
             },
-            {
-                type = ui.TYPE.Widget,
-                props = {
-                    autoSize = false,
-                    size = util.vector2(1, 1),
-                    anchor = util.vector2(1, 1),
-                    position = util.vector2(params.size.x, params.size.y),
-                    visible = false,
-                },
-                content = ui.content{},
-            }
         },
     }
 

@@ -9,10 +9,12 @@ local this = {}
 
 this.boxSolidThick = auxUi.deepLayoutCopy(templates.boxSolidThick)
 this.boxSolid = auxUi.deepLayoutCopy(templates.boxSolid)
+this.box = auxUi.deepLayoutCopy(templates.box)
 
 pcall(function ()
     this.boxSolidThick.content[1].template.props.color = config.data.ui.backgroundColor
     this.boxSolid.content[1].template.props.color = config.data.ui.backgroundColor
+    this.box.type = ui.TYPE.Widget
 end)
 
 

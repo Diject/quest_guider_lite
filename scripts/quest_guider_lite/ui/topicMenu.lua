@@ -46,11 +46,11 @@ topicMenuMeta.getSearchBar = function (self)
 end
 
 topicMenuMeta.getTopicMain = function (self)
-    return self.menu.layout.content[2].content[1].content[2]
+    return self.menu.layout.content[2].content[1]
 end
 
 topicMenuMeta.getTopicScrollBox = function (self)
-    return self:getTopicMain().content[1]
+    return self:getTopicMain().content[2]
 end
 
 topicMenuMeta.resetTopicListColors = function (self)
@@ -159,7 +159,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
         return
     end
 
-    local headerSize = util.vector2(qMainLay.userData.size.x - params.fontSize * 0.5 - 6, (params.fontSize or 18) * 2.5)
+    local headerSize = util.vector2(self.questInfoPanelSize.x - params.fontSize * 0.5 - 6, (params.fontSize or 18) * 2.5)
 
     local topicContent = ui.content{
         {
@@ -360,18 +360,16 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
     updateTopicText(topicContent)
 
-    qMainLay.content = ui.content{
-        scrollBox{
-            updateFunc = function ()
-                self.menu:update()
-            end,
-            size = qMainLay.userData.size,
-            scrollAmount = self.params.size.y / 5,
-            userData = {
-                updateText = updateTopicText,
-            },
-            content = topicContent
-        }
+    qMainLay.content[2] = scrollBox{
+        updateFunc = function ()
+            self.menu:update()
+        end,
+        size = self.questInfoPanelSize,
+        scrollAmount = self.params.size.y / 5,
+        userData = {
+            updateText = updateTopicText,
+        },
+        content = topicContent
     }
 
     self:resetTopicListSelection()
@@ -553,6 +551,24 @@ local function create(params)
     meta.menuHistory = {}
     meta.menuHistoryIndex = 0
 
+
+    local topicInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
+    meta.questInfoPanelSize = topicInfoSize
+    local topicInfo = {
+        type = ui.TYPE.Flex,
+        props = {
+            autoSize = false,
+            horizontal = false,
+            size = topicInfoSize,
+        },
+        userData = {
+            size = topicInfoSize,
+        },
+        content = ui.content {
+
+        }
+    }
+
     local mainHeader = {
         type = ui.TYPE.Widget,
         props = {
@@ -574,8 +590,8 @@ local function create(params)
                 userData = {},
                 events = {
                     mousePress = async:callback(function(coord, layout)
-                        layout.userData.contentBackup = meta:getTopicMain().content
-                        meta:getTopicMain().content = ui.content{}
+                        layout.userData.contentBackup = meta:getTopicScrollBox()
+                        meta:getTopicMain().content[2] = topicInfo
 
                         layout.userData.doDrag = true
                         local screenSize = uiUtils.getScaledScreenSize()
@@ -588,7 +604,7 @@ local function create(params)
                         config.setValue("journal.topic.position.y", relativePos.y * 100)
                         layout.userData.lastMousePos = nil
 
-                        meta:getTopicMain().content = layout.userData.contentBackup
+                        meta:getTopicMain().content[2] = layout.userData.contentBackup
                         layout.userData.contentBackup = nil
                         meta:update()
                     end),
@@ -760,22 +776,6 @@ local function create(params)
     }
 
 
-    local topicInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
-    local questInfo = {
-        type = ui.TYPE.Flex,
-        props = {
-            autoSize = false,
-            horizontal = false,
-            size = topicInfoSize,
-        },
-        userData = {
-            size = topicInfoSize,
-        },
-        content = ui.content {
-
-        }
-    }
-
     local mainWindow = {
         template = customTemplates.boxSolidThick,
         props = {
@@ -799,7 +799,7 @@ local function create(params)
                 },
                 content = ui.content {
                     topicList,
-                    questInfo
+                    topicInfo
                 }
             }
         }
@@ -850,7 +850,7 @@ local function create(params)
     meta.onMouseClick = function (self, buttonId)
         ---@diagnostic disable-next-line: need-check-nil
         if not meta.inFocus and not topicListBox.userData.inFocus
-                and (questInfo.content[1] and not questInfo.content[1].userData.inFocus) then
+                and (topicInfo.content[1] and not topicInfo.content[1].userData.inFocus) then
             return
         end
         if buttonId == 4 then

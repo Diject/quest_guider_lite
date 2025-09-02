@@ -41,11 +41,11 @@ journalMeta.getQuestList = function (self)
 end
 
 journalMeta.getQuestMain = function (self)
-    return self.menu.layout.content[2].content[1].content[2]
+    return self.menu.layout.content[2].content[1]
 end
 
 journalMeta.getQuestScrollBox = function (self)
-    return self:getQuestMain().content[1]
+    return self:getQuestMain().content[2]
 end
 
 journalMeta.getQuestListCheckBoxFlex = function (self)
@@ -141,21 +141,19 @@ journalMeta.selectQuest = function (self, qName)
         return
     end
 
-    qMainLay.content = ui.content{
-        questBox.create{
-            parent = self,
-            fontSize = self.params.fontSize or 18,
-            playerQuestData = selectedLayout.userData.playerQuestData,
-            isQuestList = self.params.isQuestList,
-            showReqsForAll = self.params.showReqsForAll,
-            hideStageText = self.params.hideStageText,
-            showOnlyFirst = self.params.showOnlyFirst,
-            questName = selectedLayout.userData.questName,
-            size = qMainLay.userData.size,
-            updateFunc = function ()
-                self:update()
-            end,
-        }
+    qMainLay.content[2] = questBox.create{
+        parent = self,
+        fontSize = self.params.fontSize or 18,
+        playerQuestData = selectedLayout.userData.playerQuestData,
+        isQuestList = self.params.isQuestList,
+        showReqsForAll = self.params.showReqsForAll,
+        hideStageText = self.params.hideStageText,
+        showOnlyFirst = self.params.showOnlyFirst,
+        questName = selectedLayout.userData.questName,
+        size = self.questInfoPanelSize,
+        updateFunc = function ()
+            self:update()
+        end,
     }
 
     self:resetQuestListSelection()
@@ -490,6 +488,24 @@ local function create(params)
 
     meta.storageTypeQuestData = params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList)
 
+
+    local questInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
+    meta.questInfoPanelSize = questInfoSize
+    local questInfo = {
+        type = ui.TYPE.Flex,
+        props = {
+            autoSize = false,
+            horizontal = false,
+            size = questInfoSize,
+        },
+        userData = {
+            size = questInfoSize,
+        },
+        content = ui.content {
+
+        }
+    }
+
     local mainHeader = {
         type = ui.TYPE.Widget,
         props = {
@@ -511,8 +527,8 @@ local function create(params)
                 userData = {},
                 events = {
                     mousePress = async:callback(function(coord, layout)
-                        layout.userData.contentBackup = meta:getQuestMain().content
-                        meta:getQuestMain().content = ui.content{}
+                        layout.userData.contentBackup = meta:getQuestScrollBox()
+                        meta:getQuestMain().content[2] = questInfo
 
                         layout.userData.doDrag = true
                         local screenSize = uiUtils.getScaledScreenSize()
@@ -525,7 +541,7 @@ local function create(params)
                         config.setValue("journal.position.y", relativePos.y * 100)
                         layout.userData.lastMousePos = nil
 
-                        meta:getQuestMain().content = layout.userData.contentBackup
+                        meta:getQuestMain().content[2] = layout.userData.contentBackup
                         layout.userData.contentBackup = nil
                         meta:update()
                     end),
@@ -735,22 +751,6 @@ local function create(params)
         }
     }
 
-
-    local questInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
-    local questInfo = {
-        type = ui.TYPE.Flex,
-        props = {
-            autoSize = false,
-            horizontal = false,
-            size = questInfoSize,
-        },
-        userData = {
-            size = questInfoSize,
-        },
-        content = ui.content {
-
-        }
-    }
 
     local mainWindow = {
         template = customTemplates.boxSolidThick,
