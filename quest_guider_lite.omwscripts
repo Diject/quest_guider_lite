@@ -3,5 +3,5 @@ PLAYER: scripts/quest_guider_lite/player.lua
 MENU: scripts/quest_guider_lite/ui/renderers/label.lua
 MENU: scripts/quest_guider_lite/ui/renderers/text.lua
 MENU: scripts/quest_guider_lite/settings.lua
-NPC, CREATURE: scripts/quest_guider_lite/actor.lua
+CUSTOM: scripts/quest_guider_lite/actor.lua
 MENU: scripts/quest_guider_lite/initializerFromMenu.lua

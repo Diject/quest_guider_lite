@@ -45,6 +45,12 @@ end
 
 
 local function onObjectActive(ref)
+    if types.Actor.objectIsInstance(ref) then
+        if not ref:hasScript("scripts/quest_guider_lite/actor.lua") then
+            ref:addScript("scripts/quest_guider_lite/actor.lua")
+        end
+    end
+
     async:newUnsavableSimulationTimer(0.2, function ()
         if (ref.type == types.NPC or ref.type == types.Creature) and config.data.tracking.questGivers then
             questGivers.createQuestGiverMarker(ref)
@@ -58,6 +64,13 @@ local function onObjectActive(ref)
             end
         end
     end)
+end
+
+
+local function objectInactive(ref)
+    if ref:hasScript("scripts/quest_guider_lite/actor.lua") then
+        ref:removeScript("scripts/quest_guider_lite/actor.lua")
+    end
 end
 
 
@@ -323,6 +336,8 @@ return {
         onObjectActive = onObjectActive,
     },
     eventHandlers = {
+        ["QuestGuiderLite:ObjectInactive"] = objectInactive,
+
         ["QGL:Interop:DataReady"] = function (data)
             dataHandler.load(data)
         end,
