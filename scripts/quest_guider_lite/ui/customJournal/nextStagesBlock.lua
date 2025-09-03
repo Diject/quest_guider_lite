@@ -216,6 +216,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 textSize = (self.params.fontSize or 18) * 0.8,
                                 visible = tracking.initialized and not params.hideTrackButtons,
                                 anchor = util.vector2(0, 0.5),
+                                parentScrollBoxUserData = self.params.parentScrollBoxUserData,
                                 event = function (layout)
                                     local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
                                     if trackedState then
@@ -260,6 +261,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 textSize = (self.params.fontSize or 18) * 0.8,
                                 visible = tracking.initialized and not params.hideTrackButtons and tracking.isObjectTracked{diaId = diaId, objectId = objId},
                                 anchor = util.vector2(0, 0.5),
+                                parentScrollBoxUserData = self.params.parentScrollBoxUserData,
                                 event = function (layout)
                                     local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
                                     disabledState = not disabledState
@@ -390,6 +392,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                     button{
                         text = string.format(format, tostring(nextData.index)),
                         textSize = params.fontSize,
+                        parentScrollBoxUserData = self.params.parentScrollBoxUserData,
                         updateFunc = params.updateFunc,
                         tooltipContent = ui.content{
                             {
@@ -440,6 +443,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     button{
                                         text = string.format("-%d-", i),
                                         textSize = params.fontSize,
+                                        parentScrollBoxUserData = self.params.parentScrollBoxUserData,
                                         updateFunc = params.updateFunc,
                                         event = function (layout)
                                             local reqFlex = self:getRequirementsFlex()
@@ -492,6 +496,7 @@ end
 ---@field data questGuider.main.fillQuestBoxQuestInfo.returnBlock
 ---@field isQuestListMode boolean?
 ---@field hideTrackButtons boolean?
+---@field parentScrollBoxUserData table?
 ---@field updateFunc function
 ---@field updateHeightFunc function
 

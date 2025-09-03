@@ -249,6 +249,8 @@ return function(params)
     }
     meta.scrollBarMinMax[3] = meta.scrollBarMinMax[2] - meta.scrollBarMinMax[1]
 
+    local contentData
+
     local scroll = {
         type = ui.TYPE.Image,
         props = {
@@ -274,6 +276,7 @@ return function(params)
             end),
 
             mouseMove = async:callback(function(e, layout)
+                contentData.userData.inFocus = true
                 if not layout.userData.lastMousePos then return end
 
                 local props = layout.props
@@ -303,7 +306,6 @@ return function(params)
 
     meta:updateScrollBarVisibility()
 
-    local contentData
     contentData = {
         template = templates.box,
         type = ui.TYPE.Widget,
@@ -346,48 +348,52 @@ return function(params)
         content = ui.content {
             flex,
             scroll,
-            button{
-                position = util.vector2(params.size.x - 4, 4),
-                anchor = util.vector2(1, 0),
-                icon = iconUp,
-                iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
-                alpha = 0.8,
-                updateFunc = params.updateFunc,
-                event = function (layout)
-                    if not lockEvent then
-                        meta:scrollUp(meta.params.scrollAmount or 24)
-                    end
-                end,
-                mousePress = function (layout)
-                    lockEvent = false
-                    startScrollTimer(0, meta.params.scrollAmount / 5 or 12)
-                end,
-                mouseRelease = function (layout)
-                    stopScrollTimer()
-                end
-            },
-            button{
-                position = util.vector2(params.size.x - 4, params.size.y - 4),
-                anchor = util.vector2(1, 1),
-                icon = iconDown,
-                iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
-                alpha = 0.8,
-                updateFunc = params.updateFunc,
-                event = function (layout)
-                    if not lockEvent then
-                        meta:scrollDown(meta.params.scrollAmount or 24)
-                    end
-                end,
-                mousePress = function (layout)
-                    lockEvent = false
-                    startScrollTimer(1, meta.params.scrollAmount / 5 or 12)
-                end,
-                mouseRelease = function (layout)
-                    stopScrollTimer()
-                end
-            },
         },
     }
+
+    contentData.content:add(button{
+        position = util.vector2(params.size.x - 4, 4),
+        anchor = util.vector2(1, 0),
+        icon = iconUp,
+        iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
+        alpha = 0.8,
+        parentScrollBoxUserData = contentData.userData,
+        updateFunc = params.updateFunc,
+        event = function (layout)
+            if not lockEvent then
+                meta:scrollUp(meta.params.scrollAmount or 24)
+            end
+        end,
+        mousePress = function (layout)
+            lockEvent = false
+            startScrollTimer(0, meta.params.scrollAmount / 5 or 12)
+        end,
+        mouseRelease = function (layout)
+            stopScrollTimer()
+        end
+    })
+
+    contentData.content:add(button{
+        position = util.vector2(params.size.x - 4, params.size.y - 4),
+        anchor = util.vector2(1, 1),
+        icon = iconDown,
+        iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
+        alpha = 0.8,
+        parentScrollBoxUserData = contentData.userData,
+        updateFunc = params.updateFunc,
+        event = function (layout)
+            if not lockEvent then
+                meta:scrollDown(meta.params.scrollAmount or 24)
+            end
+        end,
+        mousePress = function (layout)
+            lockEvent = false
+            startScrollTimer(1, meta.params.scrollAmount / 5 or 12)
+        end,
+        mouseRelease = function (layout)
+            stopScrollTimer()
+        end
+    })
 
     if params.userData then
         tableLib.copy(params.userData, contentData.userData)

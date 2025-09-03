@@ -71,9 +71,17 @@ local focusLoss = async:callback(function(e, layout)
     end
     layout.userData.pressed = false
     tooltip.destroy(layout)
+
+    if layout.userData.parentScrollBoxUserData then
+        layout.userData.parentScrollBoxUserData.inFocus = false
+    end
 end)
 
 local mouseMove = async:callback(function(coord, layout)
+    if layout.userData.parentScrollBoxUserData then
+        layout.userData.parentScrollBoxUserData.inFocus = true
+    end
+
     if not layout.userData.params.tooltipContent then return end
     tooltip.createOrMove(coord, layout, layout.userData.params.tooltipContent)
 end)
@@ -98,6 +106,7 @@ end)
 ---@field position any? util.vector2
 ---@field anchor any? util.vector2
 ---@field userData table?
+---@field parentScrollBoxUserData table?
 ---@field updateFunc fun()
 ---@field thisElementInContent any
 
@@ -170,6 +179,7 @@ return function (params)
             params = params,
             pressed = false,
             height = params.size and params.size.y or params.textSize or 18 + 6,
+            parentScrollBoxUserData = params.parentScrollBoxUserData,
             meta = meta,
         },
         content = ui.content {

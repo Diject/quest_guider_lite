@@ -182,6 +182,7 @@ local function fillQuestBoxQuestInfo(params)
                     fontSize = config.data.ui.fontSize,
                     hideTrackButtons = params.menuId ~= commonData.journalMenuId,
                     isQuestListMode = params.menuId ~= commonData.journalMenuId,
+                    parentScrollBoxUserData = questBox:getScrollBox().userData,
                     updateHeightFunc = function ()
                         scrollBox:setContentHeight(uiUtils.getContentHeight(scrollBoxElement.content))
                     end,

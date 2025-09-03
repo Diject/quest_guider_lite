@@ -64,6 +64,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         text = l10n("trackObjects"),
         textSize = self.params.fontSize * 0.8,
         visible = tracking.initialized and not self.params.isQuestList,
+        parentScrollBoxUserData = self:getScrollBox().userData,
         event = function (layout)
             self:addTrackButtons(true)
 
@@ -92,6 +93,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             text = l10n("removeTracking"),
             textSize = self.params.fontSize * 0.8,
             visible = tracking.initialized and not self.params.isQuestList,
+            parentScrollBoxUserData = self:getScrollBox().userData,
             event = function (layout)
                 for _, info in pairs(self.questInfo) do
                     tracking.removeMarker{
@@ -270,6 +272,7 @@ function questBoxMeta._fillJournal(self, content, params)
                             visible = tracking.initialized and not self.params.isQuestList and next(topicData) and true or false,
                             position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, params.fontSize * 1.25 * 0.5),
                             anchor = util.vector2(1, 0.5),
+                            parentScrollBoxUserData = self:getScrollBox().userData,
                             event = function (layout)
                                 changeEntryBlockText(true)
                                 self:getScrollBoxMeta():setContentHeight(uiUtils.getContentHeight(content))
