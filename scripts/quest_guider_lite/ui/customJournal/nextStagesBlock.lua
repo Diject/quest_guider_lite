@@ -172,10 +172,10 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
 
             local header
             header = {
-                type = ui.TYPE.Container,
+                type = ui.TYPE.Widget,
                 props = {
                     autoSize = false,
-                    size = util.vector2(self.params.size.x, params.fontSize)
+                    size = util.vector2(self.params.size.x, params.fontSize * 1.2)
                 },
                 content = ui.content {
                     {
@@ -206,7 +206,8 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             autoSize = true,
                             horizontal = true,
                             anchor = util.vector2(1, 0),
-                            position = util.vector2(self.params.size.x, 0)
+                            position = util.vector2(self.params.size.x - config.data.ui.scrollArrowSize - 8, 0),
+                            arrange = ui.ALIGNMENT.Center,
                         },
                         content = ui.content {
                             button{
@@ -214,6 +215,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and l10n("untrack") or l10n("track"),
                                 textSize = (self.params.fontSize or 18) * 0.8,
                                 visible = tracking.initialized and not params.hideTrackButtons,
+                                anchor = util.vector2(0, 0.5),
                                 event = function (layout)
                                     local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
                                     if trackedState then
@@ -257,6 +259,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                 text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
                                 textSize = (self.params.fontSize or 18) * 0.8,
                                 visible = tracking.initialized and not params.hideTrackButtons and tracking.isObjectTracked{diaId = diaId, objectId = objId},
+                                anchor = util.vector2(0, 0.5),
                                 event = function (layout)
                                     local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
                                     disabledState = not disabledState
@@ -289,6 +292,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     textColor = config.data.ui.defaultColor,
                                     autoSize = true,
                                     textSize = (self.params.fontSize or 18) * 0.8,
+                                    anchor = util.vector2(0, 0.5),
                                     textAlignH = ui.ALIGNMENT.End,
                                     multiline = false,
                                     wordWrap = false,
@@ -457,11 +461,14 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
 
                                             addObjectPositionInfo(posFlex.content, reqs, diaId, nextData.index)
                                             addRequirements(reqFlex.content, reqs)
+
+                                            params.updateHeightFunc()
                                         end,
                                     }
                                 )
                             end
 
+                            params.updateHeightFunc()
                             self:update()
                         end,
                     }
@@ -475,6 +482,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
     addNextStageButtons(nextStageData.next, "-%d-")
     addNextStageButtons(nextStageData.linked, "(%d)")
 
+    self.params.updateHeightFunc()
 end
 
 
@@ -485,6 +493,7 @@ end
 ---@field isQuestListMode boolean?
 ---@field hideTrackButtons boolean?
 ---@field updateFunc function
+---@field updateHeightFunc function
 
 
 ---@param params questGuider.ui.nextStages.params

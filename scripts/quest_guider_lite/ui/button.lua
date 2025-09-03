@@ -165,6 +165,7 @@ return function (params)
         userData = {
             params = params,
             pressed = false,
+            height = params.size and params.size.y or params.textSize or 18 + 6,
             meta = meta,
         },
         content = ui.content {

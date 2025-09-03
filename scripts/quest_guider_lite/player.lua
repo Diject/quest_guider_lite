@@ -169,10 +169,10 @@ local function fillQuestBoxQuestInfo(params)
         ---@type questGuider.ui.scrollBox
         local scrollBox = questBox:getScrollBox().userData.scrollBoxMeta
 
-        local scrollBoxContent = scrollBox:getMainFlex()
+        local scrollBoxElement = scrollBox:getMainFlex()
 
         for contentIndex, dt in pairs(params.data) do
-            local element = scrollBoxContent.content[contentIndex]
+            local element = scrollBoxElement.content[contentIndex]
             if not element then goto continue end
 
             element.content:add(
@@ -182,6 +182,9 @@ local function fillQuestBoxQuestInfo(params)
                     fontSize = config.data.ui.fontSize,
                     hideTrackButtons = params.menuId ~= commonData.journalMenuId,
                     isQuestListMode = params.menuId ~= commonData.journalMenuId,
+                    updateHeightFunc = function ()
+                        scrollBox:setContentHeight(uiUtils.getContentHeight(scrollBoxElement.content))
+                    end,
                     updateFunc = function ()
                         activeMenus[params.menuId]:update()
                     end,
@@ -193,6 +196,9 @@ local function fillQuestBoxQuestInfo(params)
 
             ::continue::
         end
+
+        scrollBox:setContentHeight(uiUtils.getContentHeight(scrollBoxElement.content))
+
         activeMenus[params.menuId]:update()
     end
 

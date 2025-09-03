@@ -41,8 +41,13 @@ function questBoxMeta.getScrollBox(self)
     return self:getLayout()
 end
 
+---@return questGuider.ui.scrollBox
+function questBoxMeta.getScrollBoxMeta(self)
+    return self:getScrollBox().userData.scrollBoxMeta
+end
+
 function questBoxMeta.getButtonWidget(self)
-    return self:getScrollBox().userData.scrollBoxMeta:getMainFlex().content[1].content[3]
+    return self:getScrollBoxMeta():getMainFlex().content[1].content[3]
 end
 
 function questBoxMeta.getButtonFlex(self)
@@ -50,7 +55,7 @@ function questBoxMeta.getButtonFlex(self)
 end
 
 function questBoxMeta.getHeader(self)
-    return self:getScrollBox().userData.scrollBoxMeta:getMainFlex().content[1]
+    return self:getScrollBoxMeta():getMainFlex().content[1]
 end
 
 function questBoxMeta.addTrackButtons(self, showRemoveBtn)
@@ -259,10 +264,11 @@ function questBoxMeta._fillJournal(self, content, params)
                             text = l10n("topics"),
                             textSize = self.params.fontSize * 0.8,
                             visible = tracking.initialized and not self.params.isQuestList and next(topicData) and true or false,
-                            position = util.vector2(textElemSize.x, 0),
+                            position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, 0),
                             anchor = util.vector2(1, 0),
                             event = function (layout)
                                 changeEntryBlockText(true)
+                                self:getScrollBoxMeta():setContentHeight(uiUtils.getContentHeight(content))
                             end,
                             updateFunc = function ()
                                 self.params.updateFunc()
@@ -321,6 +327,8 @@ function questBoxMeta._fillJournal(self, content, params)
             addElement(i)
         end
     end
+
+    self:getScrollBoxMeta():setContentHeight(uiUtils.getContentHeight(content))
 end
 
 
@@ -356,6 +364,7 @@ function questBoxMeta:updateColors()
         stageTextElem.props.text = uiUtils.removeColorMarkers(stageTextElem.props.text)
 
         stageTextElem.userData.changeEntryBlockTextFunc()
+        self:getScrollBoxMeta():setContentHeight(uiUtils.getContentHeight(self:getScrollBoxMeta():getMainFlex().content))
     end
 end
 
@@ -496,7 +505,6 @@ function this.create(params)
     local journalContent = ui.content{
         header,
     }
-    meta:_fillJournal(journalContent, params)
 
     local journalEntries = scrollBox{
         name = params.questName,
@@ -504,6 +512,7 @@ function this.create(params)
         size = util.vector2(params.size.x - 2, params.size.y - 2),
         scrollAmount = params.size.y / 5,
         content = journalContent,
+        contentHeight = 0,
         userData = {
             questBoxMeta = meta,
         }
@@ -512,6 +521,8 @@ function this.create(params)
     meta.getLayout = function (self)
         return journalEntries
     end
+
+    meta:_fillJournal(journalContent, params)
 
     return journalEntries
 end

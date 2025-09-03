@@ -35,6 +35,34 @@ function this.getTextHeight(text, fontSize, width, mul, removeColors)
 end
 
 
+---@return number
+function this.getContentHeight(content, isHorisontal)
+    local res = 0
+
+    local function add(val)
+        if isHorisontal then
+            res = math.max(res, val)
+        else
+            res = res + val
+        end
+    end
+
+    for _, elem in pairs(content) do
+        if elem.props and elem.props.size then
+            add(elem.props.size.y)
+        elseif elem.props and elem.props.textSize then
+            add(elem.props.textSize)
+        elseif elem.userData and elem.userData.height then
+            add(elem.userData.height)
+        elseif elem.content then
+            add(this.getContentHeight(elem.content, elem.props and elem.props.horisontal or false))
+        end
+    end
+
+    return res
+end
+
+
 function this.getUIScale()
 	local width = ui.layers[ui.layers.indexOf("HUD")].size.x
 	local screenSize = ui.screenSize()

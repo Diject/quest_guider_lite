@@ -369,8 +369,11 @@ topicMenuMeta.selectTopic = function (self, topicId)
         userData = {
             updateText = updateTopicText,
         },
-        content = topicContent
+        content = topicContent,
+        contentHeight = 0,
     }
+
+    qMainLay.content[2].userData.scrollBoxMeta:setContentHeight(uiUtils.getContentHeight(topicContent))
 
     self:resetTopicListSelection()
     self:setTopicListSelectedFlad(topicId)
