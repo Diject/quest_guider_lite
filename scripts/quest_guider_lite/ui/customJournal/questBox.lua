@@ -258,7 +258,7 @@ function questBoxMeta._fillJournal(self, content, params)
                         button{
                             text = l10n("topics"),
                             textSize = self.params.fontSize * 0.8,
-                            visible = tracking.initialized and not self.params.isQuestList and next(topicData) and true,
+                            visible = tracking.initialized and not self.params.isQuestList and next(topicData) and true or false,
                             position = util.vector2(textElemSize.x, 0),
                             anchor = util.vector2(1, 0),
                             event = function (layout)
