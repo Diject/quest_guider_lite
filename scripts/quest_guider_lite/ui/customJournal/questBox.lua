@@ -152,11 +152,14 @@ function questBoxMeta._fillJournal(self, content, params)
         local topicData = {}
         for topicId, topic in pairs(playerQuests.getTopicList()) do
             if stringLib.hasPhrase(text, topic.name) then
-                topicData[topic.name] = topic
+                table.insert(topicData, topic)
             end
         end
-        for topicText, _ in pairs(topicData) do
-            text = uiUtils.colorize(text, topicText,
+        table.sort(topicData, function (a, b)
+            return stringLib.length(a.name) > stringLib.length(b.name)
+        end)
+        for _, topic in pairs(topicData) do
+            text = uiUtils.colorize(text, topic.name,
                 "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
         end
 
@@ -180,11 +183,12 @@ function questBoxMeta._fillJournal(self, content, params)
 
             if withTopics then
                 newText = newText.."\n\n\n"
-                for topicName, topic in pairs(topicData) do
+                for _, topic in pairs(topicData) do
                     local topicText = string.format("#%s%s#%s:\n\n", config.data.ui.linkColor:asHex(),
-                        topicName, config.data.ui.defaultColor:asHex())
+                        topic.name, config.data.ui.defaultColor:asHex())
 
-                    for _, entry in ipairs(topic.entries) do
+                    for j = #topic.entries, 1, -1 do
+                        local entry = topic.entries[j]
                         topicText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
                             topicText,
                             config.data.ui.objectColor:asHex(),

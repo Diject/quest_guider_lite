@@ -231,7 +231,8 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
         local newText = "\n"
 
-        for _, entry in ipairs(topic.entries) do
+        for i = #topic.entries, 1, -1 do
+            local entry = topic.entries[i]
             newText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
                 newText,
                 config.data.ui.objectColor:asHex(),
