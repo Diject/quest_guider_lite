@@ -161,7 +161,7 @@ function questBoxMeta._fillJournal(self, content, params)
             return stringLib.length(a.name) > stringLib.length(b.name)
         end)
         for _, topic in pairs(topicData) do
-            text = uiUtils.colorize(text, topic.name,
+            text = uiUtils.colorizeNested(text, topic.name,
                 "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
         end
 
