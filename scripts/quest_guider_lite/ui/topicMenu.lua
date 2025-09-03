@@ -229,15 +229,16 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
         headerElem.props.text = topic.name
 
+        local actorNames = {}
+
         local newText = "\n"
 
         for i = #topic.entries, 1, -1 do
             local entry = topic.entries[i]
-            newText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
+            table.insert(actorNames, entry.actor)
+            newText = string.format("%s\t\t____ID_%s____: \"%s\"\n\n",
                 newText,
-                config.data.ui.objectColor:asHex(),
-                entry.actor,
-                config.data.ui.defaultColor:asHex(),
+                tostring(#actorNames),
                 entry.text
             )
         end
@@ -348,6 +349,15 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
             placeButtons()
         end
+
+        local function replace_ids(str, tbl)
+            return (str:gsub("____ID_(%d+)____", function(idx)
+                idx = tonumber(idx)
+                return string.format("#%s%s#%s", config.data.ui.objectColor:asHex(), tbl[idx] or "", config.data.ui.defaultColor:asHex())
+            end))
+        end
+
+        newText = replace_ids(newText, actorNames)
 
         buttonFlex.props.size = util.vector2(newTextElemSize.x, buttonFlexYPos)
 
