@@ -88,6 +88,7 @@ end)
 ---@field icon string?
 ---@field iconSize any? util.vector2
 ---@field iconColor any?
+---@field alpha number?
 ---@field visible boolean?
 ---@field event fun(layout : any)?
 ---@field mousePress fun(layout : any)?
@@ -118,6 +119,7 @@ return function (params)
                 resource = texture,
                 size = params.iconSize,
                 color = params.iconColor,
+                anchor = util.vector2(0.5, 0.5),
             },
         }
         if params.text then
@@ -134,7 +136,8 @@ return function (params)
                 multiline = false,
                 wordWrap = false,
                 textAlignH = ui.ALIGNMENT.Start,
-                textColor = params.textColor or configData.data.ui.defaultColor
+                textColor = params.textColor or configData.data.ui.defaultColor,
+                anchor = util.vector2(0.5, 0.5),
             },
         }
     end
@@ -154,6 +157,7 @@ return function (params)
             relativePosition = params.relativePosition,
             position = params.position,
             anchor = params.anchor,
+            alpha = params.alpha,
             visible = visible,
         },
         events = {
@@ -176,6 +180,7 @@ return function (params)
                     size = params.size,
                     horizontal = true,
                     align = ui.ALIGNMENT.Center,
+                    arrange = ui.ALIGNMENT.Center,
                 },
                 content = ui.content(buttonContent)
             }

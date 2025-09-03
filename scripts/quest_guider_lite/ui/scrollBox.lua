@@ -31,7 +31,7 @@ scrollBoxMeta.scrollUp = function(self, val)
     local pos = fl.props.position
     if not pos then return end
 
-    fl.props.position = util.vector2(2, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, pos.y + val))
+    fl.props.position = util.vector2(self.params.leftOffset, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, pos.y + val))
 
     self:updateScrollPosition()
 
@@ -43,7 +43,7 @@ scrollBoxMeta.scrollDown = function(self, val)
     local pos = fl.props.position
     if not pos then return end
 
-    fl.props.position = util.vector2(2, pos.y - val)
+    fl.props.position = util.vector2(self.params.leftOffset, pos.y - val)
 
     self:updateScrollPosition()
 
@@ -76,7 +76,7 @@ scrollBoxMeta.moveScrollPanel = function(self, height)
     local pos = fl.props.position
     if not pos then return end
 
-    fl.props.position = util.vector2(2, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, -height))
+    fl.props.position = util.vector2(self.params.leftOffset, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, -height))
 end
 
 ---@param value number [0, 1]
@@ -88,7 +88,7 @@ scrollBoxMeta.moveScrollPanelPercent = function(self, value)
 
     local heightPersent = (self.params.contentHeight - self.innnerSize.y) * value
 
-    fl.props.position = util.vector2(2, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, -heightPersent))
+    fl.props.position = util.vector2(self.params.leftOffset, math.min(self.params.maxNegativeShift or (config.data.ui.scrollArrowSize * 2) or 32, -heightPersent))
 end
 
 
@@ -129,6 +129,7 @@ end
 scrollBoxMeta.setContentHeight = function (self, value)
     self.params.contentHeight = value
     self:updateScrollBarVisibility()
+    self:updateScrollPosition()
 end
 
 
@@ -178,6 +179,7 @@ end
 ---@field size any -- util.vector2
 ---@field scrollAmount integer?
 ---@field maxNegativeShift integer?
+---@field leftOffset integer?
 ---@field content any
 ---@field contentHeight number?
 ---@field minHeightForScroll number?
@@ -193,13 +195,15 @@ return function(params)
     ---@class questGuider.ui.scrollBox
     local meta = setmetatable({}, scrollBoxMeta)
 
+    if not params.leftOffset then params.leftOffset = 2 end
+
     local flex = {
         type = ui.TYPE.Flex,
         props = {
             autoSize = true,
             horizontal = false,
             size = params.size,
-            position = util.vector2(2, 0),
+            position = util.vector2(params.leftOffset, 0),
             arrange = params.arrange,
         },
         content = params.content,
@@ -209,8 +213,8 @@ return function(params)
         params.updateFunc()
     end
 
-    meta.innnerSize = util.vector2(params.size.x - 4, params.size.y - 4)
-    params.minHeightForScroll = params.minHeightForScroll or meta.innnerSize.y * 1.5
+    meta.innnerSize = util.vector2(params.size.x - 2 - params.leftOffset, params.size.y - 4)
+    params.minHeightForScroll = params.minHeightForScroll or meta.innnerSize.y
 
     meta.params = params
 
@@ -252,7 +256,7 @@ return function(params)
             size = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize * 3),
             anchor = util.vector2(1, 0),
             position = util.vector2(params.size.x - 8, meta.scrollBarMinMax[1]),
-            alpha = 0.5,
+            alpha = 0.4,
             color = config.data.ui.defaultColor,
             visible = false,
         },
@@ -347,6 +351,7 @@ return function(params)
                 anchor = util.vector2(1, 0),
                 icon = iconUp,
                 iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
+                alpha = 0.8,
                 updateFunc = params.updateFunc,
                 event = function (layout)
                     if not lockEvent then
@@ -366,6 +371,7 @@ return function(params)
                 anchor = util.vector2(1, 1),
                 icon = iconDown,
                 iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
+                alpha = 0.8,
                 updateFunc = params.updateFunc,
                 event = function (layout)
                     if not lockEvent then

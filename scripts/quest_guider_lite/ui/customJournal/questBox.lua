@@ -146,8 +146,8 @@ function questBoxMeta._fillJournal(self, content, params)
         local dateStr = self.params.isQuestList and string.format(l10n("tooltipIDStringStart"), qInfo.diaId, tostring(qInfo.index))
             or timeLib.getDateByTime(qInfo.timestamp or 0)
 
-        local height = uiUtils.getTextHeight(text, params.fontSize, params.size.x - 12, config.data.journal.textHeightMulRecord)
-        local textElemSize = util.vector2(params.size.x - 12, height)
+        local height = uiUtils.getTextHeight(text, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord)
+        local textElemSize = util.vector2(self.scrollBoxContentSize.x, height)
 
         local topicData = {}
         for topicId, topic in pairs(playerQuests.getTopicList()) do
@@ -198,11 +198,11 @@ function questBoxMeta._fillJournal(self, content, params)
                 end
             end
 
-            local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, params.size.x - 12, config.data.journal.textHeightMulRecord, true)
+            local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, true)
             if withTopics then
                 newTextHeight = math.max(0, newTextHeight - 2 * params.fontSize)
             end
-            local newTextElemSize = util.vector2(params.size.x - 12, newTextHeight)
+            local newTextElemSize = util.vector2(self.scrollBoxContentSize.x, newTextHeight)
 
             textElem.props.size = newTextElemSize
 
@@ -230,7 +230,7 @@ function questBoxMeta._fillJournal(self, content, params)
                     type = ui.TYPE.Widget,
                     props = {
                         autoSize = false,
-                        size = util.vector2(textElemSize.x, (params.fontSize or 18) * 1.15),
+                        size = util.vector2(textElemSize.x, params.fontSize * 1.25),
                     },
                     content = ui.content {
                         {
@@ -264,8 +264,8 @@ function questBoxMeta._fillJournal(self, content, params)
                             text = l10n("topics"),
                             textSize = self.params.fontSize * 0.8,
                             visible = tracking.initialized and not self.params.isQuestList and next(topicData) and true or false,
-                            position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, 0),
-                            anchor = util.vector2(1, 0),
+                            position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, params.fontSize * 1.25 * 0.5),
+                            anchor = util.vector2(1, 0.5),
                             event = function (layout)
                                 changeEntryBlockText(true)
                                 self:getScrollBoxMeta():setContentHeight(uiUtils.getContentHeight(content))
@@ -396,10 +396,27 @@ function this.create(params)
 
     meta.parent = params.parent
 
+    meta.scrollBoxContentSize = util.vector2(params.size.x - 26, params.size.y - 2)
+
+    local journalContent = ui.content{}
+
+    local journalEntries = scrollBox{
+        name = params.questName,
+        updateFunc = params.updateFunc,
+        size = util.vector2(params.size.x - 2, params.size.y - 2),
+        leftOffset = 8,
+        scrollAmount = params.size.y / 5,
+        content = journalContent,
+        contentHeight = 0,
+        userData = {
+            questBoxMeta = meta,
+        }
+    }
+
     local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{meta = meta, filter = meta.parent.textFilter}
 
-    local headerSize = util.vector2(params.size.x, params.fontSize * 4)
-    local checkBoxBlockSize = util.vector2(params.size.x, params.fontSize * 2)
+    local headerSize = util.vector2(meta.scrollBoxContentSize.x, params.fontSize * 4)
+    local checkBoxBlockSize = util.vector2(meta.scrollBoxContentSize.x, params.fontSize * 2)
     local header
     header = {
         type = ui.TYPE.Flex,
@@ -417,7 +434,7 @@ function this.create(params)
                         "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
                     textColor = config.data.ui.defaultColor,
                     autoSize = false,
-                    size = util.vector2(params.size.x, (params.fontSize or 18) * 1.2),
+                    size = util.vector2(meta.scrollBoxContentSize.x, (params.fontSize or 18) * 1.2),
                     textSize = (params.fontSize or 18) * 1.2,
                     multiline = false,
                     wordWrap = false,
@@ -493,7 +510,7 @@ function this.create(params)
                             autoSize = true,
                             horizontal = true,
                             anchor = util.vector2(1, 0.5),
-                            position = util.vector2(params.size.x - params.fontSize * 3, checkBoxBlockSize.y / 2),
+                            position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 3, checkBoxBlockSize.y / 2),
                         },
                         content = ui.content{}
                     },
@@ -502,21 +519,7 @@ function this.create(params)
         }
     }
 
-    local journalContent = ui.content{
-        header,
-    }
-
-    local journalEntries = scrollBox{
-        name = params.questName,
-        updateFunc = params.updateFunc,
-        size = util.vector2(params.size.x - 2, params.size.y - 2),
-        scrollAmount = params.size.y / 5,
-        content = journalContent,
-        contentHeight = 0,
-        userData = {
-            questBoxMeta = meta,
-        }
-    }
+    journalContent:add(header)
 
     meta.getLayout = function (self)
         return journalEntries
