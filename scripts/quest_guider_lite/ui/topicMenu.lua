@@ -92,6 +92,7 @@ topicMenuMeta.clearTopicInfo = function (self)
 
     ---@type questGuider.ui.scrollBox
     local sBoxMeta = topicInfoSB.userData.scrollBoxMeta
+    if not sBoxMeta then return end
     sBoxMeta:clearContent()
 end
 
@@ -686,7 +687,7 @@ local function create(params)
                                     searchBar.content[1].content[1].props.text = meta.textFilter
 
                                     local qBox = meta:getTopicScrollBox()
-                                    if qBox then
+                                    if qBox and qBox.userData and qBox.userData.updateText then
                                         qBox.userData.updateText()
                                     end
 
@@ -712,7 +713,7 @@ local function create(params)
                     meta:selectTopic(selectedQuest)
 
                     local qBox = meta:getTopicScrollBox()
-                    if qBox then
+                    if qBox and qBox.userData and qBox.userData.updateText then
                         qBox.userData.updateText()
                     end
                 end
