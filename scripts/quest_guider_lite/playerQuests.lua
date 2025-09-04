@@ -360,7 +360,7 @@ function this.getJournalText(diaId, index)
 
     for _, info in pairs(dia.infos) do
         if info.questStage == index then
-            return stringLib.removeSpecialCharactersFromJournalText(info.text or "")
+            return info.text
         end
     end
 end

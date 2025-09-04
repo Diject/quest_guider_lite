@@ -133,6 +133,10 @@ function questBoxMeta._fillJournal(self, content, params)
         local text = self.params.hideStageText and "" or playerQuests.getJournalText(qInfo.diaId, qInfo.index)
         if not text then goto continue end
 
+        local topicLinkStrs = stringLib.findTextLinks(text)
+
+        text = stringLib.removeSpecialCharactersFromJournalText(text)
+
         if self.params.showReqsForAll or not addedDiaIds[qInfo.diaId] then
             addedDiaIds[qInfo.diaId] = true
             local id = qInfo.diaId..tostring(qInfo.index)
@@ -148,20 +152,31 @@ function questBoxMeta._fillJournal(self, content, params)
         local dateStr = self.params.isQuestList and string.format(l10n("tooltipIDStringStart"), qInfo.diaId, tostring(qInfo.index))
             or timeLib.getDateByTime(qInfo.timestamp or 0)
 
-        local height = uiUtils.getTextHeight(text, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord)
+        local height = uiUtils.getTextHeight(text, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, true)
         local textElemSize = util.vector2(self.scrollBoxContentSize.x, height)
 
         local topicData = {}
-        for topicId, topic in pairs(playerQuests.getTopicList()) do
-            if stringLib.hasPhrase(text:lower(), topic.id) then
-                table.insert(topicData, topic)
+        if next(topicLinkStrs) then
+            for _, str in pairs(topicLinkStrs) do
+                for topicId, topic in pairs(playerQuests.getTopicList()) do
+                    if stringLib.fuzzyTopicSearch(str, topic.id) then
+                        table.insert(topicData, {topic = topic, pattern = str})
+                    end
+                end
+            end
+        else
+            for topicId, topic in pairs(playerQuests.getTopicList()) do
+                if stringLib.hasPhrase(stringLib.utf8_lower(text), topic.id) then
+                    table.insert(topicData, {topic = topic, pattern = topic.name})
+                end
             end
         end
+
         table.sort(topicData, function (a, b)
-            return stringLib.length(a.name) > stringLib.length(b.name)
+            return stringLib.length(a.pattern) > stringLib.length(b.pattern)
         end)
-        for _, topic in pairs(topicData) do
-            text = uiUtils.colorizeNested(text, topic.name,
+        for _, data in ipairs(topicData) do
+            text = uiUtils.colorizeNested(text, data.pattern,
                 "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
         end
 
@@ -184,19 +199,25 @@ function questBoxMeta._fillJournal(self, content, params)
                 "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
 
             if withTopics then
+                local topics = {}
+                for _, data in pairs(topicData) do
+                    topics[data.topic.id] = data.topic
+                end
+
                 newText = newText.."\n\n\n"
-                for _, topic in pairs(topicData) do
+                for _, topic in pairs(topics) do
                     local topicText = string.format("#%s%s#%s:\n\n", config.data.ui.linkColor:asHex(),
                         topic.name, config.data.ui.defaultColor:asHex())
 
-                    for j = #topic.entries, 1, -1 do
+                    for j = 1, #topic.entries do
                         local entry = topic.entries[j]
+                        local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text)
                         topicText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
                             topicText,
                             config.data.ui.objectColor:asHex(),
                             entry.actor,
                             config.data.ui.defaultColor:asHex(),
-                            entry.text
+                            entryText
                         )
                     end
 

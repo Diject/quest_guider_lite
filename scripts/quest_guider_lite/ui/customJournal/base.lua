@@ -17,6 +17,7 @@ local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
+local stringLib = require("scripts.quest_guider_lite.utils.string")
 local log = require("scripts.quest_guider_lite.utils.log")
 
 local button = require("scripts.quest_guider_lite.ui.button")
@@ -108,6 +109,7 @@ journalMeta.clearQuestInfo = function (self)
 
     ---@type questGuider.ui.scrollBox
     local sBoxMeta = qInfoScrollBox.userData.scrollBoxMeta
+    if not sBoxMeta then return end
     sBoxMeta:clearContent()
 end
 
@@ -209,7 +211,7 @@ local function hasText(questData, text)
     for _, dt in pairs(questData.list) do
         if dt.diaId:find(text, 1, true) then return true end
 
-        local journalText = playerQuests.getJournalText(dt.diaId, dt.index)
+        local journalText = stringLib.removeSpecialCharactersFromJournalText(playerQuests.getJournalText(dt.diaId, dt.index))
         if journalText and journalText:lower():find(text, 1, true) then
             return true
         end

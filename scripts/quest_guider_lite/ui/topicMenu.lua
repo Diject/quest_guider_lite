@@ -231,15 +231,24 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
         local actorNames = {}
 
+        local textLinks = {}
+
         local newText = "\n"
 
-        for i = #topic.entries, 1, -1 do
+        for i = 1, #topic.entries do
             local entry = topic.entries[i]
+
+            local topicLinkStrs = stringLib.findTextLinks(entry.text)
+            for _, str in pairs(topicLinkStrs) do
+                textLinks[str] = true
+            end
+
+            local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text)
             table.insert(actorNames, entry.actor)
             newText = string.format("%s\t\t____ID_%s____: \"%s\"\n\n",
                 newText,
                 tostring(#actorNames),
-                entry.text
+                entryText
             )
         end
 
@@ -252,39 +261,44 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
 
         local nestedTopics = {}
-        local topicsInListCount = 0
-        for tId, tp in pairs(playerQuests.getTopicList()) do
-            if stringLib.hasPhrase(newText:lower(), tp.id) then
-                nestedTopics[tp.name] = tp
-                topicsInListCount = topicsInListCount + 1
+
+        if next(textLinks) then
+            for str, _ in pairs(textLinks) do
+                for _, tp in pairs(playerQuests.getTopicList()) do
+                    if stringLib.fuzzyTopicSearch(str, tp.id) then
+                        if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, patterns = {}} end
+                        nestedTopics[tp.id].patterns[str] = true
+                    end
+                end
+            end
+        else
+            for _, tp in pairs(playerQuests.getTopicList()) do
+                if stringLib.hasPhrase(stringLib.utf8_lower(newText), tp.id) then
+                    if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, patterns = {}} end
+                    nestedTopics[tp.id].patterns[tp.name] = true
+                end
             end
         end
-
-        nestedTopics = tableLib.values(nestedTopics, function (a, b)
-            return (stringLib.length(a.name or "") > stringLib.length(b.name or ""))
-        end)
-
 
         buttonFlex.content = ui.content{}
 
         local buttonFlexYPos = 0
 
-        if topicsInListCount > 0 then
+        if next(nestedTopics) then
 
             nestedTopics = tableLib.values(nestedTopics, function (a, b)
-                return (stringLib.length(a.name or "") > stringLib.length(b.name or ""))
+                return (stringLib.length(a.topic.name or "") > stringLib.length(b.topic.name or ""))
             end)
 
             for _, topicData in ipairs(nestedTopics) do
-                local topicText = topicData.name
-
-                newText = uiUtils.colorizeNested(newText, topicText,
-                    "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+                for pattern, _ in pairs(topicData.patterns) do
+                    newText = uiUtils.colorizeNested(newText, pattern,
+                        "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+                end
             end
 
-
             table.sort(nestedTopics, function (a, b)
-                return (a.name or ""):lower() < (b.name or ""):lower()
+                return (a.topic.name or ""):lower() < (b.topic.name or ""):lower()
             end)
 
             local buttonLineData = {}
@@ -295,7 +309,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 local step = (newTextElemSize.x - currentStep * 2) / #buttonLineData
 
                 for _, topicData in ipairs(buttonLineData) do
-                    local topicText = topicData.name
+                    local topicText = topicData.topic.name
 
                     buttonFlex.content:add(
                         button{
@@ -307,10 +321,10 @@ topicMenuMeta.selectTopic = function (self, topicId)
                             anchor = util.vector2(0.5, 0),
                             position = util.vector2(currentStep + step / 2, buttonFlexYPos),
                             userData = {
-                                topicId = topicData.id
+                                topicId = topicData.topic.id
                             },
                             event = function (layout)
-                                self:addToHistory(topicData.id)
+                                self:addToHistory(topicData.topic.id)
                                 self:setTextFilter()
                                 self:fillTopicsContent()
                                 self:selectTopic(layout.userData.topicId)
@@ -327,7 +341,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
             local maxBtnWidt = 0
             local maxBlockWidth = newTextElemSize.x - params.fontSize * 0.5
             for _, topicData in ipairs(nestedTopics) do
-                local topicText = topicData.name
+                local topicText = topicData.topic.name
 
                 if topicText ~= topic.name then
                     local count = #buttonLineData

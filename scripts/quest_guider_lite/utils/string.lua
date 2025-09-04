@@ -2,6 +2,8 @@
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 
+local levenshtein = require("scripts.quest_guider_lite.utils.levenshtein")
+
 local this = {}
 
 --- Returns string like ' "1", "2" and 3 more '
@@ -83,6 +85,97 @@ end
 ---@return number
 function this.length(str)
     return utf8.len(str) or string.len(str) or 0
+end
+
+
+---@return string[]
+function this.findTextLinks(text)
+    local results = {}
+    for match in text:gmatch("@(.-)#") do
+        table.insert(results, match)
+    end
+    return results
+end
+
+
+function this.utf8_splitWords(str)
+    local words = {}
+    local pattern = "[%wа-яА-ЯёЁąćęłńóśźżĄĆĘŁŃÓŚŹŻčďěňřšťůžČĎĚŇŘŠŤŮŽäöüßÄÖÜéèêëÉÈÊËàâæçîïôœùûüÿÀÂÆÇÎÏÔŒÙÛÜŸ]+"
+    for word in str:gmatch(pattern) do
+        table.insert(words, word)
+    end
+    if #words == 0 and str ~= "" then
+        table.insert(words, str)
+    end
+    return words
+end
+
+
+function this.utf8_removeLast(str, n)
+    local len = utf8.len(str)
+    if not len or n > len then return "" end
+    local byte_pos = utf8.offset(str, len - n + 1)
+    return str:sub(1, byte_pos - 1)
+end
+
+
+function this.utf8_lower(str)
+    return (str:gsub("([%z\1-\127\194-\244][\128-\191]*)", function(c)
+        return string.lower(c)
+    end))
+end
+
+
+function this.utf8_chars(str)
+    local chars = {}
+    for _, c in utf8.codes(str) do
+        table.insert(chars, utf8.char(c))
+    end
+    return chars
+end
+
+
+function this.utf8_sub(s, start, len)
+    local i = 1
+    local byte_start, byte_end
+    for p, c in utf8.codes(s) do
+        if i == start then
+            byte_start = p
+        end
+        if i == start + len then
+            byte_end = p - 1
+            break
+        end
+        i = i + 1
+    end
+    byte_start = byte_start or 1
+    byte_end = byte_end or #s
+    return s:sub(byte_start, byte_end)
+end
+
+
+function this.isWordChar(c)
+    return c:match("[%wа-яА-ЯёЁąćęłńóśźżĄĆĘŁŃÓŚŹŻčďěňřšťůžČĎĚŇŘŠŤŮŽäöüßÄÖÜéèêëÉÈÊËàâæçîïôœùûüÿÀÂÆÇÎÏÔŒÙÛÜŸ]")
+end
+
+
+---@param pattern string should be lowercase
+---@return boolean
+function this.fuzzyTopicSearch(text, pattern, threshold)
+    if not threshold then
+        local len = this.length(pattern)
+
+        threshold = len > 3 and math.max(4, 1 + len / 5) or 0
+    end
+
+    local text_lower = this.utf8_lower(text)
+
+    local dist = levenshtein.utf8_levenshtein(text, pattern)
+    if dist <= threshold then
+        return true
+    end
+
+    return false
 end
 
 
