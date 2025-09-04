@@ -153,7 +153,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
         local topicData = {}
         for topicId, topic in pairs(playerQuests.getTopicList()) do
-            if stringLib.hasPhrase(text, topic.name) then
+            if stringLib.hasPhrase(text:lower(), topic.id) then
                 table.insert(topicData, topic)
             end
         end

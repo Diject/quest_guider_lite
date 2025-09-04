@@ -254,7 +254,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
         local nestedTopics = {}
         local topicsInListCount = 0
         for tId, tp in pairs(playerQuests.getTopicList()) do
-            if stringLib.hasPhrase(newText, tp.name) then
+            if stringLib.hasPhrase(newText:lower(), tp.id) then
                 nestedTopics[tp.name] = tp
                 topicsInListCount = topicsInListCount + 1
             end
