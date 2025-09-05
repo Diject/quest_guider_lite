@@ -124,6 +124,7 @@ function this.createQuestGiverMarker(ref)
     ---@diagnostic disable-next-line: missing-fields
     local markerData = {
         objectId = recordId,
+        groupName = commonInfo.questGiverGroup,
         temporary = true,
     }
 
@@ -274,6 +275,7 @@ function this.createQuestGiverMarkerForDoor(ref)
     ---@diagnostic disable-next-line: missing-fields
     local markerData = {
         object = ref,
+        groupName = commonInfo.questGiverGroup,
         shortTerm = true,
     }
 

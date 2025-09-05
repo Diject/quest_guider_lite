@@ -67,6 +67,7 @@ this.exclamationMarkPath = "textures/icons/quest_guider/exclamationMark.dds"
 this.doorMarkPath = "textures/icons/quest_guider/toDoorIcon.dds"
 this.doorExclMarkPath = "textures/icons/quest_guider/doorExclIcon.dds"
 
+this.questGiverGroup = "~__QGL:GIVER__"
 
 this.forbiddenForTracking = {
     ["DIAO"] = true,
