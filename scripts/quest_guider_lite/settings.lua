@@ -223,5 +223,6 @@ I.Settings.registerGroup{
         color{key = "ui.linkColor", name = "linkColor", description = "linkColorDescription", default = config.data.ui.linkColor},
         color{key = "ui.shadowColor", name = "shadowColor", description = "shadowColorDescription", default = config.data.ui.shadowColor},
         numberSetting{key = "ui.scrollArrowSize", name = "scrollButtonSize", description = "scrollButtonSizeDescription", integer = true, min = 12, max = 60, default = config.default.ui.scrollArrowSize},
+        numberSetting{key = "ui.headerBackgroundAlpha", name = "headerBackgroundAlpha", description = "headerBackgroundAlphaDescription", min = 0, max = 100, default = config.default.ui.headerBackgroundAlpha},
     },
 }

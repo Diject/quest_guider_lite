@@ -57,6 +57,7 @@ this.default = {
         linkColor = commonData.journalLinkColor,
         objectColor = commonData.objectColor,
         scrollArrowSize = 16,
+        headerBackgroundAlpha = 50,
     },
 }
 

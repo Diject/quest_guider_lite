@@ -5,6 +5,8 @@ local config = require("scripts.quest_guider_lite.config")
 
 local this = {}
 
+this.whiteTexture = ui.texture{ path = "white" }
+
 
 function this.getTextHeight(text, fontSize, width, mul, removeColors)
     if removeColors then

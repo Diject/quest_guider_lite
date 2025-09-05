@@ -511,10 +511,53 @@ local function create(params)
     local mainHeader = {
         type = ui.TYPE.Widget,
         props = {
-            size = util.vector2(params.size.x, params.fontSize * 1.5),
+            size = util.vector2(params.size.x + 6, params.fontSize * 1.5),
         },
         userData = {},
+        events = {
+            mousePress = async:callback(function(coord, layout)
+                layout.userData.contentBackup = meta:getQuestScrollBox()
+                meta:getQuestMain().content[2] = questInfo
+
+                layout.userData.doDrag = true
+                local screenSize = uiUtils.getScaledScreenSize()
+                layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
+            end),
+
+            mouseRelease = async:callback(function(_, layout)
+                local relativePos = meta.menu.layout.props.relativePosition
+                config.setValue("journal.position.x", relativePos.x * 100)
+                config.setValue("journal.position.y", relativePos.y * 100)
+                layout.userData.lastMousePos = nil
+
+                meta:getQuestMain().content[2] = layout.userData.contentBackup
+                layout.userData.contentBackup = nil
+                meta:update()
+            end),
+
+            mouseMove = async:callback(function(coord, layout)
+                if not layout.userData.lastMousePos then return end
+
+                local screenSize = uiUtils.getScaledScreenSize()
+                local props = meta.menu.layout.props
+                local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
+
+                props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
+                meta:update()
+
+                layout.userData.lastMousePos = relativePos
+            end),
+        },
         content = ui.content{
+            {
+                type = ui.TYPE.Image,
+                props = {
+                    resource = uiUtils.whiteTexture,
+                    relativeSize = util.vector2(1, 1),
+                    color = config.data.ui.backgroundColor,
+                    alpha = config.data.ui.headerBackgroundAlpha / 100,
+                }
+            },
             {
                 template = templates.textNormal,
                 type = ui.TYPE.Text,
@@ -526,41 +569,6 @@ local function create(params)
                     textShadow = true,
                     textShadowColor = config.data.ui.shadowColor,
                 },
-                userData = {},
-                events = {
-                    mousePress = async:callback(function(coord, layout)
-                        layout.userData.contentBackup = meta:getQuestScrollBox()
-                        meta:getQuestMain().content[2] = questInfo
-
-                        layout.userData.doDrag = true
-                        local screenSize = uiUtils.getScaledScreenSize()
-                        layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
-                    end),
-
-                    mouseRelease = async:callback(function(_, layout)
-                        local relativePos = meta.menu.layout.props.relativePosition
-                        config.setValue("journal.position.x", relativePos.x * 100)
-                        config.setValue("journal.position.y", relativePos.y * 100)
-                        layout.userData.lastMousePos = nil
-
-                        meta:getQuestMain().content[2] = layout.userData.contentBackup
-                        layout.userData.contentBackup = nil
-                        meta:update()
-                    end),
-
-                    mouseMove = async:callback(function(coord, layout)
-                        if not layout.userData.lastMousePos then return end
-
-                        local screenSize = uiUtils.getScaledScreenSize()
-                        local props = meta.menu.layout.props
-                        local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
-
-                        props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
-                        meta:update()
-
-                        layout.userData.lastMousePos = relativePos
-                    end),
-                }
             },
             {
                 type = ui.TYPE.Flex,
@@ -581,6 +589,7 @@ local function create(params)
                             textColor = config.data.ui.defaultColor,
                             textShadow = true,
                             textShadowColor = config.data.ui.shadowColor,
+                            propagateEvents = false,
                         },
                         userData = {},
                         events = {
@@ -602,6 +611,7 @@ local function create(params)
                             textColor = config.data.ui.defaultColor,
                             textShadow = true,
                             textShadowColor = config.data.ui.shadowColor,
+                            propagateEvents = false,
                         },
                         userData = {},
                         events = {
