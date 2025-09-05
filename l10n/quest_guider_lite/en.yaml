@@ -67,7 +67,6 @@ ssqnIcons: "Use SSQN icons"
 ssqnIconsDescription: "If enabled, a quest icon from Skyrim Style Quest Notifications will be displayed before the quest name in the list."
 questGivers: "Quest giver markers"
 questGiversDescription: "Create markers for quest givers. Markers will be created both for the quest givers themselves and for doors to locations where quest givers may be found. Changing this setting will only take effect after re-entering the location."
-textHeightMulJournal: "Text height multiplier (for journal records)"
 textHeightMul: "Text height multiplier"
 textHeightMulDescription: |-
   This constant is used to estimate the height of text elements based on their font size. OpenMW does not provide a way to retrieve the actual size of text elements, so an approximate height is calculated using this multiplier.
