@@ -665,7 +665,9 @@ local function create(params)
                                     if qBox then
                                         ---@type questGuider.ui.questBoxMeta
                                         local questBoxMeta = meta:getQuestScrollBox().userData.questBoxMeta
-                                        questBoxMeta:updateColors()
+                                        if questBoxMeta then
+                                            questBoxMeta:updateColors()
+                                        end
                                     end
 
                                     updateFunc()
@@ -693,7 +695,9 @@ local function create(params)
                     if qBox then
                         ---@type questGuider.ui.questBoxMeta
                         local questBoxMeta = meta:getQuestScrollBox().userData.questBoxMeta
-                        questBoxMeta:updateColors()
+                        if questBoxMeta then
+                            questBoxMeta:updateColors()
+                        end
                     end
                 end
             },
