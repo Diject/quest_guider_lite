@@ -61,7 +61,7 @@ end
 ---@param text string
 ---@return string
 function this.removeSpecialCharactersFromJournalText(text)
-    return text:gsub("@", ""):gsub("#", "") ---@diagnostic disable-line: redundant-return-value
+    return text:gsub('[@#\127]', "") ---@diagnostic disable-line: redundant-return-value
 end
 
 
