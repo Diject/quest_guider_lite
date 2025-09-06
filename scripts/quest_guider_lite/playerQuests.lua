@@ -173,7 +173,7 @@ function this.init()
 
                     storageQuestData.timestamp = 0
                     storageQuestData.finished = storageQuestData.finished or q.finished
-                    for _, entryData in ipairs(qEntries[qName]) do
+                    for i, entryData in ipairs(qEntries[qName]) do
 
                         local entry = entryData.entry
                         local diaRecord = entryData.dia
@@ -185,7 +185,7 @@ function this.init()
                             end
                         end
 
-                        local timestamp = dateLib.getTimestampByDate(entry.day, entry.month, entryData.year)
+                        local timestamp = dateLib.getTimestampByDate(entry.day, entry.month, entryData.year) + i
                         storageQuestData.timestamp = math.max(storageQuestData.timestamp, timestamp)
 
                         table.insert(storageQuestData.list, {
