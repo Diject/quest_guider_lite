@@ -349,6 +349,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                             textSize = params.fontSize,
                             anchor = util.vector2(0.5, 0),
                             position = util.vector2(currentStep + step / 2, buttonFlexYPos),
+                            parentScrollBoxUserData = self:getTopicScrollBox().userData,
                             userData = {
                                 topicId = topicData.topic.id
                             },
@@ -412,9 +413,6 @@ topicMenuMeta.selectTopic = function (self, topicId)
         textElem.props.text = newText
     end
 
-
-    updateTopicText(topicContent)
-
     qMainLay.content[2] = scrollBox{
         updateFunc = function ()
             self.menu:update()
@@ -427,6 +425,8 @@ topicMenuMeta.selectTopic = function (self, topicId)
         content = topicContent,
         contentHeight = 0,
     }
+
+    updateTopicText(topicContent)
 
     qMainLay.content[2].userData.scrollBoxMeta:setContentHeight(uiUtils.getContentHeight(topicContent))
 
