@@ -1,19 +1,21 @@
+local core = require("openmw.core")
+
 local this = {}
 
 
 local morrowindMonths = {
-    {"Morning Star", 31},
-    {"Sun's Dawn", 28},
-    {"First Seed", 31},
-    {"Rain's Hand", 30},
-    {"Second Seed", 31},
-    {"Mid Year", 30},
-    {"Sun's Height", 31},
-    {"Last Seed", 31},
-    {"Hearthfire", 30},
-    {"Frostfall", 31},
-    {"Sun's Dusk", 30},
-    {"Evening Star", 31},
+    {core.getGMST("sMonthMorningstar") or "Morning Star", 31},
+    {core.getGMST("sMonthSunsdawn") or "Sun's Dawn", 28},
+    {core.getGMST("sMonthFirstseed") or "First Seed", 31},
+    {core.getGMST("sMonthRainshand") or "Rain's Hand", 30},
+    {core.getGMST("sMonthSecondseed") or "Second Seed", 31},
+    {core.getGMST("sMonthMidyear") or "Mid Year", 30},
+    {core.getGMST("sMonthSunsheight") or "Sun's Height", 31},
+    {core.getGMST("sMonthLastseed") or "Last Seed", 31},
+    {core.getGMST("sMonthHeartfire") or "Hearthfire", 30},
+    {core.getGMST("sMonthFrostfall") or "Frostfall", 31},
+    {core.getGMST("sMonthSunsdusk") or "Sun's Dusk", 30},
+    {core.getGMST("sMonthEveningstar") or "Evening Star", 31},
 }
 
 
@@ -76,7 +78,7 @@ end
 
 
 ---@return number timestamp
-function this.getTimeByDate(day, month, year)
+function this.getTimestampByDate(day, month, year)
     if year < startYear or (year == startYear and month < startMonth)
         or (year == startYear and month == startMonth and day < startDay) then
             return 0
