@@ -41,10 +41,12 @@ this.default = {
         listRelativeSize = 30, -- %
         trackedColorMarks = true,
         maxColorMarks = 10,
-        textHeightMul = 0.5,
+        textHeightMul = 0.5, -- deprecated
         textHeightMulRecord = 0.7,
         ssqnIcons = true,
         mouseScrollAmount = 40,
+        topicTextMaxLenToProcess = 20000,
+        maxTopicEntriesInJournal = 2,
     },
     ui = {
         fontSize = 20,

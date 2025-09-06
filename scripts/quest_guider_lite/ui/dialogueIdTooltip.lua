@@ -62,8 +62,8 @@ function this.getContentForTooltip(params)
     local scaledScreenSize = uiUtils.getScaledScreenSize()
     local width = scaledScreenSize.x / 3
     local fontSize = params.fontSize or (meta and meta.params.fontSize) or 18
-    local idTextHeight = uiUtils.getTextHeight(idStr, fontSize, width, config.data.journal.textHeightMul)
-    local startedInHeight = uiUtils.getTextHeight(startedInStr, fontSize, width, config.data.journal.textHeightMul)
+    local idTextHeight = uiUtils.getTextHeight(idStr, fontSize, width, config.data.journal.textHeightMulRecord)
+    local startedInHeight = uiUtils.getTextHeight(startedInStr, fontSize, width, config.data.journal.textHeightMulRecord)
 
     if params.filter then
         idStr = uiUtils.colorize(idStr, params.filter, "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())

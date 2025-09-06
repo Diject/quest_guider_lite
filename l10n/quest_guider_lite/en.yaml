@@ -81,6 +81,10 @@ disableQuestData: "Disable quest data"
 disableQuestDataDescription: "If enabled, quest data will not be loaded when the game starts. If quest data was already loaded, changes will take effect only after restarting the game."
 headerBackgroundAlpha: "Header opacity"
 headerBackgroundAlphaDescription: "Opacity of the header background for all menus. In %."
+topicTextMaxLenToProcess: "Max topic text length to process"
+topicTextMaxLenToProcessDescription: "Sets the maximum length of topic text in the topic menu that will be processed to identify topic names. Longer texts will be ignored to improve performance."
+maxTopicEntriesInJournal: "Max topic entries in journal"
+maxTopicEntriesInJournalDescription: "Sets the maximum number of entries displayed for each topic in the journal. If a topic has more entries than this limit, only the most recent entries will be shown."
 
 hidden: "Hidden"
 finished: "Finished"
@@ -123,6 +127,7 @@ next: "Next"
 previous: "Previous"
 questData: "Quest Data"
 status: "Status"
+ellipsis: "(...)"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."

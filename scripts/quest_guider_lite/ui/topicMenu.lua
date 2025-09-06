@@ -227,7 +227,8 @@ topicMenuMeta.selectTopic = function (self, topicId)
         local textElem = topicInfoContent[3].content[2]
         local buttonFlex = topicInfoContent[2]
 
-        headerElem.props.text = topic.name
+        headerElem.props.text = uiUtils.colorize(topic.name, self.textFilter,
+            "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
 
         local actorNames = {}
 
@@ -252,7 +253,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
             )
         end
 
-        local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, headerSize.x, config.data.journal.textHeightMulRecord, true)
+        local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, headerSize.x, config.data.journal.textHeightMulRecord, 1, true)
         newTextHeight = math.max(0, newTextHeight - 2 * params.fontSize)
 
         local newTextElemSize = util.vector2(headerSize.x, newTextHeight)
@@ -261,22 +262,46 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
 
         local nestedTopics = {}
+        local textLen = stringLib.length(newText)
 
-        if next(textLinks) then
+        if textLen <= config.data.journal.topicTextMaxLenToProcess and next(textLinks) then
             for str, _ in pairs(textLinks) do
                 for _, tp in pairs(playerQuests.getTopicList()) do
-                    if stringLib.fuzzyTopicSearch(str, tp.id) then
-                        if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, patterns = {}} end
+
+                    if not nestedTopics[tp.id] then
+                        for _, name in pairs(actorNames) do
+                            if stringLib.fuzzyTopicSearch(tp.id, stringLib.utf8_lower(name)) then
+                                if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
+                            end
+                        end
+                    end
+
+                    if (not nestedTopics[tp.id] or not nestedTopics[tp.id].patterns[str])
+                            and stringLib.fuzzyTopicSearch(str, tp.id) then
+                        if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
                         nestedTopics[tp.id].patterns[str] = true
                     end
+
                 end
             end
-        else
+        elseif textLen <= config.data.journal.topicTextMaxLenToProcess then
+            local textLower = stringLib.utf8_lower(newText)
             for _, tp in pairs(playerQuests.getTopicList()) do
-                if stringLib.hasPhrase(stringLib.utf8_lower(newText), tp.id) then
-                    if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, patterns = {}} end
+
+                if not nestedTopics[tp.id] then
+                    for _, name in pairs(actorNames) do
+                        if stringLib.fuzzyTopicSearch(tp.id, stringLib.utf8_lower(name)) then
+                            if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
+                        end
+                    end
+                end
+
+                if (not nestedTopics[tp.id] or not nestedTopics[tp.id].patterns[tp.name])
+                        and stringLib.hasPhrase(textLower, tp.id) then
+                    if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
                     nestedTopics[tp.id].patterns[tp.name] = true
                 end
+
             end
         end
 
@@ -287,18 +312,22 @@ topicMenuMeta.selectTopic = function (self, topicId)
         if next(nestedTopics) then
 
             nestedTopics = tableLib.values(nestedTopics, function (a, b)
-                return (stringLib.length(a.topic.name or "") > stringLib.length(b.topic.name or ""))
+                return (a.nameLen > b.nameLen)
             end)
 
+            local patColor = "#"..config.data.ui.linkColor:asHex()
+            local patterns = {}
             for _, topicData in ipairs(nestedTopics) do
                 for pattern, _ in pairs(topicData.patterns) do
-                    newText = uiUtils.colorizeNested(newText, pattern,
-                        "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+                    patterns[pattern] = {pattern = pattern, color = patColor}
                 end
             end
 
+            newText = uiUtils.colorizeNestedMulti(newText, tableLib.values(patterns),
+                    "#"..config.data.ui.defaultColor:asHex())
+
             table.sort(nestedTopics, function (a, b)
-                return (a.topic.name or ""):lower() < (b.topic.name or ""):lower()
+                return a.topic.id < b.topic.id
             end)
 
             local buttonLineData = {}
@@ -346,7 +375,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 if topicText ~= topic.name then
                     local count = #buttonLineData
                     local textLen = stringLib.length(topicText)
-                    local btnWidth = textLen * config.data.journal.textHeightMul * params.fontSize
+                    local btnWidth = textLen * config.data.journal.textHeightMulRecord * params.fontSize
                     local maxWidth = math.max(maxBtnWidt, btnWidth)
 
                     if (count * maxWidth) + maxWidth < maxBlockWidth or count == 0 then
@@ -418,14 +447,14 @@ end
 ---@param text string
 ---@return boolean
 local function hasText(topicData, text)
-    text = text:lower()
+    text = stringLib.utf8_lower(text)
     if topicData.id:find(text, 1, true) then
         return true
     end
 
     for _, dt in pairs(topicData.entries) do
-        if dt.text:lower():find(text, 1, true) then return true end
-        if dt.actor:lower():find(text, 1, true) then return true end
+        if stringLib.utf8_lower(dt.text):find(text, 1, true) then return true end
+        if stringLib.utf8_lower(dt.actor):find(text, 1, true) then return true end
     end
 
     return false
@@ -446,7 +475,7 @@ function topicMenuMeta.fillTopicsContent(self)
 
     ---@type questGuider.PlayerJournalTopic[]
     local sortedData = tableLib.values(topicData, function (a, b)
-        return (a.id or "") < (b.id or "")
+        return (stringLib.utf8_lower(a.id or "") < stringLib.utf8_lower(b.id or ""))
     end)
 
     local heightInList = 0

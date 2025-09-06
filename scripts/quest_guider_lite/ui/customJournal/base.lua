@@ -203,8 +203,8 @@ end
 ---@param text string
 ---@return boolean
 local function hasText(questData, text)
-    text = text:lower()
-    if questData.name:lower():find(text, 1, true) then
+    text = stringLib.utf8_lower(text)
+    if stringLib.utf8_lower(questData.name):find(text, 1, true) then
         return true
     end
 
@@ -212,12 +212,12 @@ local function hasText(questData, text)
         if dt.diaId:find(text, 1, true) then return true end
 
         local journalText = stringLib.removeSpecialCharactersFromJournalText(playerQuests.getJournalText(dt.diaId, dt.index))
-        if journalText and journalText:lower():find(text, 1, true) then
+        if journalText and stringLib.utf8_lower(journalText):find(text, 1, true) then
             return true
         end
 
         local dateStr = timeLib.getDateByTime(dt.timestamp or 0)
-        if dateStr:lower():find(text, 1, true) then
+        if stringLib.utf8_lower(dateStr):find(text, 1, true) then
             return true
         end
     end

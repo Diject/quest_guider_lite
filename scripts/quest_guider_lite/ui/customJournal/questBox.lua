@@ -152,33 +152,31 @@ function questBoxMeta._fillJournal(self, content, params)
         local dateStr = self.params.isQuestList and string.format(l10n("tooltipIDStringStart"), qInfo.diaId, tostring(qInfo.index))
             or timeLib.getDateByTime(qInfo.timestamp or 0)
 
-        local height = uiUtils.getTextHeight(text, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, true)
+        local height = uiUtils.getTextHeight(text, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, 1, true)
         local textElemSize = util.vector2(self.scrollBoxContentSize.x, height)
 
         local topicData = {}
+        local linkColor = "#"..config.data.ui.linkColor:asHex()
         if next(topicLinkStrs) then
             for _, str in pairs(topicLinkStrs) do
                 for topicId, topic in pairs(playerQuests.getTopicList()) do
                     if stringLib.fuzzyTopicSearch(str, topic.id) then
-                        table.insert(topicData, {topic = topic, pattern = str})
+                        table.insert(topicData, {topic = topic, pattern = str, color = linkColor, patternLen = stringLib.length(str)})
                     end
                 end
             end
         else
             for topicId, topic in pairs(playerQuests.getTopicList()) do
                 if stringLib.hasPhrase(stringLib.utf8_lower(text), topic.id) then
-                    table.insert(topicData, {topic = topic, pattern = topic.name})
+                    table.insert(topicData, {topic = topic, pattern = topic.name, color = linkColor, patternLen = stringLib.length(topic.name)})
                 end
             end
         end
 
         table.sort(topicData, function (a, b)
-            return stringLib.length(a.pattern) > stringLib.length(b.pattern)
+            return a.patternLen > b.patternLen
         end)
-        for _, data in ipairs(topicData) do
-            text = uiUtils.colorizeNested(text, data.pattern,
-                "#"..config.data.ui.linkColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
-        end
+        text = uiUtils.colorizeNestedMulti(text, topicData, "#"..config.data.ui.defaultColor:asHex())
 
         local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize,
             filter = self.parent.textFilter}
@@ -209,7 +207,15 @@ function questBoxMeta._fillJournal(self, content, params)
                     local topicText = string.format("#%s%s#%s:\n\n", config.data.ui.linkColor:asHex(),
                         topic.name, config.data.ui.defaultColor:asHex())
 
-                    for j = 1, #topic.entries do
+                    local entryCount = #topic.entries
+                    local startIndex = math.max(1, entryCount - config.data.journal.maxTopicEntriesInJournal + 1)
+                    local endIndex = entryCount
+
+                    if startIndex ~= 1 then
+                        topicText = string.format("%s%s\n\n", topicText, l10n("ellipsis"))
+                    end
+
+                    for j = startIndex, endIndex do
                         local entry = topic.entries[j]
                         local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text)
                         topicText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
@@ -225,7 +231,7 @@ function questBoxMeta._fillJournal(self, content, params)
                 end
             end
 
-            local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, true)
+            local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, 1, true)
             if withTopics then
                 newTextHeight = math.max(0, newTextHeight - 2 * params.fontSize)
             end
@@ -290,7 +296,8 @@ function questBoxMeta._fillJournal(self, content, params)
                         button{
                             text = l10n("topics"),
                             textSize = self.params.fontSize * 0.8,
-                            visible = tracking.initialized and not self.params.isQuestList and next(topicData) and true or false,
+                            visible = tracking.initialized and not self.params.isQuestList and next(topicData)
+                                and config.data.journal.maxTopicEntriesInJournal > 0 and true or false,
                             position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, params.fontSize * 1.25 * 0.5),
                             anchor = util.vector2(1, 0.5),
                             parentScrollBoxUserData = self:getScrollBox().userData,
@@ -431,7 +438,7 @@ function this.create(params)
     local journalEntries = scrollBox{
         name = params.questName,
         updateFunc = params.updateFunc,
-        size = util.vector2(params.size.x - 2, params.size.y - 2),
+        size = util.vector2(params.size.x, params.size.y - 2),
         leftOffset = 8,
         scrollAmount = params.size.y / 5,
         content = journalContent,
