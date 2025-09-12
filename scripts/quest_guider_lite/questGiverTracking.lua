@@ -22,7 +22,7 @@ local l10n = require('openmw.core').l10n(commonInfo.l10nKey)
 local this = {}
 
 
----@type table<string, {markerId : string?, hudMarkerId : string?}>
+---@type table<string, {markerId : string?, hudMarkerId : string?, refs : table<string, any>?}>
 this.trackedQuestGivers = {}
 
 this.scaledScreenSize = {x = 1920, y = 1080}
@@ -30,14 +30,21 @@ this.scaledScreenSize = {x = 1920, y = 1080}
 
 
 function this.registerTrackedQuestGiver(objectRecordId, markerRecordId, hudMarkerId)
-    this.trackedQuestGivers[objectRecordId] = {markerId = markerRecordId, hudMarkerId = hudMarkerId}
+    if not this.trackedQuestGivers[objectRecordId] then
+        this.trackedQuestGivers[objectRecordId] = {refs = {}}
+    end
+    this.trackedQuestGivers[objectRecordId].markerId = markerRecordId
+    this.trackedQuestGivers[objectRecordId].hudMarkerId = hudMarkerId
 end
 
 
 function this.createQuestGiverMarker(ref)
     local recordId = ref.recordId
 
-    if this.trackedQuestGivers[recordId] then return end
+    if this.trackedQuestGivers[recordId] then
+        this.trackedQuestGivers[recordId].refs[ref.id] = ref
+        return
+    end
 
     local objectData = questLib.getObjectData(recordId)
     if not objectData or not objectData.starts then return end
@@ -58,7 +65,7 @@ function this.createQuestGiverMarker(ref)
 
         local firstIndexStr = questLib.getFirstIndex(questData)
         if not firstIndexStr then goto continue end
-        if not questLib.checkConditionsForQuest(diaIdLower, firstIndexStr) then
+        if not questLib.checkConditionsForQuest(diaIdLower, firstIndexStr, ref) then
             goto continue
         end
 
@@ -128,6 +135,11 @@ function this.createQuestGiverMarker(ref)
         temporary = true,
     }
 
+    if not this.trackedQuestGivers[ref.recordId] then
+        this.trackedQuestGivers[ref.recordId] = {refs = {}}
+    end
+    this.trackedQuestGivers[ref.recordId].refs[ref.id] = ref
+
     world.players[1]:sendEvent("QGL:addMarkerForQuestGivers", {
         questNames = questNames,
         recordData = recordData,
@@ -139,43 +151,18 @@ end
 
 
 function this.updateQuestGiverMarkers()
-    for objId, markerData in pairs(this.trackedQuestGivers) do
-        local objectData = questLib.getObjectData(objId)
+    local tracked = this.trackedQuestGivers
+    this.trackedQuestGivers = {}
 
-        local valid = false
-
-        for _, questId in pairs((objectData or {}).starts or {}) do
-            local questData = questLib.getQuestData(questId)
-            if not questData or not questData.name then goto continue end
-
-            for _, linkId in pairs(questData.links or {}) do
-                if (playerQuests.getCurrentIndex(linkId) or 0) > 0 then goto continue end
+    for objId, markerData in pairs(tracked) do
+        for refId, ref in pairs(markerData.refs) do
+            if ref:isValid() then
+                this.createQuestGiverMarker(ref)
             end
-
-            local firstIndexStr = questLib.getFirstIndex(questData)
-            if not firstIndexStr then goto continue end
-            if not questLib.checkConditionsForQuest(questId, firstIndexStr) then
-                goto continue
-            end
-
-            local currentIndex = playerQuests.getCurrentIndex(questId)
-            if not currentIndex or currentIndex > 0 then
-                goto continue
-            end
-
-            valid = true
-            if valid then
-                break;
-            end
-
-            ::continue::
         end
 
-        if not valid then
-            world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
-            world.players[1]:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
-            this.trackedQuestGivers[objId] = nil
-        end
+        world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
+        world.players[1]:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
     end
 end
 

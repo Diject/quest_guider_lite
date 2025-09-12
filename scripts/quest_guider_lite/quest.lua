@@ -219,6 +219,10 @@ function this.getNextIndexes(questData, quesId, questIndex, params)
             local valid = false
             for _, block in pairs(nextIndexData.requirements) do
                 valid = valid or requirementChecker.checkBlock(block, {
+                    ignoredTypes = {
+                        [myTypes.requirementType.CustomDisposition] = true,
+                        [myTypes.requirementType.CustomDialogue] = true,
+                    },
                     threatErrorsAs = true,
                 })
                 if valid then break end
@@ -1246,7 +1250,7 @@ end
 ---@param questId string
 ---@param questIndex integer|string
 ---@return boolean?
-function this.checkConditionsForQuest(questId, questIndex)
+function this.checkConditionsForQuest(questId, questIndex, ref)
     local questData = this.getQuestData(questId)
     if not questData then return end
 
@@ -1258,25 +1262,48 @@ function this.checkConditionsForQuest(questId, questIndex)
 
     if #requirements == 0 then return true end
 
-    local allowedTypes = {
-        [myTypes.requirementType.Journal] = true,
-        [myTypes.requirementType.CustomPCFaction] = true,
-        [myTypes.requirementType.CustomPCRank] = true,
-        [myTypes.requirementType.CustomGlobal] = true,
-        [myTypes.requirementType.Dead] = true,
-        [myTypes.requirementType.CustomOnDeath] = true,
-        [myTypes.requirementType.Item] = true,
-    }
+    if not ref then
 
-    for _, reqBlock in pairs(stageData.requirements or {}) do
-        local ret = requirementChecker.checkBlock(reqBlock, {
-            allowedTypes = allowedTypes,
-            threatErrorsAs = true,
-        })
+        local allowedTypes = {
+            [myTypes.requirementType.Journal] = true,
+            [myTypes.requirementType.CustomPCFaction] = true,
+            [myTypes.requirementType.CustomPCRank] = true,
+            [myTypes.requirementType.CustomGlobal] = true,
+            [myTypes.requirementType.Dead] = true,
+            [myTypes.requirementType.CustomOnDeath] = true,
+            [myTypes.requirementType.Item] = true,
+        }
 
-        if ret then
-            return true
+        for _, reqBlock in pairs(stageData.requirements or {}) do
+            local ret = requirementChecker.checkBlock(reqBlock, {
+                allowedTypes = allowedTypes,
+                threatErrorsAs = true,
+            })
+
+            if ret then
+                return true
+            end
         end
+
+    else
+
+        local ignoredTypes = {
+            [myTypes.requirementType.CustomDisposition] = true,
+            [myTypes.requirementType.CustomDialogue] = true,
+        }
+
+        for _, reqBlock in pairs(stageData.requirements or {}) do
+            local ret = requirementChecker.checkBlock(reqBlock, {
+                ignoredTypes = ignoredTypes,
+                threatErrorsAs = true,
+                reference = ref,
+            })
+
+            if ret then
+                return true
+            end
+        end
+
     end
 
     return false

@@ -341,6 +341,7 @@ return {
         end,
         onTeleported = function ()
             async:newUnsavableSimulationTimer(0.1, function () -- delay for the player cell data to be updated
+                core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
                 teleportedCallback()
             end)
         end,
