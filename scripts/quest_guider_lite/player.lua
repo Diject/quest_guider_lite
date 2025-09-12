@@ -398,6 +398,7 @@ return {
 
         ["QGL:removeProximityRecord"] = function (data)
             local recordId = data.recordId
+            if not recordId then return end
             tracking.removeProximityRecord(recordId)
             tracking.updateMarkers()
         end,
@@ -405,12 +406,14 @@ return {
         ["QGL:removeProximityMarker"] = function (data)
             local id = data.id
             local groupId = data.groupId
+            if not id then return end
             tracking.removeProximityMarker(id, groupId)
             tracking.updateMarkers()
         end,
 
         ["QGL:removeHUDMarker"] = function (data)
             local id = data.id
+            if not id then return end
             tracking.removeHUDMarker(id)
             tracking.updateMarkers()
         end,
