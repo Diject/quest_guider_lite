@@ -12,7 +12,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 ---@class questGuider.dataHandler.global
 local this = {}
 
-this.version = 7
+this.version = 8
 
 ---@type questDataGenerator.quests
 this.quests = {}
@@ -20,6 +20,8 @@ this.quests = {}
 this.questObjects = {}
 ---@type questDataGenerator.localVariableByQuestId
 this.localVariablesByScriptId = {}
+---@type questDataGenerator.dialogueTopicData
+this.dialogueTopics = {}
 
 local defaultInfo = {version = 0, files = {}, time = 0}
 this.info = tableLib.deepcopy(defaultInfo)
@@ -95,6 +97,12 @@ function this.initStorage()
             stor:set("localVariablesByScriptId", localVariablesByScriptId)
             stor:set("info", this.info)
         end)
+        if res then
+            pcall(function ()
+                local dialogueTopics = markup.loadYaml("questData/dialogueTopics.yaml")
+                stor:set("dialogueTopics", dialogueTopics)
+            end)
+        end
         loadedFromStorage = false
         successfullyLoaded = res
     else
@@ -128,12 +136,12 @@ end
 
 
 ---@param data questGuiderLite.event.dataReady.data
----@param isGlobalScope boolean?
-function this.load(data, isGlobalScope)
+function this.load(data)
     this.info = data.info or tableLib.deepcopy(defaultInfo)
     this.quests = data.quests or {}
     this.questObjects = data.questObjects or {}
     this.localVariablesByScriptId = data.localVariablesByScriptId or {}
+    this.dialogueTopics = data.dialogueTopics or {}
     isReady = data.isReady
 end
 

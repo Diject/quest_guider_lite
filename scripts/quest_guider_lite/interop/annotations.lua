@@ -69,5 +69,6 @@
 ---@field quests questDataGenerator.quests
 ---@field questObjects table<string, questDataGenerator.objectInfo>
 ---@field localVariablesByScriptId questDataGenerator.localVariableByQuestId
+---@field dialogueTopics questDataGenerator.dialogueTopicData
 ---@field info {time : integer, version : integer, files : string[]}?
 ---@field isReady boolean

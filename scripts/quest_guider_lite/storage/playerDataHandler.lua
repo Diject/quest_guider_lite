@@ -16,6 +16,8 @@ this.data = {
     questObjects = {},
     ---@type questDataGenerator.localVariableByQuestId
     localVariablesByScriptId = {},
+    ---@type questDataGenerator.dialogueTopicData
+    dialogueTopics = {},
     info = {version = 0, files = {}, time = 0},
     isReady = false,
 }
@@ -34,6 +36,7 @@ function this.init()
             quests = dt.quests or {},
             questObjects = dt.questObjects or {},
             localVariablesByScriptId = dt.localVariablesByScriptId or {},
+            dialogueTopics = dt.dialogueTopics or {},
             info = dt.info,
             isReady = isReady,
         }
