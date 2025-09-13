@@ -81,14 +81,6 @@ function this.removeNewLines(text)
     return text:gsub("\n", " ")
 end
 
----@param text string
----@return questDataGenerator.questTopicInfo[]|nil
-function this.getQuestInfoByJournalText(text)
-    local str = this.removeNewLines(text)
-    local strClear = this.removeSpecialCharactersFromJournalText(str)
-    return dataHandler.questByText[strClear] or dataHandler.questByText[str] or dataHandler.questByText[str:sub(1, -2)]
-end
-
 ---@param scriptName string
 ---@return table<string, questDataGenerator.localVariableData>|nil
 function this.getLocalVariableDataByScriptName(scriptName)
