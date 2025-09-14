@@ -18,7 +18,9 @@ this.data = {
     localVariablesByScriptId = {},
     ---@type questDataGenerator.dialogueTopicData
     dialogueTopics = {},
-    info = {version = 0, files = {}, time = 0},
+    ---@type questDataGenerator.mapImageInfo?
+    mapInfo = nil,
+    info = {version = 0, files = {}, time = 0, format = "yaml"},
     isReady = false,
 }
 
@@ -37,6 +39,7 @@ function this.init()
             questObjects = dt.questObjects or {},
             localVariablesByScriptId = dt.localVariablesByScriptId or {},
             dialogueTopics = dt.dialogueTopics or {},
+            mapInfo = dt.mapInfo,
             info = dt.info,
             isReady = isReady,
         }

@@ -70,5 +70,6 @@
 ---@field questObjects table<string, questDataGenerator.objectInfo>
 ---@field localVariablesByScriptId questDataGenerator.localVariableByQuestId
 ---@field dialogueTopics questDataGenerator.dialogueTopicData
----@field info {time : integer, version : integer, files : string[]}?
+---@field info questDataGenerator.dataInfo?
+---@field mapInfo questDataGenerator.mapImageInfo?
 ---@field isReady boolean

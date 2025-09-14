@@ -22,8 +22,11 @@ this.questObjects = {}
 this.localVariablesByScriptId = {}
 ---@type questDataGenerator.dialogueTopicData
 this.dialogueTopics = {}
+---@type questDataGenerator.mapImageInfo?
+this.mapInfo = nil
 
-local defaultInfo = {version = 0, files = {}, time = 0}
+local defaultInfo = {version = 0, files = {}, time = 0, format = "yaml"}
+---@type questDataGenerator.dataInfo
 this.info = tableLib.deepcopy(defaultInfo)
 
 local isReady = false
@@ -98,6 +101,11 @@ function this.initStorage()
             stor:set("info", this.info)
         end)
 
+        pcall(function ()
+            local mapInfo = markup.loadYaml("questData/mapInfo.yaml")
+            stor:set("mapInfo", mapInfo)
+        end)
+
         -- There is no need to use this for now
 
         -- if res then
@@ -145,6 +153,7 @@ function this.load(data)
     this.questObjects = data.questObjects or {}
     this.localVariablesByScriptId = data.localVariablesByScriptId or {}
     this.dialogueTopics = data.dialogueTopics or {}
+    this.mapInfo = data.mapInfo
     isReady = data.isReady
 end
 
