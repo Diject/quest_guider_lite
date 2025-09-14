@@ -97,12 +97,15 @@ function this.initStorage()
             stor:set("localVariablesByScriptId", localVariablesByScriptId)
             stor:set("info", this.info)
         end)
-        if res then
-            pcall(function ()
-                local dialogueTopics = markup.loadYaml("questData/dialogueTopics.yaml")
-                stor:set("dialogueTopics", dialogueTopics)
-            end)
-        end
+
+        -- There is no need to use this for now
+
+        -- if res then
+        --     pcall(function ()
+        --         local dialogueTopics = markup.loadYaml("questData/dialogueTopics.yaml")
+        --         stor:set("dialogueTopics", dialogueTopics)
+        --     end)
+        -- end
         loadedFromStorage = false
         successfullyLoaded = res
     else
