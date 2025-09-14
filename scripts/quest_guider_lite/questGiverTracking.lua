@@ -65,7 +65,7 @@ function this.createQuestGiverMarker(ref)
 
         local firstIndexStr = questLib.getFirstIndex(questData)
         if not firstIndexStr then goto continue end
-        if not questLib.checkConditionsForQuest(diaIdLower, firstIndexStr, ref) then
+        if not questLib.checkConditionsForQuest(diaIdLower, firstIndexStr) then
             goto continue
         end
 
