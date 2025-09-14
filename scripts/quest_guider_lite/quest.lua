@@ -16,6 +16,7 @@ local otherTypes = require("scripts.quest_guider_lite.types.other")
 local dataHandler = require("scripts.quest_guider_lite.storage.dataHandler")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
+local dialogueChecker = require("scripts.quest_guider_lite.dialogueChecker")
 
 local tes = require("scripts.quest_guider_lite.core.tes3")
 local getObject = require("scripts.quest_guider_lite.core.getObject")
@@ -683,6 +684,8 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
             local objData = dataHandler.questObjects[objId]
             if not objData or objData.type > 2 then return end
 
+            if not tes.getObject(objId) then return end
+
             for _, linkDt in pairs(objData.links or {}) do
                 local linkName = linkDt[1]
                 local linkData = dataHandler.questObjects[linkName]
@@ -1278,10 +1281,13 @@ function this.checkConditionsForQuest(questId, questIndex, ref)
         end
 
     else
-
         local ignoredTypes = {
             [myTypes.requirementType.CustomDisposition] = true,
             [myTypes.requirementType.CustomDialogue] = true,
+        }
+
+        local truthTable = {
+            [myTypes.requirementType.PreviousDialogChoice] = true,
         }
 
         for _, reqBlock in pairs(stageData.requirements or {}) do
@@ -1292,7 +1298,30 @@ function this.checkConditionsForQuest(questId, questIndex, ref)
             })
 
             if ret then
-                return true
+                local foundDiaReq = false
+                for _, req in pairs(reqBlock) do
+                    if req.type == myTypes.requirementType.CustomDialogue then
+                        foundDiaReq = true
+                        local diaId = stringLib.convertDialogueName(req.variable)
+                        local infoId = req.value
+
+                        local checkerRes = dialogueChecker.isDialogueTopicAvailable(ref, diaId, infoId, {
+                            skipDisposition = true,
+                            checkBlockOptions = {
+                                ignoredTypes = ignoredTypes,
+                                typeTruthTable = truthTable,
+                                threatErrorsAs = false,
+                            }
+                        })
+
+                        if checkerRes then return true end
+                        break
+                    end
+                end
+
+                if not foundDiaReq then
+                    return true
+                end
             end
         end
 
