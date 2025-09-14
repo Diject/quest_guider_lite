@@ -177,7 +177,7 @@ function this.createQuestGiverMarkerForDoor(ref)
 
     local cellsData = cellLib.findReachableCellsByNode({cell = destCell}) ---@diagnostic disable-line: missing-fields
 
-    ---@type table<string, questDataGenerator.objectInfo>
+    ---@type table<string, {data : questDataGenerator.objectInfo, ref : any}>
     local giverIdsWithData = {}
 
     local function checkObj(ref)
@@ -186,8 +186,7 @@ function this.createQuestGiverMarkerForDoor(ref)
 
         local objectData = questLib.getObjectData(recordId)
         if not objectData or not objectData.starts then return end
-
-        giverIdsWithData[recordId] = objectData
+        giverIdsWithData[recordId] = {ref = ref, data = objectData}
     end
 
     for _, cellData in pairs(cellsData or {}) do
@@ -203,7 +202,9 @@ function this.createQuestGiverMarkerForDoor(ref)
     local questNames = {}
     local diaIds = {}
 
-    for objId, objectData in pairs(giverIdsWithData) do
+    for objId, giverData in pairs(giverIdsWithData) do
+        local objectData = giverData.data
+        local giverRef = giverData.ref
         for _, diaId in pairs(objectData.starts) do
             local diaIdLower = diaId:lower()
             if (playerQuests.getCurrentIndex(diaIdLower) or 0) > 0 then goto continue end
