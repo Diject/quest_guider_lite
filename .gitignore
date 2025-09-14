@@ -1,3 +1,4 @@
 .vscode/settings.json
 /data
-/questData
+/questData/*
+!/questData/luaAnnotations.lua
