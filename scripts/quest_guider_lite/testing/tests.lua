@@ -4,6 +4,7 @@ local log = require("scripts.quest_guider_lite.utils.log")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 local myTypes = require("scripts.quest_guider_lite.types")
+local markup = require('openmw.markup')
 
 local this = {}
 
@@ -163,6 +164,36 @@ function this.printRandomQuestList(showGiverData)
                 end
             end
         end
+    end
+end
+
+
+function this.topicReqs()
+    local topics = markup.loadYaml("questData/topics.yaml")
+    local reqChecker = require("scripts.quest_guider_lite.requirementChecker")
+    local types = {}
+
+    for diaId, dt in pairs(topics) do
+        for _, topicDt in pairs(dt) do
+            for _, req in pairs(topicDt.reqs) do
+                if not reqChecker.dataFuncs[req.type] then
+                    types[req.type] = (types[req.type] or 0) + 1
+                end
+            end
+        end
+    end
+
+    local sorted = {}
+    for tp, cnt in pairs(types) do
+        table.insert(sorted, {tp, cnt})
+    end
+
+    table.sort(sorted, function (a, b)
+        return a[2] > b[2]
+    end)
+
+    for _, dt in ipairs(sorted) do
+        print(dt[1], dt[2])
     end
 end
 
