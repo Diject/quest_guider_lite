@@ -328,6 +328,7 @@ return {
         end,
         questLib = questLib,
         requirementChecker = requirementChecker,
+        dialogueChecker = require("scripts.quest_guider_lite.dialogueChecker"),
         types = require("scripts.quest_guider_lite.types"),
     },
     engineHandlers = {
