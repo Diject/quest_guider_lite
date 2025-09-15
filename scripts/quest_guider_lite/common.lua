@@ -50,6 +50,8 @@ this.selectedShadowColor = util.color.rgb(this.selectedShadowColorData[1], this.
 this.backgroundColorData = {0, 0, 0}
 this.backgroundColor = util.color.rgb(this.backgroundColorData[1], this.backgroundColorData[2], this.backgroundColorData[3])
 
+this.mapWaterColor = util.color.rgb(36 / 255, 53 / 255, 48 / 255)
+
 this.whiteTexture = nil
 pcall(function ()
     local constants = require('scripts.omw.mwui.constants')
@@ -66,6 +68,7 @@ this.hudExclamationMarkPath = "textures/icons/quest_guider/HUDExclamationMark.dd
 this.exclamationMarkPath = "textures/icons/quest_guider/exclamationMark.dds"
 this.doorMarkPath = "textures/icons/quest_guider/toDoorIcon.dds"
 this.doorExclMarkPath = "textures/icons/quest_guider/doorExclIcon.dds"
+this.mapMarkerPath = "textures/icons/quest_guider/mapMarker.dds"
 
 this.questGiverGroup = "~__QGL:GIVER__"
 
