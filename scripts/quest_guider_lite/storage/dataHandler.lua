@@ -106,7 +106,7 @@ function this.initStorage()
             stor:set("mapInfo", mapInfo)
         end)
 
-        -- There is no need to use this for now
+        -- This code is not needed for now
 
         -- if res then
         --     pcall(function ()
