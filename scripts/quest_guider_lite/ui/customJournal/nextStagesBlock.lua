@@ -13,6 +13,7 @@ local consts = require("scripts.quest_guider_lite.common")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
+local stringLib = require("scripts.quest_guider_lite.utils.string")
 
 local playerQuests = require('scripts.quest_guider_lite.playerQuests')
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
@@ -89,43 +90,6 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
     ---@type table<string, questGuider.quest.getRequirementPositionData.returnData>
     local objectPositions = nextStageData.objectPositions
 
-    ---@param data  questGuider.quest.getRequirementPositionData.positionData
-    ---@return string?
-    ---@return string?
-    local function getDescription(data)
-        local descr
-        local descrBack
-        if not data.description then
-            if data.pathFromPlayer then
-                for _, cellName in ipairs(data.pathFromPlayer) do
-                    descr = descr and string.format("%s => \"%s\"", descr, cellName) or
-                        string.format("\"%s\"", cellName)
-                    descrBack = descrBack and string.format("\"%s\" <= %s", cellName, descrBack) or
-                        string.format("\"%s\"", cellName)
-                end
-
-            elseif data.cellPath then
-                for i = #data.cellPath, 1, -1 do
-                    descr = descr and string.format("%s => \"%s\"", descr, data.cellPath[i].name) or
-                        string.format("\"%s\"", data.cellPath[i].name)
-                    descrBack = descrBack and string.format("\"%s\" <= %s", data.cellPath[i].name, descrBack) or
-                        string.format("\"%s\"", data.cellPath[i].name)
-                end
-
-            elseif data.id then
-                descr = string.format("\"%s\"", data.id)
-                descrBack = descr
-
-            else
-                descr = "???"
-                descrBack = "???"
-            end
-        else
-            descr = data.description
-        end
-
-        return descr, descrBack
-    end
 
     ---@param requirements questGuider.quest.getDescriptionDataFromBlock.returnArr[]
     local function addObjectPositionInfo(content, requirements, diaId, diaIndex)
@@ -140,7 +104,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
 
                 ---@param pos questGuider.quest.getRequirementPositionData.positionData
                 for _, pos in pairs(tableLib.getFirst(positionData.positions, 1)) do
-                    local descr, descrBck = getDescription(pos)
+                    local descr, descrBck = stringLib.getPathToPosition(pos)
 
                     objectPosInfo[objId] = {
                         id = objId,
