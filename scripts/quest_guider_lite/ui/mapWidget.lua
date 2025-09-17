@@ -200,6 +200,7 @@ end
 ---@field fontSize integer?
 ---@field position any?
 ---@field relativePosition any?
+---@field anchor any?
 ---@field updateFunc function
 
 ---@param params questGuider.ui.mapWidget.params
@@ -238,6 +239,7 @@ return function (params)
             size = params.size,
             position = params.position,
             relativePosition = params.relativePosition,
+            anchor = params.anchor,
         },
         userData = {
             meta = meta,
