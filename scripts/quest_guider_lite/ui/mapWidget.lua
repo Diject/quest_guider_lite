@@ -37,8 +37,8 @@ end
 
 function mapWidgetMeta:getRelativeCenter()
     return util.vector2(
-        (0 - self.mapInfo.gridX.min) / (self.mapInfo.gridX.max - self.mapInfo.gridX.min),
-        (0 - self.mapInfo.gridY.min) / (self.mapInfo.gridY.max - self.mapInfo.gridY.min)
+        (0 - self.mapInfo.gridX.min) / (self.mapInfo.gridX.max - self.mapInfo.gridX.min + 1),
+        (0 - self.mapInfo.gridY.min) / (self.mapInfo.gridY.max - self.mapInfo.gridY.min + 1)
     )
 end
 
@@ -49,8 +49,8 @@ function mapWidgetMeta:getRelativePositionByWorldPosition(worldPos)
     local widget = self:getMapImageWidget()
 
     return util.vector2(
-        center.x + x / (self.mapInfo.gridX.max - self.mapInfo.gridX.min),
-        1 - center.y + y / (self.mapInfo.gridY.max - self.mapInfo.gridY.min)
+        center.x + x * self.mapInfo.pixelsPerCell / self.mapInfo.width,
+        1 - center.y - y * self.mapInfo.pixelsPerCell / self.mapInfo.height
     )
 end
 
