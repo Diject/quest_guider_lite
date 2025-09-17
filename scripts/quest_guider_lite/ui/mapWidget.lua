@@ -23,7 +23,9 @@ local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
 
 local mapMarkerTexture = ui.texture{ path = commonData.mapMarkerPath }
 
-local uiScale = uiUtils.getUIScale()
+
+local this = {}
+
 
 ---@class questGuider.ui.mapWidgetMeta
 local mapWidgetMeta = {}
@@ -120,14 +122,63 @@ function mapWidgetMeta:focusOnWorldPosition(worldPos)
 end
 
 
+local function getCityNameFontSize(size, zoom)
+    return size * zoom
+end
+
+
 local function getMarkerSize(size, zoom)
-    return size * math.sqrt(zoom)
+    return size * math.sqrt(math.sqrt(zoom))
 end
 
 function mapWidgetMeta:updateMarkersScale()
     local content = self:getMapImageWidget().content
 
-    for i = 2, #content do
+    for i = 2, self.firstMarkerIndex - 1 do
+        local elem = content[i]
+        if not elem then break end
+
+        content[i] = {
+            type = ui.TYPE.Text,
+            props = {
+                text = elem.props.text,
+                autoSize = true,
+                anchor = util.vector2(0.5, 0.5),
+                relativePosition = elem.props.relativePosition,
+                textColor = commonData.defaultColor,
+                textSize = getCityNameFontSize(elem.userData.size, self.zoom),
+                visible = true,
+                alpha = 0.4,
+            },
+            userData = {
+                size = elem.userData.size,
+            },
+            events = {
+                focusLoss = async:callback(function(e, layout)
+                    self.layout.userData.inFocus = false
+                    self.layout.events.focusLoss(e, layout)
+                end),
+
+                mouseMove = async:callback(function(e, layout)
+                    self.layout.userData.inFocus = true
+                    self.layout.events.mouseMove(e, layout)
+                end),
+
+                mousePress = async:callback(function(e, layout)
+                    self.layout.events.mousePress(e, layout)
+                end),
+
+                mouseRelease = async:callback(function(e, layout)
+                    self.layout.events.mouseRelease(e, layout)
+                end),
+            }
+        }
+
+
+        -- elem.props.fontSize = getCityNameFontSize(elem.userData.size, self.zoom)
+    end
+
+    for i = self.firstMarkerIndex, #content do
         local elem = content[i]
         if not elem then break end
 
@@ -141,7 +192,7 @@ function mapWidgetMeta:createMarker(pos, color, events, tooltipContent)
     local content = self:getMapImageWidget().content
     local relPos = self:getRelativePositionByWorldPosition(pos)
 
-    local size = util.vector2(24, 24) * uiScale
+    local size = util.vector2(24, 24)
 
     local marker
     marker = {
@@ -195,7 +246,60 @@ function mapWidgetMeta:createMarker(pos, color, events, tooltipContent)
 end
 
 
-local this = {}
+function mapWidgetMeta:createCityNames()
+    local content = self:getMapImageWidget().content
+
+    for _, info in ipairs(this.cityInfo or {}) do
+
+        local fontSize = 10 + math.min(8, info.count) * 2
+
+        local marker
+        marker = {
+            type = ui.TYPE.Text,
+            props = {
+                text = info.name,
+                autoSize = true,
+                anchor = util.vector2(0.5, 0.5),
+                relativePosition = self:getRelativePositionByWorldPosition(util.vector2(info.posX, info.posY)),
+                textColor = commonData.defaultColor,
+                textSize = getCityNameFontSize(fontSize, self.zoom),
+                visible = true,
+                alpha = 0.4,
+            },
+            userData = {
+                size = fontSize,
+            },
+            events = {
+                focusLoss = async:callback(function(e, layout)
+                    self.layout.userData.inFocus = false
+                    self.layout.events.focusLoss(e, layout)
+                end),
+
+                mouseMove = async:callback(function(e, layout)
+                    self.layout.userData.inFocus = true
+                    self.layout.events.mouseMove(e, layout)
+                end),
+
+                mousePress = async:callback(function(e, layout)
+                    self.layout.events.mousePress(e, layout)
+                end),
+
+                mouseRelease = async:callback(function(e, layout)
+                    self.layout.events.mouseRelease(e, layout)
+                end),
+            }
+        }
+
+        content:add(marker)
+
+        self.firstMarkerIndex = self.firstMarkerIndex + 1
+    end
+end
+
+
+---@type {name : string, count : integer, posX : number, posY : number}[]?
+this.cityInfo = nil
+
 
 ---@class questGuider.ui.mapWidget.params
 ---@field size any
@@ -229,6 +333,8 @@ function this.new(params)
     meta.zoom = 1
     meta.maxZoom = math.min(params.size.x / meta.mapInfo.pixelsPerCell, params.size.y / meta.mapInfo.pixelsPerCell) / 2
     meta.minZoom = math.min(params.size.x / meta.mapInfo.width, params.size.y / meta.mapInfo.height)
+
+    meta.firstMarkerIndex = 2
 
     meta.update = function(self)
         params.updateFunc()
@@ -320,6 +426,8 @@ function this.new(params)
     }
 
     meta.layout = main
+
+    meta:createCityNames()
 
     return main, meta
 end

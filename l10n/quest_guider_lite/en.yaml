@@ -128,6 +128,8 @@ previous: "Previous"
 questData: "Quest Data"
 status: "Status"
 ellipsis: "(...)"
+map: "Map"
+llist: "list"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."

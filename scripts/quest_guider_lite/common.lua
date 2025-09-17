@@ -80,6 +80,7 @@ this.forbiddenForTracking = {
 this.journalMenuId = "__QGL:Journal__"
 this.allQuestsMenuId = "__QGL:AllQuests__"
 this.topicsMenuId = "__QGL:Topics__"
+this.trackingMenuId = "__QGL:Tracking__"
 
 
 function this.colorToArray(color)

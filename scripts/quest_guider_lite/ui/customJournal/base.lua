@@ -181,6 +181,7 @@ end
 function journalMeta.updateNextStageBlocks(self)
     ---@type questGuider.ui.questBoxMeta
     local qBox = self:getQuestScrollBox().userData.questBoxMeta
+    if not qBox then return end
     ---@type questGuider.ui.scrollBox
     local scrlBox = qBox:getScrollBox().userData.scrollBoxMeta
 
@@ -462,6 +463,7 @@ end
 ---@field hideStageText boolean?
 ---@field showOnlyFirst boolean?
 ---@field createTopicMenuFunc function?
+---@field createTrackingMenuFunc function?
 ---@field onClose function?
 
 ---@param params questGuider.ui.customJournal.params
@@ -578,6 +580,29 @@ local function create(params)
                     relativePosition = util.vector2(1, 1),
                 },
                 content = ui.content {
+                    {
+                        template = templates.textNormal,
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = l10n("tracking"),
+                            visible = tracking.initialized and params.createTrackingMenuFunc and true or false,
+                            textSize = params.fontSize * 1.25,
+                            autoSize = true,
+                            textColor = config.data.ui.defaultColor,
+                            textShadow = true,
+                            textShadowColor = config.data.ui.shadowColor,
+                            propagateEvents = false,
+                        },
+                        userData = {},
+                        events = {
+                            mouseRelease = async:callback(function(_, layout)
+                                if params.createTrackingMenuFunc then
+                                    params.createTrackingMenuFunc()
+                                end
+                            end),
+                        }
+                    },
+                    interval(params.fontSize * 3, 0),
                     {
                         template = templates.textNormal,
                         type = ui.TYPE.Text,

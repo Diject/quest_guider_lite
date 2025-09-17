@@ -67,6 +67,53 @@ local function onObjectActive(ref)
 end
 
 
+local function genMapRegionNames()
+    local cellNameData = {}
+    for _, cell in pairs(world.cells) do
+        if not cell.isExterior or not cell.name or cell.name == "" then goto continue end
+
+        local name = stringLib.getBeforeComma(cell.name)
+
+        local cellDt = cellNameData[name]
+        if not cellDt then
+            cellNameData[name] = {
+                name = name, count = 0,
+                minX = math.huge, maxX = -math.huge,
+                minY = math.huge, maxY = -math.huge,
+            }
+            cellDt = cellNameData[name]
+        end
+
+        cellDt.minX = math.min(cell.gridX, cellDt.minX)
+        cellDt.minY = math.min(cell.gridY, cellDt.minY)
+        cellDt.maxX = math.max(cell.gridX, cellDt.maxX)
+        cellDt.maxY = math.max(cell.gridY, cellDt.maxY)
+        cellDt.count = cellDt.count + 1
+
+        ::continue::
+    end
+
+    cellNameData = tableLib.values(cellNameData, function (a, b)
+        return a.count > b.count
+    end)
+
+    local res = {}
+    for _, dt in ipairs(cellNameData) do
+        if dt.count < 1 then break end
+        table.insert(res, {
+            name = dt.name,
+            count = dt.count,
+            posX = (dt.minX + (dt.maxX - dt.minX) / 2) * 8192 + 4096,
+            posY = (dt.minY + (dt.maxY - dt.minY) / 2) * 8192 + 4096,
+        })
+    end
+
+    world.players[1]:sendEvent("QGL:updateCityInfo", res)
+end
+
+genMapRegionNames()
+
+
 local function objectInactive(ref)
     if ref:hasScript("scripts/quest_guider_lite/actor.lua") then
         ref:removeScript("scripts/quest_guider_lite/actor.lua")
@@ -395,6 +442,28 @@ return {
             if not out.questData then return end
 
             world.players[1]:sendEvent("QGL:drawQuestBlockInJournalMenu", out)
+        end,
+
+        ["QGL:getPositionsForTrackingMenu"] = function (data)
+            local objIds = data.objectIds
+
+            local positionsByObjectId = {}
+            for _, id in pairs(objIds or {}) do
+                local positions = questLib.getPositions(id, {findLinks = true, includeLinks = true})
+                if not positions then return end
+
+                cellLib.fillDistanceToPlayer(positions, world.players[1])
+
+                table.sort(positions, function (a, b)
+                    return a.distanceToPlayer < b.distanceToPlayer
+                end)
+
+                positionsByObjectId[id] = positions
+            end
+
+            local out = {positions = positionsByObjectId, menuId = data.menuId}
+
+            world.players[1]:sendEvent("QGL:getPositionsForTrackingMenu", out)
         end,
 
         ["QGL:questGiverMarkerCallback"] = function (data)

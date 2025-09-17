@@ -47,6 +47,7 @@ this.default = {
         mouseScrollAmount = 40,
         topicTextMaxLenToProcess = 20000,
         maxTopicEntriesInJournal = 2,
+        maxPosDescrInTracking = 3,
     },
     ui = {
         fontSize = 20,

@@ -29,14 +29,16 @@ local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataH
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 
+local mapWidget = require("scripts.quest_guider_lite.ui.mapWidget")
 local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
 local createTopicMenu = require("scripts.quest_guider_lite.ui.topicMenu")
+local createTrackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu")
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
 
 local l10n = core.l10n(commonData.l10nKey)
 
 
----@type table<string, questGuider.ui.customJournal|questGuider.ui.topicMenuMeta>
+---@type table<string, questGuider.ui.customJournal|questGuider.ui.topicMenuMeta|questGuider.ui.trackingMenuMeta>
 local activeMenus = {}
 
 local questBoxUpdateQueue = {}
@@ -236,6 +238,24 @@ local function toggleMenu()
                     relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
                     onClose = function ()
                         activeMenus[commonData.topicsMenuId] = nil
+                        if not next(activeMenus) then
+                            I.UI.removeMode("Journal")
+                        end
+                    end
+                }
+            end,
+            createTrackingMenuFunc = function ()
+                if activeMenus[commonData.trackingMenuId] then
+                    activeMenus[commonData.trackingMenuId].menu:destroy()
+                    activeMenus[commonData.trackingMenuId] = nil
+                end
+
+                activeMenus[commonData.trackingMenuId] = createTrackingMenu{
+                    fontSize = config.data.ui.fontSize,
+                    sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
+                    relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
+                    onClose = function ()
+                        activeMenus[commonData.trackingMenuId] = nil
                         if not next(activeMenus) then
                             I.UI.removeMode("Journal")
                         end
@@ -504,6 +524,21 @@ return {
                     end
                 end
             }
+        end,
+
+        ["QGL:getPositionsForTrackingMenu"] = function (data)
+            if not data.menuId or not data.positions then return end
+
+            ---@type questGuider.ui.trackingMenuMeta
+            local menu = activeMenus[data.menuId]
+            if not menu then return end
+
+            menu.positions = data.positions
+            menu:showMainMap()
+        end,
+
+        ["QGL:updateCityInfo"] = function (data)
+            mapWidget.cityInfo = data
         end,
     },
 }
