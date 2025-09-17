@@ -255,4 +255,14 @@ function this.getPathToPosition(data)
 end
 
 
+function this.getBeforeComma(str)
+    local pos = string.find(str, ",")
+    if pos then
+        return string.sub(str, 1, pos - 1)
+    else
+        return str
+    end
+end
+
+
 return this
