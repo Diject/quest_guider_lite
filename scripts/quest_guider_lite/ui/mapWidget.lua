@@ -195,6 +195,8 @@ function mapWidgetMeta:createMarker(pos, color, events, tooltipContent)
 end
 
 
+local this = {}
+
 ---@class questGuider.ui.mapWidget.params
 ---@field size any
 ---@field fontSize integer?
@@ -206,7 +208,7 @@ end
 ---@param params questGuider.ui.mapWidget.params
 ---@return table?
 ---@return questGuider.ui.mapWidgetMeta?
-return function (params)
+function this.new(params)
     if not playerDataHandler.data.mapInfo then return end
 
     local mapImagePath = "questData/"..playerDataHandler.data.mapInfo.file
@@ -321,3 +323,6 @@ return function (params)
 
     return main, meta
 end
+
+
+return this
