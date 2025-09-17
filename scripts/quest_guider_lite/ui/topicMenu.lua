@@ -573,11 +573,6 @@ end
 ---@field fontSize integer?
 ---@field relativePosition any?
 ---@field headerName string?
----@field questList string[]?
----@field isQuestList boolean?
----@field showReqsForAll boolean?
----@field hideStageText boolean?
----@field showOnlyFirst boolean?
 ---@field onClose function?
 
 ---@param params questGuider.ui.topicMenu.params
@@ -599,7 +594,7 @@ local function create(params)
     end
 
     if not params.menuId then
-        params.menuId = params.headerName and params.headerName or commonData.journalMenuId
+        params.menuId = params.headerName and params.headerName or commonData.topicsMenuId
     end
 
     meta.params = params
