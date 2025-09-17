@@ -1024,13 +1024,17 @@ function this.updateTemporaryMarkers()
 end
 
 
----@param params {diaId : string, objectId : string}
+---@param params {diaId : string?, objectId : string}
 ---@return boolean
 function this.isObjectTracked(params)
-    local dt = this.trackedObjectsByDiaId[params.diaId]
-    if not dt then return false end
+    if params.diaId then
+        local dt = this.trackedObjectsByDiaId[params.diaId]
+        if not dt then return false end
 
-    if not dt.objects[params.objectId] then return false end
+        if not dt.objects[params.objectId] then return false end
+    else
+        if not this.markerByObjectId[params.objectId] then return false end
+    end
 
     return true
 end
