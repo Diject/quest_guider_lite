@@ -68,6 +68,20 @@ function this.copy(from, to)
 end
 
 
+---@param from table
+---@param to table?
+---@return table
+function this.addValues(from, to)
+    if not to then to = {} end
+
+	for _, v in pairs(from) do
+		table.insert(to, v)
+	end
+
+	return to
+end
+
+
 function this.addMissing(toTable, fromTable)
     for label, val in pairs(fromTable) do
         if type(val) == "table" then
