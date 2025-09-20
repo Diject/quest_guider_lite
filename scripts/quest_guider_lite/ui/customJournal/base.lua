@@ -245,7 +245,7 @@ function journalMeta._addFlags(self, content, storageData)
             props = {
                 resource = commonData.whiteTexture,
                 size = util.vector2(self.params.fontSize / 3, self.params.fontSize),
-                color = commonData.defaultColor,
+                color = config.data.ui.defaultColor,
             },
         }
     else

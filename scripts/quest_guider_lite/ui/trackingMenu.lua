@@ -742,7 +742,7 @@ function topicMenuMeta.fillTrackingListContent(self)
     if localStorage.data.trackingListCheckBox then
         for objId, list in pairs(trackingObjects) do
             local record = getObject(objId)
-            local objName = record and record.name or "???"
+            local objName = record and record.name or objId or "???"
             table.insert(recordList, {name = objName, id = objId, objects = list})
         end
 
