@@ -5,6 +5,7 @@ local core = require('openmw.core')
 local input = require('openmw.input')
 local I = require('openmw.interfaces')
 local vfs = require('openmw.vfs')
+local playerRef = require("openmw.self")
 
 local config = require("scripts.quest_guider_lite.configLib")
 local commonData = require("scripts.quest_guider_lite.common")
@@ -20,8 +21,11 @@ local log = require("scripts.quest_guider_lite.utils.log")
 
 local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
 
+local l10n = core.l10n(commonData.l10nKey)
+
 
 local mapMarkerTexture = ui.texture{ path = commonData.mapMarkerPath }
+local playerMarkerTexture = ui.texture{ path = commonData.playerMapMarkerPath }
 
 
 local this = {}
@@ -36,6 +40,18 @@ function mapWidgetMeta:getMapImageWidget()
     return self.layout.content[2]
 end
 
+function mapWidgetMeta:getNameLayout()
+    return self:getMapImageWidget().content[2]
+end
+
+function mapWidgetMeta:getMarkerLayout()
+    return self:getMapImageWidget().content[4]
+end
+
+function mapWidgetMeta:getPlayerLayout()
+    return self:getMapImageWidget().content[3]
+end
+
 
 function mapWidgetMeta:getRelativeCenter()
     return util.vector2(
@@ -48,7 +64,6 @@ function mapWidgetMeta:getRelativePositionByWorldPosition(worldPos)
     local center = self:getRelativeCenter()
     local x = worldPos.x / 8192
     local y = worldPos.y / 8192
-    local widget = self:getMapImageWidget()
 
     return util.vector2(
         center.x + x * self.mapInfo.pixelsPerCell / self.mapInfo.width,
@@ -131,21 +146,54 @@ local function getMarkerSize(size, zoom)
     return size * math.sqrt(math.sqrt(zoom))
 end
 
-function mapWidgetMeta:updateMarkersScale()
-    local content = self:getMapImageWidget().content
 
-    for i = 2, self.firstMarkerIndex - 1 do
-        local elem = content[i]
+function mapWidgetMeta:updateMarkersScale()
+    local markerLayoutContent = self:getMarkerLayout().content
+    local nameLayoutContent = self:getNameLayout().content
+    local playerLayoutContent = self:getPlayerLayout().content
+
+    local playerMarkerLayout = playerLayoutContent[1]
+    if not playerMarkerLayout then return end
+
+    local playerMarkerFontSize = getMarkerSize(playerMarkerLayout.content[1].userData.size, self.zoom)
+    local playerMarkerImageSize = getMarkerSize(playerMarkerLayout.content[2].userData.size, self.zoom)
+    playerMarkerLayout.props.size = util.vector2(
+        playerMarkerFontSize * stringLib.length(playerMarkerLayout.content[1].userData.name),
+        playerMarkerImageSize.y + playerMarkerFontSize
+    )
+
+    playerMarkerLayout.content[2].props.size = playerMarkerImageSize
+    playerMarkerLayout.content[2].props.position = util.vector2(playerMarkerLayout.props.size.x / 2, playerMarkerFontSize)
+    playerMarkerLayout.content[1] = {
+        type = ui.TYPE.Text,
+        props = {
+            text = playerMarkerLayout.content[1].props.text,
+            autoSize = true,
+            anchor = util.vector2(0.5, 0),
+            relativePosition = util.vector2(0.5, 0),
+            textColor = config.data.ui.shadowColor,
+            textSize = playerMarkerFontSize,
+            visible = true,
+            alpha = 0.6,
+        },
+        userData = {
+            size = playerMarkerLayout.content[1].userData.size,
+            name = playerMarkerLayout.content[1].userData.name,
+        },
+    }
+
+    for i = 1, #nameLayoutContent do
+        local elem = nameLayoutContent[i]
         if not elem then break end
 
-        content[i] = {
+        nameLayoutContent[i] = {
             type = ui.TYPE.Text,
             props = {
                 text = elem.props.text,
                 autoSize = true,
                 anchor = util.vector2(0.5, 0.5),
                 relativePosition = elem.props.relativePosition,
-                textColor = commonData.defaultColor,
+                textColor = config.data.ui.defaultColor,
                 textSize = getCityNameFontSize(elem.userData.size, self.zoom),
                 visible = true,
                 alpha = 0.4,
@@ -173,13 +221,10 @@ function mapWidgetMeta:updateMarkersScale()
                 end),
             }
         }
-
-
-        -- elem.props.fontSize = getCityNameFontSize(elem.userData.size, self.zoom)
     end
 
-    for i = self.firstMarkerIndex, #content do
-        local elem = content[i]
+    for i = 1, #markerLayoutContent do
+        local elem = markerLayoutContent[i]
         if not elem then break end
 
         elem.props.size = getMarkerSize(elem.userData.size, self.zoom)
@@ -189,7 +234,7 @@ end
 
 function mapWidgetMeta:createMarker(pos, color, events, tooltipContent)
     if not events then events = {} end
-    local content = self:getMapImageWidget().content
+    local content = self:getMarkerLayout().content
     local relPos = self:getRelativePositionByWorldPosition(pos)
 
     local size = util.vector2(24, 24)
@@ -247,7 +292,7 @@ end
 
 
 function mapWidgetMeta:createCityNames()
-    local content = self:getMapImageWidget().content
+    local content = self:getNameLayout().content
 
     for _, info in ipairs(this.cityInfo or {}) do
 
@@ -261,7 +306,7 @@ function mapWidgetMeta:createCityNames()
                 autoSize = true,
                 anchor = util.vector2(0.5, 0.5),
                 relativePosition = self:getRelativePositionByWorldPosition(util.vector2(info.posX, info.posY)),
-                textColor = commonData.defaultColor,
+                textColor = config.data.ui.defaultColor,
                 textSize = getCityNameFontSize(fontSize, self.zoom),
                 visible = true,
                 alpha = 0.4,
@@ -291,8 +336,6 @@ function mapWidgetMeta:createCityNames()
         }
 
         content:add(marker)
-
-        self.firstMarkerIndex = self.firstMarkerIndex + 1
     end
 end
 
@@ -333,8 +376,6 @@ function this.new(params)
     meta.zoom = 1
     meta.maxZoom = math.min(params.size.x / meta.mapInfo.pixelsPerCell, params.size.y / meta.mapInfo.pixelsPerCell) / 2
     meta.minZoom = math.min(params.size.x / meta.mapInfo.width, params.size.y / meta.mapInfo.height)
-
-    meta.firstMarkerIndex = 2
 
     meta.update = function(self)
         params.updateFunc()
@@ -419,6 +460,84 @@ function this.new(params)
                             resource = meta.mapTexture,
                             relativeSize = util.vector2(1, 1),
                         }
+                    },
+                    -- for city and region names
+                    {
+                        type = ui.TYPE.Widget,
+                        props = {
+                            position = util.vector2(0, 0),
+                            relativeSize = util.vector2(1, 1),
+                        },
+                        userData = {},
+                        content = ui.content {
+
+                        },
+                    },
+                    -- player marker
+                    {
+                        type = ui.TYPE.Widget,
+                        props = {
+                            position = util.vector2(0, 0),
+                            relativeSize = util.vector2(1, 1),
+                        },
+                        userData = {},
+                        content = ui.content {
+                            {
+                                type = ui.TYPE.Widget,
+                                props = {
+                                    relativePosition = meta:getRelativePositionByWorldPosition(playerRef.position),
+                                    size = util.vector2(14 * stringLib.length(l10n("you")), 58),
+                                    anchor = util.vector2(0.5, 1),
+                                },
+                                userData = {},
+                                content = ui.content {
+                                    {
+                                        type = ui.TYPE.Text,
+                                        props = {
+                                            text = l10n("you"),
+                                            autoSize = true,
+                                            anchor = util.vector2(0.5, 0),
+                                            relativePosition = util.vector2(0.5, 0),
+                                            textColor = config.data.ui.shadowColor,
+                                            textSize = 14,
+                                            visible = true,
+                                            alpha = 0.6,
+                                        },
+                                        userData = {
+                                            size = 14,
+                                            name = l10n("you"),
+                                        },
+                                    },
+                                    {
+                                        type = ui.TYPE.Image,
+                                        props = {
+                                            resource = playerMarkerTexture,
+                                            size = util.vector2(22, 44),
+                                            anchor = util.vector2(0.5, 0),
+                                            position = util.vector2((14 * stringLib.length(l10n("you"))) / 2, 14),
+                                            color = config.data.ui.defaultColor,
+                                            visible = true,
+                                            alpha = 0.6,
+                                        },
+                                        userData = {
+                                            size = util.vector2(22, 44),
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    -- for markers
+                    {
+                        type = ui.TYPE.Widget,
+                        props = {
+                            position = util.vector2(0, 0),
+                            relativeSize = util.vector2(1, 1),
+                        },
+                        userData = {},
+                        content = ui.content {
+
+                        },
                     },
                 }
             }

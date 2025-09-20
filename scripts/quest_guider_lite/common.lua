@@ -69,6 +69,7 @@ this.exclamationMarkPath = "textures/icons/quest_guider/exclamationMark.dds"
 this.doorMarkPath = "textures/icons/quest_guider/toDoorIcon.dds"
 this.doorExclMarkPath = "textures/icons/quest_guider/doorExclIcon.dds"
 this.mapMarkerPath = "textures/icons/quest_guider/mapMarker.dds"
+this.playerMapMarkerPath = "textures/icons/quest_guider/playerMapMarker.dds"
 
 this.questGiverGroup = "~__QGL:GIVER__"
 
