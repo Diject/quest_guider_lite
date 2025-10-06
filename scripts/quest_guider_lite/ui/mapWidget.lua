@@ -27,6 +27,8 @@ local l10n = core.l10n(commonData.l10nKey)
 local mapMarkerTexture = ui.texture{ path = commonData.mapMarkerPath }
 local playerMarkerTexture = ui.texture{ path = commonData.playerMapMarkerPath }
 
+local mapTexture
+
 
 local this = {}
 
@@ -358,11 +360,13 @@ this.cityInfo = nil
 function this.new(params)
     if not playerDataHandler.data.mapInfo then return end
 
-    local mapImagePath = "questData/"..playerDataHandler.data.mapInfo.file
+    if not mapTexture then
+        local mapImagePath = "questData/"..playerDataHandler.data.mapInfo.file
 
-    if not vfs.fileExists(mapImagePath) then return end
+        if not vfs.fileExists(mapImagePath) then return end
 
-    local mapTexture = ui.texture{ path = mapImagePath }
+        mapTexture = ui.texture{ path = mapImagePath }
+    end
 
     params.fontSize = params.fontSize or 18
 
