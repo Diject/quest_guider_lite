@@ -156,15 +156,9 @@ topicMenuMeta.updateListElements = function (self)
 end
 
 topicMenuMeta.clearTrackingInfo = function (self)
-    local topicInfoSB = self:getTrackingInfoScrollBox()
-    if not topicInfoSB then return end
-
-    topicInfoSB.name = nil
-
-    ---@type questGuider.ui.scrollBox
-    local sBoxMeta = topicInfoSB.userData.scrollBoxMeta
-    if not sBoxMeta then return end
-    sBoxMeta:clearContent()
+    local sb = self:getTrackingInfoScrollBox()
+    sb.content = ui.content{}
+    sb.userData = {}
 end
 
 
@@ -696,24 +690,6 @@ topicMenuMeta.update = function(self)
 end
 
 
----@param topicData questGuider.PlayerJournalTopic
----@param text string
----@return boolean
-local function hasText(topicData, text)
-    text = stringLib.utf8_lower(text)
-    if topicData.id:find(text, 1, true) then
-        return true
-    end
-
-    for _, dt in pairs(topicData.entries) do
-        if stringLib.utf8_lower(dt.text):find(text, 1, true) then return true end
-        if stringLib.utf8_lower(dt.actor):find(text, 1, true) then return true end
-    end
-
-    return false
-end
-
-
 function topicMenuMeta.fillTrackingListContent(self)
     local params = self.params
 
@@ -1126,6 +1102,52 @@ local function create(params)
         }
     }
 
+    local isHide = true
+    local bottomBtnsSize = util.vector2(trackingListSize.x - 2, params.fontSize * 2)
+    local bottomBtns = {
+        type = ui.TYPE.Widget,
+        props = {
+            autoSize = false,
+            horizontal = true,
+            size = bottomBtnsSize,
+        },
+        content = ui.content {
+            button{
+                updateFunc = updateFunc,
+                textSize = meta.params.fontSize * 0.8,
+                anchor = util.vector2(0, 0.5),
+                position = util.vector2(8, bottomBtnsSize.y / 2),
+                text = l10n("hideShowAll"),
+                event = function (layout)
+                    local objects = tableLib.keys(tracking.markerByObjectId)
+                    for _, objId in pairs(objects) do
+                        tracking.setDisableMarkerState{
+                            objectId = objId,
+                            value = isHide,
+                        }
+                    end
+                    isHide = not isHide
+                    meta:fillTrackingListContent()
+                    meta:clearTrackingInfo()
+                    meta:resetListSelection()
+                end
+            },
+            button{
+                updateFunc = updateFunc,
+                textSize = meta.params.fontSize * 0.8,
+                anchor = util.vector2(1, 0.5),
+                position = util.vector2(bottomBtnsSize.x - 6, bottomBtnsSize.y / 2),
+                text = l10n("removeAll"),
+                event = function (layout)
+                    tracking.removeAll()
+                    meta:fillTrackingListContent()
+                    meta:clearTrackingInfo()
+                    meta:resetListSelection()
+                end
+            }
+        }
+    }
+
     local trackingContent = ui.content{}
 
     local topicListBox = scrollBox{
@@ -1147,6 +1169,7 @@ local function create(params)
             searchBar,
             mapBtnBlock,
             topicListBox,
+            bottomBtns,
         }
     }
 
