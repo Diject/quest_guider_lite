@@ -11,6 +11,7 @@ local config = require("scripts.quest_guider_lite.configLib")
 local commonUtils = require("scripts.quest_guider_lite.utils.common")
 local consts = require("scripts.quest_guider_lite.common")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
+local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -23,6 +24,7 @@ local log = require("scripts.quest_guider_lite.utils.log")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local button = require("scripts.quest_guider_lite.ui.button")
+local mapMenu = require("scripts.quest_guider_lite.ui.mapMenu")
 
 local l10n = core.l10n(consts.l10nKey)
 
@@ -268,6 +270,21 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                     },
                 }
             }
+
+            if playerDataHandler.isMapImageExists() and objData.positions and next(objData.positions)
+                    and mapMenu.isValidMapPositionsExist(objData.positions) then
+                header.content[2].content:insert(5, button{
+                    updateFunc = self.update,
+                    text = l10n("map"),
+                    textSize = (self.params.fontSize or 18) * 0.8,
+                    anchor = util.vector2(0, 0.5),
+                    parentScrollBoxUserData = self.params.parentScrollBoxUserData,
+                    event = function (layout)
+                        playerRef:sendEvent("QGL:showSimpleMap", {positions = objData.positions})
+                    end
+                })
+                header.content[2].content:insert(6, interval((self.params.fontSize or 18) * 2, 0))
+            end
 
             local posTextShift = self.params.fontSize / 2
             local posHeight = uiUtils.getTextHeight(objData.descr, self.params.fontSize, self.params.size.x - posTextShift, config.data.journal.textHeightMulRecord)

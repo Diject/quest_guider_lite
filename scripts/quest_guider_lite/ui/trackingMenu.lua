@@ -552,6 +552,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
         local text = ""
         local count = 0
         local exits = {}
+        local doFocus = true
         for _, posDt in ipairs(positions) do
 
             local descr = stringLib.getPathToPosition(posDt)
@@ -565,8 +566,9 @@ topicMenuMeta.selectTracked = function (self, trackedId)
             if (posDt.exitPos and posDt.isExitEx) or (not posDt.id and posDt.position) then
                 local pos = posDt.exitPos or posDt.position
                 exits[string.format("%d_%d_%d", pos.x, pos.y, pos.z)] = {pos, descr} ---@diagnostic disable-line: need-check-nil
-                if count == 1 and mapMeta then
+                if doFocus and mapMeta then
                     mapMeta:focusOnWorldPosition(pos)
+                    doFocus = false
                 end
             end
 

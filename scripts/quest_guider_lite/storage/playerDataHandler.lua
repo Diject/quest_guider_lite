@@ -1,6 +1,7 @@
 local core = require("openmw.core")
 local player = require("openmw.self")
 local storage = require("openmw.storage")
+local vfs = require("openmw.vfs")
 
 local commonData = require("scripts.quest_guider_lite.common")
 
@@ -47,6 +48,15 @@ function this.init()
         core.sendGlobalEvent("QGL:Interop:DataReady", this.data)
         player:sendEvent("QGL:Interop:DataReady", this.data)
     end
+end
+
+
+function this.isMapImageExists()
+    if this.data.mapInfo and this.data.mapInfo.file then
+        local mapImagePath = "questData/"..this.data.mapInfo.file
+        return vfs.fileExists(mapImagePath)
+    end
+    return false
 end
 
 

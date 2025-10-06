@@ -34,6 +34,7 @@ local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base
 local createTopicMenu = require("scripts.quest_guider_lite.ui.topicMenu")
 local createTrackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu")
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
+local simpleMap = require("scripts.quest_guider_lite.ui.mapMenu")
 
 local l10n = core.l10n(commonData.l10nKey)
 
@@ -539,6 +540,32 @@ return {
 
         ["QGL:updateCityInfo"] = function (data)
             mapWidget.cityInfo = data
+        end,
+
+        ["QGL:showSimpleMap"] = function (data)
+            if activeMenus[commonData.simpleMapMenuId] then
+                activeMenus[commonData.simpleMapMenuId].menu:destroy()
+                activeMenus[commonData.simpleMapMenuId] = nil
+            end
+
+            local menu = simpleMap.new{
+                onClose = function ()
+                    activeMenus[commonData.simpleMapMenuId] = nil
+                    if not next(activeMenus) then
+                        I.UI.removeMode("Journal")
+                    end
+                end
+            }
+
+            if not menu then return end
+
+            if data.positions then
+                if not menu:mark(data.positions) then
+                    menu:close()
+                end
+            end
+
+            activeMenus[commonData.simpleMapMenuId] = menu
         end,
     },
 }
