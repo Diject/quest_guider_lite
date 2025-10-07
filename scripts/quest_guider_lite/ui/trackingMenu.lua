@@ -1142,12 +1142,13 @@ local function create(params)
 
     local trackingContent = ui.content{}
 
-    local topicListBox = scrollBox{
+    local trackingListBox = scrollBox{
         updateFunc = updateFunc,
         size = util.vector2(trackingListSize.x - 2, trackingListSize.y - params.fontSize * 5 - 10),
         scrollAmount = params.size.y / 5,
         content = trackingContent,
         contentHeight = 0,
+        withoutBorders = true,
     }
 
     local trackingList = {
@@ -1160,7 +1161,7 @@ local function create(params)
         content = ui.content {
             searchBar,
             mapBtnBlock,
-            topicListBox,
+            trackingListBox,
             bottomBtns,
         }
     }
