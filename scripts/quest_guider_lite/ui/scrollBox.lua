@@ -186,6 +186,7 @@ end
 ---@field updateFunc fun()
 ---@field arrange any?
 ---@field userData table?
+---@field withoutBorders boolean?
 
 
 ---@param params questGuider.ui.scrollBox.params
@@ -307,7 +308,7 @@ return function(params)
     meta:updateScrollBarVisibility()
 
     contentData = {
-        template = templates.box,
+        template = params.withoutBorders ~= true and templates.box or nil,
         type = ui.TYPE.Widget,
         props = {
             autoSize = false,
