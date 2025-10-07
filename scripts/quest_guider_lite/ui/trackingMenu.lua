@@ -919,20 +919,12 @@ local function create(params)
         userData = {},
         events = {
             mousePress = async:callback(function(coord, layout)
-                layout.userData.contentBackup = meta:getTrackingInfoScrollBox()
-                meta:getMain().content[2] = topicInfo
-
-                layout.userData.doDrag = true
                 local screenSize = uiUtils.getScaledScreenSize()
                 layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
             end),
 
             mouseRelease = async:callback(function(_, layout)
-                local relativePos = meta.menu.layout.props.relativePosition
                 layout.userData.lastMousePos = nil
-
-                meta:getMain().content[2] = layout.userData.contentBackup
-                layout.userData.contentBackup = nil
                 meta:update()
             end),
 
