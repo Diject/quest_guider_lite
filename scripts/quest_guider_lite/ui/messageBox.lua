@@ -25,6 +25,7 @@ local this = {}
 ---@field message string?
 ---@field yesCallback function?
 ---@field noCallback function?
+---@field onClose function?
 
 
 
@@ -55,6 +56,7 @@ function this.newSimple(params)
     end
 
     function meta:close()
+        if params.onClose then params.onClose() end
         if not self.menu then return end
         self.menu:destroy()
     end

@@ -589,6 +589,9 @@ return {
                     trackingMenuMeta:resetListSelection()
                     trackingMenuMeta:update()
                 end,
+                onClose = function ()
+                    activeMenus[commonData.messageBoxMenuId] = nil
+                end
             }
         end,
     },
