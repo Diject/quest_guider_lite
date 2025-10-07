@@ -744,7 +744,7 @@ function topicMenuMeta.fillTrackingListContent(self)
                 local record = getObject(objId)
                 local objName = record and record.name or ""
 
-                if self.textFilter == "" or stringLib.utf8_lower(objName):find(self.textFilter, 1, true) then
+                if valid or self.textFilter == "" or stringLib.utf8_lower(objName):find(self.textFilter, 1, true) then
                     table.insert(objects, {name = objName, id = objId, objects = listData.list, qName = qName, diaId = listData.diaId})
                     valid = true
                 end
