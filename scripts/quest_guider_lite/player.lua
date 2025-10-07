@@ -35,6 +35,7 @@ local createTopicMenu = require("scripts.quest_guider_lite.ui.topicMenu")
 local createTrackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu")
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
 local simpleMap = require("scripts.quest_guider_lite.ui.mapMenu")
+local messageBox = require("scripts.quest_guider_lite.ui.messageBox")
 
 local l10n = core.l10n(commonData.l10nKey)
 
@@ -566,6 +567,27 @@ return {
             end
 
             activeMenus[commonData.simpleMapMenuId] = menu
+        end,
+
+        ["QGL:removeAllTrackedMessageBox"] = function ()
+            if activeMenus[commonData.messageBoxMenuId] then
+                activeMenus[commonData.messageBoxMenuId].menu:destroy()
+                activeMenus[commonData.messageBoxMenuId] = nil
+            end
+
+            activeMenus[commonData.messageBoxMenuId] = messageBox.newSimple{
+                message = l10n("removeTrackingFromListedMessageBox"),
+                relativeSize = util.vector2(0.25, 0.2),
+                yesCallback = function ()
+                    tracking.removeAll()
+                    local trackingMenuMeta = activeMenus[commonData.trackingMenuId]
+                    if not trackingMenuMeta then return end
+                    trackingMenuMeta:fillTrackingListContent()
+                    trackingMenuMeta:clearTrackingInfo()
+                    trackingMenuMeta:resetListSelection()
+                    trackingMenuMeta:update()
+                end,
+            }
         end,
     },
 }

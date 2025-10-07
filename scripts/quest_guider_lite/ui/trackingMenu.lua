@@ -1131,10 +1131,7 @@ local function create(params)
                 position = util.vector2(bottomBtnsSize.x - 6, bottomBtnsSize.y / 2),
                 text = l10n("removeAll"),
                 event = function (layout)
-                    tracking.removeAll()
-                    meta:fillTrackingListContent()
-                    meta:clearTrackingInfo()
-                    meta:resetListSelection()
+                    playerRef:sendEvent("QGL:removeAllTrackedMessageBox")
                 end
             }
         }

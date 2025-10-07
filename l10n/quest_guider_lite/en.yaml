@@ -133,6 +133,7 @@ llist: "list"
 you: "You"
 hideShowAll: "Hide/show all"
 removeAll: "Remove all"
+removeTrackingFromListedMessageBox: "Remove tracking for all listed objects? This action cannot be undone."
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."
