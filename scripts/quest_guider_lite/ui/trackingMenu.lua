@@ -254,7 +254,19 @@ topicMenuMeta.showMainMap = function (self)
                 }
             end
 
-            mapMeta:createMarker(posDt[1], objectColor, nil, positionElem and ui.content{
+            local events = {
+                mouseRelease = async:callback(function(e, layout)
+                    if layout.userData and layout.userData.pressed then
+                        local diaIds = tableLib.keys(trackingData.markers)
+                        local diaId = next(diaIds)
+                        if diaId then
+                            playerRef:sendEvent("QGL:journalMenuSelectQuest", {qName = diaId})
+                        end
+                    end
+                end),
+            }
+
+            mapMeta:createMarker(posDt[1], objectColor, events, positionElem and ui.content{
                 positionElem
             })
         end

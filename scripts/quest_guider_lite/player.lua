@@ -594,5 +594,13 @@ return {
                 end
             }
         end,
+
+        ["QGL:journalMenuSelectQuest"] = function (data)
+            if not data or not data.qName then return end
+            local journalMenu = activeMenus[commonData.journalMenuId]
+            if not journalMenu then return end
+
+            journalMenu:selectQuest(data.qName)
+        end,
     },
 }
