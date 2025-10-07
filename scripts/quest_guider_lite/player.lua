@@ -132,7 +132,9 @@ end
 
 local function onMouseWheel(vertical)
     for _, menu in pairs(activeMenus) do
-        menu:onMouseWheel(vertical)
+        if menu.onMouseWheel then
+            menu:onMouseWheel(vertical)
+        end
     end
 end
 
