@@ -579,9 +579,9 @@ return {
                 message = l10n("removeTrackingFromListedMessageBox"),
                 relativeSize = util.vector2(0.25, 0.2),
                 yesCallback = function ()
-                    tracking.removeAll()
                     local trackingMenuMeta = activeMenus[commonData.trackingMenuId]
                     if not trackingMenuMeta then return end
+                    trackingMenuMeta:removeListed()
                     trackingMenuMeta:fillTrackingListContent()
                     trackingMenuMeta:clearTrackingInfo()
                     trackingMenuMeta:resetListSelection()

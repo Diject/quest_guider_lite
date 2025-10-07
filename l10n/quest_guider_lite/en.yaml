@@ -131,8 +131,8 @@ ellipsis: "(...)"
 map: "Map"
 llist: "list"
 you: "You"
-hideShowAll: "Hide/show all"
-removeAll: "Remove all"
+hideShowAll: "Hide/show listed"
+removeAll: "Remove listed"
 removeTrackingFromListedMessageBox: "Remove tracking for all listed objects? This action cannot be undone."
 
 

@@ -700,9 +700,9 @@ function topicMenuMeta.fillTrackingListContent(self)
 
     local content = sBoxMeta:getMainFlex().content
 
-    ---@type table<string, table<string, string[]>>
+    ---@type table<string, table<string, {list :string[], diaId : string}>>
     local trackingObjectsByQId = {}
-    ---@type table<string, string[]>
+    ---@type table<string, {list :string[], diaId : string}>
     local trackingObjects = {}
     for diaId, dt in pairs(tracking.trackedObjectsByDiaId) do
         local qName = playerQuests.getQuestNameByDiaId(diaId)
@@ -710,18 +710,18 @@ function topicMenuMeta.fillTrackingListContent(self)
 
         if not trackingObjectsByQId[qName] then trackingObjectsByQId[qName] = {} end
         for objId, list in pairs(dt.objects) do
-            trackingObjectsByQId[qName][objId] = list
-            trackingObjects[objId] = list
+            trackingObjectsByQId[qName][objId] = {list, diaId = diaId}
+            trackingObjects[objId] = {list = list, diaId = diaId}
         end
     end
 
-    ---@type {name : string, id : string?, objects : string[]?, qName : string?}[]
+    ---@type {name : string, id : string?, objects : string[]?, qName : string?, diaId : string?}[]
     local recordList = {}
     if localStorage.data.trackingListCheckBox then
-        for objId, list in pairs(trackingObjects) do
+        for objId, listData in pairs(trackingObjects) do
             local record = getObject(objId)
             local objName = record and record.name or objId or "???"
-            table.insert(recordList, {name = objName, id = objId, objects = list})
+            table.insert(recordList, {name = objName, id = objId, objects = listData.list, diaId = listData.diaId})
         end
 
         table.sort(recordList, function (a, b)
@@ -740,12 +740,12 @@ function topicMenuMeta.fillTrackingListContent(self)
             end
 
             local objects = {}
-            for objId, list in pairs(trackingObjectsByQId[qName]) do
+            for objId, listData in pairs(trackingObjectsByQId[qName]) do
                 local record = getObject(objId)
                 local objName = record and record.name or ""
 
                 if self.textFilter == "" or stringLib.utf8_lower(objName):find(self.textFilter, 1, true) then
-                    table.insert(objects, {name = objName, id = objId, objects = list, qName = qName})
+                    table.insert(objects, {name = objName, id = objId, objects = listData.list, qName = qName, diaId = listData.diaId})
                     valid = true
                 end
             end
@@ -795,6 +795,7 @@ function topicMenuMeta.fillTrackingListContent(self)
             userData = {
                 trackingData = trackingData,
                 objectId = dt.id,
+                diaId = dt.diaId,
                 qName = dt.qName,
                 heightInList = heightInList,
             },
@@ -853,6 +854,27 @@ function topicMenuMeta.fillTrackingListContent(self)
         sBoxMeta:setScrollPosition(math.max(0, height - scrollElemHeight))
     end
 end
+
+
+function topicMenuMeta:removeListed()
+    local qList = self:getTrackingList()
+    ---@type questGuider.ui.scrollBox
+    local sBoxMeta = qList.userData.scrollBoxMeta
+
+    local content = sBoxMeta:getMainFlex().content
+
+    for _, el in pairs(content) do
+        if not el.userData or not el.userData.diaId then goto continue end
+
+        tracking.removeMarker{
+            objectId = el.userData.objectId,
+            questId = el.userData.diaId
+        }
+
+        ::continue::
+    end
+end
+
 
 
 ---@class questGuider.ui.trackingMenu.params
@@ -1111,12 +1133,23 @@ local function create(params)
                 position = util.vector2(8, bottomBtnsSize.y / 2),
                 text = l10n("hideShowAll"),
                 event = function (layout)
-                    local objects = tableLib.keys(tracking.markerByObjectId)
-                    for _, objId in pairs(objects) do
+                    local qList = meta:getTrackingList()
+                    ---@type questGuider.ui.scrollBox
+                    local sBoxMeta = qList.userData.scrollBoxMeta
+
+                    local content = sBoxMeta:getMainFlex().content
+
+                    for _, el in pairs(content) do
+                        if not el.userData or not el.userData.diaId then goto continue end
+
                         tracking.setDisableMarkerState{
-                            objectId = objId,
+                            objectId = el.userData.objectId,
+                            questId = el.userData.diaId,
                             value = isHide,
+                            isUserDisabled = true,
                         }
+
+                        ::continue::
                     end
                     isHide = not isHide
                     meta:fillTrackingListContent()
