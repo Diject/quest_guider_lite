@@ -233,10 +233,17 @@ topicMenuMeta.showMainMap = function (self)
         local objectColor = util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
             or commonData.defaultColor
 
+        local diaIds = tableLib.keys(trackingData.markers)
+        local qNames = ""
+        for _, diaId in pairs(diaIds) do
+            qNames = qNames..(playerQuests.getQuestNameByDiaId(diaId) or diaId)..", "
+        end
+        qNames = qNames:sub(1, -3)
+
         for _, posDt in pairs(objPoss) do
             local positionElem
             if posDt[2] then
-                local text = string.format("%s\n%s", object and object.name or id, posDt[2])
+                local text = string.format("%s\n\n%s\n%s", qNames, object and object.name or id, posDt[2])
                 local height = uiUtils.getTextHeight(text, self.params.fontSize, screenSize.x / 3, config.data.journal.textHeightMulRecord)
                 positionElem = {
                     type = ui.TYPE.Text,
@@ -257,7 +264,6 @@ topicMenuMeta.showMainMap = function (self)
             local events = {
                 mouseRelease = async:callback(function(e, layout)
                     if layout.userData and layout.userData.pressed then
-                        local diaIds = tableLib.keys(trackingData.markers)
                         local diaId = next(diaIds)
                         if diaId then
                             playerRef:sendEvent("QGL:journalMenuSelectQuest", {qName = diaId})
