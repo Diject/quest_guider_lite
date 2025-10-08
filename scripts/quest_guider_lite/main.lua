@@ -70,18 +70,19 @@ end
 local function genMapRegionNames()
     local cellNameData = {}
     for _, cell in pairs(world.cells) do
-        if not cell.isExterior or not cell.name or cell.name == "" then goto continue end
+        if not cell.isExterior then goto continue end
+        if not cell.name or cell.name == "" then goto continue end
 
-        local name = stringLib.getBeforeComma(cell.name)
+        local nameId = stringLib.getBeforeComma(cell.name)
 
-        local cellDt = cellNameData[name]
+        local cellDt = cellNameData[nameId]
         if not cellDt then
-            cellNameData[name] = {
-                name = name, count = 0,
+            cellDt = {
+                name = stringLib.getBeforeComma(cell.displayName or cell.name), count = 0,
                 minX = math.huge, maxX = -math.huge,
                 minY = math.huge, maxY = -math.huge,
             }
-            cellDt = cellNameData[name]
+            cellNameData[nameId] = cellDt
         end
 
         cellDt.minX = math.min(cell.gridX, cellDt.minX)
@@ -93,22 +94,60 @@ local function genMapRegionNames()
         ::continue::
     end
 
-    cellNameData = tableLib.values(cellNameData, function (a, b)
-        return a.count > b.count
-    end)
+    local cellNameLines = {}
+    local cellNames = {}
+    for _, dt in pairs(cellNameData) do
+        if dt.count < 1 then goto continue end
 
-    local res = {}
-    for _, dt in ipairs(cellNameData) do
-        if dt.count < 1 then break end
-        table.insert(res, {
+        local posX = (dt.minX + (dt.maxX - dt.minX) / 2) * 8192 + 4096
+        local posY = (dt.minY + (dt.maxY - dt.minY) / 2) * 8192 + 4096
+
+        local cellDt = {
             name = dt.name,
             count = dt.count,
-            posX = (dt.minX + (dt.maxX - dt.minX) / 2) * 8192 + 4096,
-            posY = (dt.minY + (dt.maxY - dt.minY) / 2) * 8192 + 4096,
-        })
+            posX = posX,
+            posY = posY,
+        }
+        table.insert(cellNames, cellDt)
+
+        local hash = math.floor(posY / 4096)
+        for i = -1, 1 do
+            local h = hash + i
+            cellNameLines[h] = cellNameLines[h] or {}
+            table.insert(cellNameLines[h], cellDt)
+        end
+
+        ::continue::
     end
 
-    world.players[1]:sendEvent("QGL:updateCityInfo", res)
+
+    local function processLines(lines, xPosDiff, heightDiff)
+        local heightDiffHalf = heightDiff / 2
+        for _, lineElems in pairs(lines) do
+
+            table.sort(lineElems, function (a, b)
+                return a.posX < b.posX
+            end)
+
+            for j = 2, #lineElems do
+                local el1 = lineElems[j - 1]
+                local el2 = lineElems[j]
+                if el2.posX - el1.posX < xPosDiff and math.abs(el2.posY - el1.posY) < heightDiff then
+                    if el1.posY > el2.posY then
+                        el1.posY = el1.posY + heightDiffHalf
+                        el2.posY = el2.posY - heightDiffHalf
+                    else
+                        el1.posY = el1.posY - heightDiffHalf
+                        el2.posY = el2.posY + heightDiffHalf
+                    end
+                end
+            end
+        end
+    end
+
+    processLines(cellNameLines, 8192 * 6, 4096)
+
+    world.players[1]:sendEvent("QGL:updateCityInfo", cellNames)
 end
 
 genMapRegionNames()
