@@ -91,6 +91,8 @@ questObjectsLabel: "quest objects"
 useForProximityToolDescription: "Use proximityTool for:\n(Applies only to newly created markers.)"
 proximityToolMarkersEnabled: "Enable proximityTool markers"
 proximityToolMarkersEnabledDescription: "Applies only to newly created markers."
+mapByDefault: "Show map by default"
+mapByDefaultDescription: "If enabled, the map will be displayed by default when opening the object tracking menu."
 
 hidden: "Hidden"
 finished: "Finished"

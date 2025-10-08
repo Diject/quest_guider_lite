@@ -59,6 +59,7 @@ this.default = {
         topicTextMaxLenToProcess = 20000,
         maxTopicEntriesInJournal = 2,
         maxPosDescrInTracking = 3,
+        mapByDefault = true,
     },
     ui = {
         fontSize = 20,

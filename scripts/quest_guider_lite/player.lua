@@ -545,7 +545,10 @@ return {
             if not menu then return end
 
             menu.positions = data.positions
-            menu:showMainMap()
+
+            if configLib.data.journal.mapByDefault then
+                menu:showMainMap()
+            end
         end,
 
         ["QGL:updateCityInfo"] = function (data)
