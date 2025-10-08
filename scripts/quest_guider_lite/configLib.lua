@@ -27,7 +27,17 @@ end
 for _, section in pairs(this.storageSections) do
     section:subscribe(async:callback(function(s, key)
         if key then
-            tableLib.setValueByPath(this.data, key, section:get(key))
+            local value = section:get(key)
+            local res
+            if type(value) == "userdata" then
+                res = {}
+                for n, v in pairs(value) do
+                    res[n] = v
+                end
+            else
+                res = value
+            end
+            tableLib.setValueByPath(this.data, key, res)
         else
             this.loadFromStorage(section)
         end

@@ -24,6 +24,17 @@ this.default = {
             range = 60,
             rayTracing = true,
             opacity = 100, -- %
+            details = {
+                givers = true,
+                markers = true,
+            }
+        },
+        proximityMarkers = {
+            enabled = true,
+            details = {
+                givers = true,
+                markers = true,
+            }
         }
     },
     journal = {

@@ -228,11 +228,14 @@ function this.addMarker(params)
         userData = userData,
     }
 
-    objectMarkerData.localMarkerId = proximityTool.addRecord(markerRecordParams)
+    local createProximityMarkers = config.data.tracking.proximityMarkers.enabled and config.data.tracking.proximityMarkers.details.markers
+    local createHUDMarkers = config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers
 
-    objectMarkerData.localDoorMarkerId = proximityTool.addRecord(doorMarkerRecordParams)
+    if createProximityMarkers then
+        objectMarkerData.localMarkerId = proximityTool.addRecord(markerRecordParams)
+        objectMarkerData.localDoorMarkerId = proximityTool.addRecord(doorMarkerRecordParams)
+    end
 
-    if not objectMarkerData.localMarkerId then return end
 
     if not objectTrackingData.markers then objectTrackingData.markers = {} end
     local handledReqs = params.reqData and params.reqData.reqDataForHandling
@@ -318,38 +321,36 @@ function this.addMarker(params)
         end
     end
 
-    -- if next(positionalMarkers.positions) then
-    --     proximityTool.addMarker(positionalMarkers)
-    -- end
-
-    if next(doorMarkers.positions) then
-        proximityTool.addMarker(doorMarkers)
-    end
-
     local listOfObjects = tableLib.keys(objects)
-    if next(listOfObjects) then
-        if #listOfObjects == 1 then
-            proximityTool.addMarker{
-                record = objectMarkerData.localMarkerId,
-                objectId = listOfObjects[1],
-                positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
-                groupName = questData.name,
-                itemId = isItem and objectId or nil,
-            }
-        else
-            proximityTool.addMarker{
-                record = objectMarkerData.localMarkerId,
-                objectIds = listOfObjects,
-                positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
-                groupName = questData.name,
-                itemId = isItem and objectId or nil,
-            }
+
+    if createProximityMarkers then
+        if next(doorMarkers.positions) then
+            proximityTool.addMarker(doorMarkers)
         end
 
+        if next(listOfObjects) then
+            if #listOfObjects == 1 then
+                proximityTool.addMarker{
+                    record = objectMarkerData.localMarkerId,
+                    objectId = listOfObjects[1],
+                    positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
+                    groupName = questData.name,
+                    itemId = isItem and objectId or nil,
+                }
+            else
+                proximityTool.addMarker{
+                    record = objectMarkerData.localMarkerId,
+                    objectIds = listOfObjects,
+                    positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
+                    groupName = questData.name,
+                    itemId = isItem and objectId or nil,
+                }
+            end
+        end
     end
 
 
-    if config.data.tracking.hudMarkers.enabled then
+    if createHUDMarkers then
         local scale = 1.5 * uiUtils.getScaledScreenSize().y / 1080
         ---@type proximityTool.hudm
         local hudMarkerParams = {
@@ -874,7 +875,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     local disabled = data.disabled
     local objectId = data.objId
 
-    if not markerData or not description then return end
+    if not markerData or not markerData.record or not description then return end
 
     local recordData = proximityTool.getMarkerData(markerData.record)
     if not recordData then return end
@@ -890,7 +891,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     lastInteriorMarkers[id] = { id = id, groupId = groupId }
 
 
-    if config.data.tracking.hudMarkers.enabled then
+    if config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers then
         local scale = 2 * uiUtils.getScaledScreenSize().y / 1080
         local offset = interiorHUDMobjectOffset[objectId] or interiorHUDMoffsetData.offset
 
@@ -943,6 +944,10 @@ function this.createMarkersForExteriorDoor(ref)
     if not destCell or destCell.isExterior then return end
 
     exteriorDoors[ref.id] = ref
+
+    if not (config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers) then
+        return
+    end
 
     local cellId = destCell.id
 

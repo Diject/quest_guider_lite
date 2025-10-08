@@ -23,6 +23,13 @@ I.Settings.registerPage{
 ---@field falseLabel string|nil
 ---@field disabled boolean|nil
 
+---@class questGuider.settings.checkBoxes
+---@field key string
+---@field name string l10n
+---@field description string|nil l10n
+---@field default boolean|nil
+---@field checkBoxes UI.renderer.checkBoxesRenderer.checkBoxes[]
+
 ---@class questGuider.settings.numberSetting
 ---@field key string
 ---@field name string l10n
@@ -54,6 +61,21 @@ local function boolSetting(args)
             trueLabel = args.trueLabel,
             falseLabel = args.falseLabel,
             disabled = args.disabled,
+        }
+    }
+end
+
+---@param args questGuider.settings.checkBoxes
+local function checkBoxes(args)
+    return {
+        key = args.key,
+        renderer = "AdvWMap:checkboxes",
+        name = args.name,
+        description = args.description,
+        default = args.default or {},
+        ---@type UI.renderer.yesNoWithCheckbox.params
+        argument = {
+            checkBoxes = args.checkBoxes,
         }
     }
 end
@@ -193,12 +215,25 @@ I.Settings.registerGroup{
         boolSetting{key = "tracking.autoTrackOneEntryDialogues", name = "autoTrackOneEntryDialogues", description = "autoTrackOneEntryDialoguesDescription", default = config.data.tracking.autoTrackOneEntryDialogues},
         boolSetting{key = "tracking.trackDisabled", name = "trackDisabled", description = "trackDisabledDescription", default = config.data.tracking.trackDisabled},
         boolSetting{key = "tracking.questGivers", name = "questGivers", description = "questGiversDescription", default = config.data.tracking.questGivers},
-        numberSetting{key = "tracking.questGiverProximity", name = "questGiverMarkerActivationDistance", description = "questGiverMarkerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.questGiverProximity},
         numberSetting{key = "tracking.minChance", name = "minDropchance", description = "minDropchanceDescription", integer = false, min = 0, max = 100, default = config.default.tracking.minChance},
         numberSetting{key = "tracking.maxPos", name = "maxPositionNumberToNotTrackEntrances", description = "maxPositionNumberToNotTrackEntrancesDescription", integer = true, min = 0, default = config.default.tracking.maxPos},
-        numberSetting{key = "tracking.proximity", name = "markerActivationDistance", description = "markerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.proximity},
         boolSetting{key = "tracking.colored", name = "useColoredMarkers", description = "useColoredMarkersDescription", default = config.data.tracking.colored},
+        boolSetting{key = "tracking.proximityMarkers.enabled", name = "proximityToolMarkersEnabled", description = "proximityToolMarkersEnabledDescription", default = config.default.tracking.proximityMarkers.enabled},
+        checkBoxes{key = "tracking.proximityMarkers.details", name = "empty", description = "useForProximityToolDescription", default = config.default.tracking.proximityMarkers.details,
+            checkBoxes = {
+                {key = "givers", name = "questGiversLabel", default = config.default.tracking.hudMarkers.details.givers},
+                {key = "markers", name = "questObjectsLabel", default = config.default.tracking.hudMarkers.details.markers},
+            }
+        },
+        numberSetting{key = "tracking.proximity", name = "markerActivationDistance", description = "markerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.proximity},
+        numberSetting{key = "tracking.questGiverProximity", name = "questGiverMarkerActivationDistance", description = "questGiverMarkerActivationDistanceDescription", integer = true, min = 0, default = config.default.tracking.questGiverProximity},
         boolSetting{key = "tracking.hudMarkers.enabled", name = "hudMarkersEnabled", description = "hudMarkersEnabledDescription", default = config.data.tracking.hudMarkers.enabled},
+        checkBoxes{key = "tracking.hudMarkers.details", name = "empty", description = "useForHUDMarkersDescription", default = config.default.tracking.hudMarkers.details,
+            checkBoxes = {
+                {key = "givers", name = "questGiversLabel", default = config.default.tracking.hudMarkers.details.givers},
+                {key = "markers", name = "questObjectsLabel", default = config.default.tracking.hudMarkers.details.markers},
+            }
+        },
         numberSetting{key = "tracking.hudMarkers.range", name = "hudMarkersRange", description = "hudMarkersRangeDescription", integer = false, min = 0, default = config.default.tracking.hudMarkers.range},
         boolSetting{key = "tracking.hudMarkers.rayTracing", name = "hudMarkersRayTracing", description = "hudMarkersRayTracingDescription", default = config.data.tracking.hudMarkers.rayTracing},
         numberSetting{key = "tracking.hudMarkers.opacity", name = "hudMarkersOpacity", description = "hudMarkersOpacityDescription", integer = false, min = 0, max = 100, default = config.default.tracking.hudMarkers.opacity},

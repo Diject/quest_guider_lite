@@ -400,9 +400,16 @@ return {
             end
             if not valid then return end
 
-            local recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
+            local createProximityMarkers = config.data.tracking.proximityMarkers.enabled and config.data.tracking.proximityMarkers.details.givers
+            local createHUDMarkers = config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.givers
+
+            local recordId, markerId, markerGroupId
+            if createProximityMarkers then
+                recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
+            end
+
             local hudMarkerId
-            if data.hudMarkerData then
+            if data.hudMarkerData and createHUDMarkers then
                 hudMarkerId = tracking.addHUDMarker(data.hudMarkerData)
             end
 
