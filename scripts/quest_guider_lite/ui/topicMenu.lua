@@ -162,60 +162,17 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
     local headerSize = util.vector2(self.questInfoPanelSize.x - params.fontSize * 0.5 - 6, (params.fontSize or 18) * 2.5)
 
-    local topicContent = ui.content{
-        {
-            type = ui.TYPE.Text,
-            props = {
-                text = nil,
-                textColor = config.data.ui.defaultColor,
-                autoSize = false,
-                size = headerSize,
-                textSize = (params.fontSize or 18) * 1.25,
-                multiline = true,
-                wordWrap = true,
-                textAlignH = ui.ALIGNMENT.Center,
-                textAlignV = ui.ALIGNMENT.Center,
-            },
-        },
-        {
-            type = ui.TYPE.Widget,
-            props = {
-                autoSize = false,
-            },
-            content = ui.content{},
-        },
-        {
-            type = ui.TYPE.Flex,
-            props = {
-                autoSize = true,
-                horizontal = true,
-            },
-            content = ui.content{
-                interval(params.fontSize * 0.25, 0),
-                {
-                    type = ui.TYPE.Text,
-                    props = {
-                        text = "",
-                        textColor = config.data.ui.defaultColor,
-                        autoSize = false,
-                        size = util.vector2(headerSize.x, params.fontSize),
-                        position = util.vector2(params.fontSize * 0.25, 0),
-                        textSize = params.fontSize,
-                        multiline = true,
-                        wordWrap = true,
-                        -- textAlignH = ui.ALIGNMENT.Center,
-                    },
-                },
-            },
-        },
-    }
 
+    local endIndex = #topic.entries
+    local nestedTopics = {}
 
-    local function updateTopicText(topicInfoContent)
+    local function updateTopicText(topicInfoContent, loadMore)
+        ---@type questGuider.ui.scrollBox
+        local topicSBMeta = self:getTopicScrollBox().userData.scrollBoxMeta
+        local mainFlex = topicSBMeta:getMainFlex()
+
         if not topicInfoContent then
-            ---@type questGuider.ui.scrollBox
-            local topicSBMeta = self:getTopicScrollBox().userData.scrollBoxMeta
-            topicInfoContent = topicSBMeta:getMainFlex().content
+            topicInfoContent = mainFlex.content
         end
 
         local success, pcallRes = pcall(function ()
@@ -224,7 +181,8 @@ topicMenuMeta.selectTopic = function (self, topicId)
         if not success or not pcallRes then return end
 
         local headerElem = topicInfoContent[1]
-        local textElem = topicInfoContent[3].content[2]
+        local btnElem = topicInfoContent[3].content[1]
+        local textElem = topicInfoContent[4].content[2]
         local buttonFlex = topicInfoContent[2]
 
         headerElem.props.text = uiUtils.colorize(topic.name, self.textFilter,
@@ -234,38 +192,66 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
         local textLinks = {}
 
-        local newText = "\n"
+        local newText = ""
 
-        for i = 1, #topic.entries do
-            local entry = topic.entries[i]
+        mainFlex.userData = mainFlex.userData or {}
 
-            local topicLinkStrs = stringLib.findTextLinks(entry.text)
-            for _, str in pairs(topicLinkStrs) do
-                textLinks[str] = true
+        if loadMore then
+            newText = "\n"
+
+            endIndex = util.clamp(endIndex, 0, #topic.entries)
+            local startIndex = math.max(1, endIndex - config.data.journal.maxTopicEntriesInTopicMenu + 1)
+
+            if startIndex == 1 then
+                btnElem.props.visible = false
+            else
+                btnElem.props.visible = true
             end
 
-            local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text)
-            table.insert(actorNames, entry.actor)
-            newText = string.format("%s\t\t____ID_%s____: \"%s\"\n\n",
-                newText,
-                tostring(#actorNames),
-                entryText
-            )
-        end
+            for i = startIndex, endIndex do
+                local entry = topic.entries[i]
+                if not entry then goto continue end
 
-        local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, headerSize.x, config.data.journal.textHeightMulRecord, 1, true)
-        newTextHeight = math.max(0, newTextHeight - 2 * params.fontSize)
+                local topicLinkStrs = stringLib.findTextLinks(entry.text)
+                for _, str in pairs(topicLinkStrs) do
+                    textLinks[str] = true
+                end
 
-        local newTextElemSize = util.vector2(headerSize.x, newTextHeight)
+                local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text)
+                table.insert(actorNames, entry.actor)
+                newText = string.format("%s\t\t____ID_%s____: \"%s\"\n\n",
+                    newText,
+                    tostring(#actorNames),
+                    entryText
+                )
 
-        textElem.props.size = newTextElemSize
+                ::continue::
+            end
 
+            endIndex = util.clamp(endIndex - config.data.journal.maxTopicEntriesInTopicMenu, 0, #topic.entries)
 
-        local nestedTopics = {}
-        local textLen = stringLib.length(newText)
+            if next(textLinks) then
+                for str, _ in pairs(textLinks) do
+                    for _, tp in pairs(playerQuests.getTopicList()) do
 
-        if textLen <= config.data.journal.topicTextMaxLenToProcess and next(textLinks) then
-            for str, _ in pairs(textLinks) do
+                        if not nestedTopics[tp.id] then
+                            for _, name in pairs(actorNames) do
+                                if stringLib.fuzzyTopicSearch(tp.id, stringLib.utf8_lower(name)) then
+                                    if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
+                                end
+                            end
+                        end
+
+                        if (not nestedTopics[tp.id] or not nestedTopics[tp.id].patterns[str])
+                                and stringLib.fuzzyTopicSearch(str, tp.id) then
+                            if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
+                            nestedTopics[tp.id].patterns[str] = true
+                        end
+
+                    end
+                end
+            else
+                local textLower = stringLib.utf8_lower(newText)
                 for _, tp in pairs(playerQuests.getTopicList()) do
 
                     if not nestedTopics[tp.id] then
@@ -276,34 +262,25 @@ topicMenuMeta.selectTopic = function (self, topicId)
                         end
                     end
 
-                    if (not nestedTopics[tp.id] or not nestedTopics[tp.id].patterns[str])
-                            and stringLib.fuzzyTopicSearch(str, tp.id) then
+                    if (not nestedTopics[tp.id] or not nestedTopics[tp.id].patterns[tp.name])
+                            and stringLib.hasPhrase(textLower, tp.id) then
                         if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
-                        nestedTopics[tp.id].patterns[str] = true
+                        nestedTopics[tp.id].patterns[tp.name] = true
                     end
 
                 end
-            end
-        elseif textLen <= config.data.journal.topicTextMaxLenToProcess then
-            local textLower = stringLib.utf8_lower(newText)
-            for _, tp in pairs(playerQuests.getTopicList()) do
-
-                if not nestedTopics[tp.id] then
-                    for _, name in pairs(actorNames) do
-                        if stringLib.fuzzyTopicSearch(tp.id, stringLib.utf8_lower(name)) then
-                            if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
-                        end
-                    end
-                end
-
-                if (not nestedTopics[tp.id] or not nestedTopics[tp.id].patterns[tp.name])
-                        and stringLib.hasPhrase(textLower, tp.id) then
-                    if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
-                    nestedTopics[tp.id].patterns[tp.name] = true
-                end
-
             end
         end
+
+        local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, headerSize.x, config.data.journal.textHeightMulRecord, 1, true)
+        newTextHeight = math.max(0, newTextHeight - 2 * params.fontSize)
+
+        local oldSize = textElem.props.size
+        local newTextElemSize = util.vector2(headerSize.x, oldSize.y + newTextHeight)
+
+        textElem.props.size = newTextElemSize
+
+        local textLen = stringLib.length(newText)
 
         buttonFlex.content = ui.content{}
 
@@ -311,13 +288,13 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
         if next(nestedTopics) then
 
-            nestedTopics = tableLib.values(nestedTopics, function (a, b)
+            local nestedTopicsList = tableLib.values(nestedTopics, function (a, b)
                 return (a.nameLen > b.nameLen)
             end)
 
             local patColor = "#"..config.data.ui.linkColor:asHex()
             local patterns = {}
-            for _, topicData in ipairs(nestedTopics) do
+            for _, topicData in ipairs(nestedTopicsList) do
                 for pattern, _ in pairs(topicData.patterns) do
                     patterns[pattern] = {pattern = pattern, color = patColor}
                 end
@@ -326,7 +303,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
             newText = uiUtils.colorizeNestedMulti(newText, tableLib.values(patterns),
                     "#"..config.data.ui.defaultColor:asHex())
 
-            table.sort(nestedTopics, function (a, b)
+            table.sort(nestedTopicsList, function (a, b)
                 return a.topic.id < b.topic.id
             end)
 
@@ -370,7 +347,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
             local maxBtnWidt = 0
             local maxBlockWidth = newTextElemSize.x - params.fontSize * 0.5
-            for _, topicData in ipairs(nestedTopics) do
+            for _, topicData in ipairs(nestedTopicsList) do
                 local topicText = topicData.topic.name
 
                 if topicText ~= topic.name then
@@ -410,8 +387,81 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
         end
 
-        textElem.props.text = newText
+        textElem.props.text = newText..textElem.props.text
     end
+
+
+    local topicContent
+    topicContent = ui.content{
+        {
+            type = ui.TYPE.Text,
+            props = {
+                text = nil,
+                textColor = config.data.ui.defaultColor,
+                autoSize = false,
+                size = headerSize,
+                textSize = (params.fontSize or 18) * 1.25,
+                multiline = true,
+                wordWrap = true,
+                textAlignH = ui.ALIGNMENT.Center,
+                textAlignV = ui.ALIGNMENT.Center,
+            },
+        },
+        {
+            type = ui.TYPE.Widget,
+            props = {
+                autoSize = false,
+            },
+            content = ui.content{},
+        },
+        {
+            type = ui.TYPE.Widget,
+            props = {
+                size = util.vector2(headerSize.x, params.fontSize * 2 + 8),
+            },
+            content = ui.content{
+                button{
+                    updateFunc = function ()
+                        self:update()
+                    end,
+                    text = l10n("ellipsis"),
+                    textSize = self.params.fontSize,
+                    visible = false,
+                    anchor = util.vector2(0.5, 1),
+                    position = util.vector2(headerSize.x / 2, params.fontSize * 2 + 8),
+                    event = function (layout)
+                        updateTopicText(nil, true)
+                        qMainLay.content[2].userData.scrollBoxMeta:setContentHeight(uiUtils.getContentHeight(topicContent))
+                    end
+                },
+            },
+        },
+        {
+            type = ui.TYPE.Flex,
+            props = {
+                autoSize = true,
+                horizontal = true,
+            },
+            content = ui.content{
+                interval(params.fontSize * 0.25, 0),
+                {
+                    type = ui.TYPE.Text,
+                    props = {
+                        text = "",
+                        textColor = config.data.ui.defaultColor,
+                        autoSize = false,
+                        size = util.vector2(headerSize.x, params.fontSize),
+                        position = util.vector2(params.fontSize * 0.25, 0),
+                        textSize = params.fontSize,
+                        multiline = true,
+                        wordWrap = true,
+                        -- textAlignH = ui.ALIGNMENT.Center,
+                    },
+                },
+            },
+        },
+    }
+
 
     qMainLay.content[2] = scrollBox{
         updateFunc = function ()
@@ -426,7 +476,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
         contentHeight = 0,
     }
 
-    updateTopicText(topicContent)
+    updateTopicText(topicContent, true)
 
     qMainLay.content[2].userData.scrollBoxMeta:setContentHeight(uiUtils.getContentHeight(topicContent))
 
@@ -739,15 +789,15 @@ local function create(params)
                             end),
                             keyRelease = async:callback(function(e, layout)
                                 if e.code == input.KEY.Enter then
-                                    local selectedQuest = meta:getQuestListSelectedFladValue()
+                                    local selectedTopic = meta:getQuestListSelectedFladValue()
                                     meta:fillTopicsContent()
-                                    meta:selectTopic(selectedQuest)
+                                    meta:selectTopic(selectedTopic)
                                     searchBar.content[1].content[1].props.text = meta.textFilter
 
-                                    local qBox = meta:getTopicScrollBox()
-                                    if qBox and qBox.userData and qBox.userData.updateText then
-                                        qBox.userData.updateText()
-                                    end
+                                    -- local qBox = meta:getTopicScrollBox()
+                                    -- if qBox and qBox.userData and qBox.userData.updateText then
+                                    --     qBox.userData.updateText()
+                                    -- end
 
                                     updateFunc()
                                 end
@@ -766,14 +816,14 @@ local function create(params)
                 position = util.vector2(topictListSize.x - 2, (params.fontSize + 10) / 2),
                 anchor = util.vector2(1, 0.5),
                 event = function (layout)
-                    local selectedQuest = meta:getQuestListSelectedFladValue()
+                    local selectedTopic = meta:getQuestListSelectedFladValue()
                     meta:fillTopicsContent()
-                    meta:selectTopic(selectedQuest)
+                    meta:selectTopic(selectedTopic)
 
-                    local qBox = meta:getTopicScrollBox()
-                    if qBox and qBox.userData and qBox.userData.updateText then
-                        qBox.userData.updateText()
-                    end
+                    -- local qBox = meta:getTopicScrollBox()
+                    -- if qBox and qBox.userData and qBox.userData.updateText then
+                    --     qBox.userData.updateText()
+                    -- end
                 end
             },
         }

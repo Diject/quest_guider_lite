@@ -194,7 +194,7 @@ I.Settings.registerGroup{
         numberSetting{key = "journal.listRelativeSize", name = "questListRelativeSize", description = "questListRelativeSizeDescription", integer = false, min = 5, max = 50, default = config.default.journal.listRelativeSize},
         boolSetting{key = "journal.trackedColorMarks", name = "colorFlags", description = "colorFlagsDescription", default = config.data.journal.trackedColorMarks},
         boolSetting{key = "journal.ssqnIcons", name = "ssqnIcons", description = "ssqnIconsDescription", default = config.data.journal.ssqnIcons},
-        numberSetting{key = "journal.topicTextMaxLenToProcess", name = "topicTextMaxLenToProcess", description = "topicTextMaxLenToProcessDescription", integer = true, min = 0, default = config.default.journal.topicTextMaxLenToProcess},
+        numberSetting{key = "journal.maxTopicEntriesInTopicMenu", name = "maxTopicEntriesPerLoadInTopicMenu", description = "maxTopicEntriesPerLoadInTopicMenuDescription", integer = true, min = 1, default = config.default.journal.maxTopicEntriesInTopicMenu},
         numberSetting{key = "journal.maxTopicEntriesInJournal", name = "maxTopicEntriesInJournal", description = "maxTopicEntriesInJournalDescription", integer = true, min = 0, default = config.default.journal.maxTopicEntriesInJournal},
         numberSetting{key = "journal.mouseScrollAmount", name = "mouseScrollAmount", description = "mouseScrollAmountDescription", integer = true, min = 1, max = 200, default = config.default.journal.mouseScrollAmount},
         numberSetting{key = "journal.textHeightMulRecord", name = "textHeightMul", description = "textHeightMulDescription", integer = false, min = 0.1, max = 2, default = config.default.journal.textHeightMulRecord},
