@@ -5,6 +5,7 @@
 
 ---@class tes3cell
 ---@field name string
+---@field displayName string?
 ---@field region string
 ---@field id string
 ---@field gridX integer

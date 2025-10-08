@@ -240,7 +240,7 @@ function this.createQuestGiverMarkerForDoor(ref)
 
     ---@type proximityTool.record
     local recordData = {
-        name = destCell.name or "???",
+        name = destCell.displayName or destCell.name or "???",
         icon = commonInfo.doorExclMarkPath,
         iconColor = commonInfo.defaultColorData,
         nameColor = commonInfo.defaultColorData,
