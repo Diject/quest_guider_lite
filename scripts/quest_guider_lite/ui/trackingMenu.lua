@@ -390,17 +390,34 @@ topicMenuMeta.selectTracked = function (self, trackedId)
 
 
             mainElemFlexContent:add({
-                template = templates.textNormal,
-                type = ui.TYPE.Text,
+                type = ui.TYPE.Flex,
                 props = {
-                    text = uiUtils.colorize(qName, self.textFilter,
-                        "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
-                    autoSize = true,
-                    textSize = params.fontSize * 1.2,
-                    multiline = false,
-                    wordWrap = false,
-                    textColor = config.data.ui.defaultColor,
+                    horizontal = true,
                 },
+                content = ui.content{
+                    {
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = uiUtils.colorize(qName, self.textFilter,
+                                "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
+                            autoSize = true,
+                            textSize = params.fontSize * 1.2,
+                            multiline = false,
+                            wordWrap = false,
+                            textColor = config.data.ui.defaultColor,
+                        },
+                    },
+                    interval(params.fontSize, 0),
+                    button{
+                        updateFunc = function ()
+                            self:update()
+                        end,
+                        text = l10n("showQuestByTrackingMenuBtn"),
+                        event = function (layout)
+                            playerRef:sendEvent("QGL:journalMenuSelectQuest", {qName = qName})
+                        end
+                    }
+                }
             })
             mainElemFlexContent:add(interval(0, params.fontSize))
 
