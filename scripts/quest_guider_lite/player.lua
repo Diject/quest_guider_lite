@@ -277,7 +277,7 @@ local function toggleMenu()
 end
 
 
-input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
+input.registerTriggerHandler(commonData.journalMenuTriggerId, async:callback(function()
     if input.isCtrlPressed() and input.isShiftPressed() then
         if activeMenus[commonData.allQuestsMenuId] then
             activeMenus[commonData.allQuestsMenuId].menu:destroy()
@@ -308,6 +308,11 @@ input.registerTriggerHandler("QGL:journal.menuKey", async:callback(function()
                 end
             end
         }
+    elseif input.isShiftPressed() and config.data.tracking.toggleVisibilityByJournalKey then
+        tracking.setMarkersVisibility{toggle = true, includeQuestGivers = true}
+        if activeMenus[commonData.journalMenuId] then
+            activeMenus[commonData.journalMenuId]:updateMarkersDisabledMessage()
+        end
     else
         toggleMenu()
     end
@@ -316,6 +321,15 @@ end))
 if config.data.journal.overrideJournal then
     I.UI.registerWindow("Journal", function() toggleMenu() end, function () toggleMenu() end)
 end
+
+
+input.registerTriggerHandler(commonData.toggleMarkersTriggerId, async:callback(function()
+    tracking.setMarkersVisibility{toggle = true, includeQuestGivers = true}
+    if activeMenus[commonData.journalMenuId] then
+        activeMenus[commonData.journalMenuId]:updateMarkersDisabledMessage()
+    end
+end))
+
 
 local function onKeyRelease(key)
     if key.code == input.KEY.Escape then
@@ -406,22 +420,26 @@ return {
             local recordId, markerId, markerGroupId
             if createProximityMarkers then
                 recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
+                if tracking.storageData.hideAllMarkers and recordId then
+                    tracking.setProximityMarkerVisibility{recordId = recordId, value = false}
+                end
             end
 
             local hudMarkerId
             if data.hudMarkerData and createHUDMarkers then
                 hudMarkerId = tracking.addHUDMarker(data.hudMarkerData)
+                if tracking.storageData.hideAllMarkers and hudMarkerId then
+                    tracking.setHUDMarkerVisibility{markerId = hudMarkerId, value = false}
+                end
             end
 
             tracking.updateMarkers()
 
-            if data.objectRecordId then
-                core.sendGlobalEvent("QGL:questGiverMarkerCallback", {
-                    record = recordId,
-                    hudMarkerId = hudMarkerId,
-                    inputData = data,
-                })
-            end
+            core.sendGlobalEvent("QGL:questGiverMarkerCallback", {
+                record = recordId,
+                hudMarkerId = hudMarkerId,
+                inputData = data,
+            })
         end,
 
         ["QGL:updateMarkers"] = function ()
@@ -448,6 +466,26 @@ return {
             if not id then return end
             tracking.removeHUDMarker(id)
             tracking.updateMarkers()
+        end,
+
+        ["QGL:updateProximityMarkerVisibility"] = function (data)
+            if data.recordId then
+                tracking.setProximityMarkerVisibility{
+                    recordId = data.recordId,
+                    value = not tracking.storageData.hideAllMarkers
+                }
+                tracking.updateProximityMarkers()
+            end
+        end,
+
+        ["QGL:updateHUDMarkerVisibility"] = function (data)
+            if not data.id then return end
+
+            tracking.setHUDMarkerVisibility{
+                markerId = data.id,
+                value = not tracking.storageData.hideAllMarkers
+            }
+            tracking.updateHUDM()
         end,
 
         ["QGL:addMarkerForInteriorCellTracking"] = function (data)

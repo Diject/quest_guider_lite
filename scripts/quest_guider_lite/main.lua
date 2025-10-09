@@ -507,9 +507,8 @@ return {
 
         ["QGL:questGiverMarkerCallback"] = function (data)
             local recordId = data.record
-            local objectId = data.inputData.objectRecordId
             local hudMarkerId = data.hudMarkerId
-            questGivers.registerTrackedQuestGiver(objectId, recordId, hudMarkerId)
+            questGivers.registerTrackedQuestGiver(data.inputData, recordId, hudMarkerId)
         end,
 
         ["QGL:updateQuestGiverMarkers"] = function ()

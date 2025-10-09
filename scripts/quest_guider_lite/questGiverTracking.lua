@@ -22,28 +22,40 @@ local l10n = require('openmw.core').l10n(commonInfo.l10nKey)
 local this = {}
 
 
----@type table<string, {markerId : string?, hudMarkerId : string?, refs : table<string, any>?}>
+---@type table<string, {type : string, markerId : string?, hudMarkerId : string?, refs : table<string, {ref : any, markerId : string?, hudMarkerId : string?}>?}>
 this.trackedQuestGivers = {}
 
 this.scaledScreenSize = {x = 1920, y = 1080}
 
 
 
-function this.registerTrackedQuestGiver(objectRecordId, markerRecordId, hudMarkerId)
+function this.registerTrackedQuestGiver(inputData, markerRecordId, hudMarkerId)
+    local objectRecordId = inputData.objectRecordId
     if not this.trackedQuestGivers[objectRecordId] then
         this.trackedQuestGivers[objectRecordId] = {refs = {}}
     end
-    this.trackedQuestGivers[objectRecordId].markerId = markerRecordId
-    this.trackedQuestGivers[objectRecordId].hudMarkerId = hudMarkerId
+    if inputData.type == "door" then
+        local refDt = this.trackedQuestGivers[objectRecordId].refs[inputData.refId]
+        if not refDt then return end
+
+        refDt.markerId = markerRecordId
+        refDt.hudMarkerId = hudMarkerId
+    else
+        this.trackedQuestGivers[objectRecordId].markerId = markerRecordId
+        this.trackedQuestGivers[objectRecordId].hudMarkerId = hudMarkerId
+    end
 end
 
 
 function this.createQuestGiverMarker(ref)
     local recordId = ref.recordId
 
-    if this.trackedQuestGivers[recordId] then
-        this.trackedQuestGivers[recordId].refs[ref.id] = ref
-        return
+    do
+        local dt = this.trackedQuestGivers[recordId]
+        if dt and (dt.hudMarkerId or dt.markerId) then
+            this.trackedQuestGivers[recordId].refs[ref.id] = {ref = ref}
+            return
+        end
     end
 
     local objectData = questLib.getObjectData(recordId)
@@ -138,9 +150,10 @@ function this.createQuestGiverMarker(ref)
     if not this.trackedQuestGivers[ref.recordId] then
         this.trackedQuestGivers[ref.recordId] = {refs = {}}
     end
-    this.trackedQuestGivers[ref.recordId].refs[ref.id] = ref
+    this.trackedQuestGivers[ref.recordId].refs[ref.id] = {ref = ref}
 
     world.players[1]:sendEvent("QGL:addMarkerForQuestGivers", {
+        type = "object",
         questNames = questNames,
         recordData = recordData,
         markerData = markerData,
@@ -151,18 +164,31 @@ end
 
 
 function this.updateQuestGiverMarkers()
-    local tracked = this.trackedQuestGivers
-    this.trackedQuestGivers = {}
 
-    for objId, markerData in pairs(tracked) do
-        for refId, ref in pairs(markerData.refs) do
-            if ref:isValid() then
-                this.createQuestGiverMarker(ref)
+    for objId, markerData in pairs(this.trackedQuestGivers) do
+        world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
+        world.players[1]:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
+        markerData.markerId = nil
+        markerData.hudMarkerId = nil
+
+        local found = false
+        for refId, refDt in pairs(markerData.refs) do
+            if refDt.ref:isValid() then
+                found = true
+                if refDt.hudMarkerId or refDt.markerId then
+                    world.players[1]:sendEvent("QGL:updateHUDMarkerVisibility", {id = refDt.hudMarkerId})
+                    world.players[1]:sendEvent("QGL:updateProximityMarkerVisibility", {recordId = refDt.markerId})
+                else
+                    this.createQuestGiverMarker(refDt.ref)
+                end
+            else
+                markerData.refs[refId] = nil
             end
         end
 
-        world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
-        world.players[1]:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
+        if not found then
+            this.trackedQuestGivers[objId] = nil
+        end
     end
 end
 
@@ -267,7 +293,15 @@ function this.createQuestGiverMarkerForDoor(ref)
         shortTerm = true,
     }
 
+    if not this.trackedQuestGivers[ref.recordId] then
+        this.trackedQuestGivers[ref.recordId] = {refs = {}}
+    end
+    this.trackedQuestGivers[ref.recordId].refs[ref.id] = {ref = ref}
+
     world.players[1]:sendEvent("QGL:addMarkerForQuestGivers", {
+        type = "door",
+        objectRecordId = ref.recordId,
+        refId = ref.id,
         questNames = questNames,
         recordData = recordData,
         markerData = markerData,

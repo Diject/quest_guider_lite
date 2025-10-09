@@ -393,7 +393,7 @@ function this.addMarker(params)
     end
 
     local storageData = playerQuests.getQuestStorageData(params.questData.name)
-    if storageData and storageData.disabled then
+    if storageData and storageData.disabled or this.storageData.hideAllMarkers then
         this.setDisableMarkerState{ questId = params.questId, value = true }
     end
 
@@ -410,6 +410,7 @@ end
 ---@field value boolean?
 ---@field isUserDisabled boolean?
 ---@field temporary boolean?
+---@field update boolean?
 
 ---@param params questGuider.tracking.disableMarker
 ---@return boolean? changed
@@ -444,8 +445,19 @@ function this.setDisableMarkerState(params)
 
     ---@param markerData questGuider.tracking.markerRecord
     local function setDisabledState(markerData)
-        local disabledState = params.toggle == true and not markerData.disabled or params.value
+        local disabledState
         local oldState = markerData.disabled
+
+        if params.update then
+            disabledState = oldState
+            goto endLabel
+        elseif params.toggle == false then
+            disabledState = markerData.disabled
+        elseif params.toggle == true then
+            disabledState = not markerData.disabled
+        else
+            disabledState = params.value
+        end
 
         if params.temporary then
             markerData.disabled = disabledState
@@ -468,9 +480,16 @@ function this.setDisableMarkerState(params)
             changed = true
         end
 
-        proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not markerData.disabled)
-        proximityTool.setVisibility(markerData.localMarkerId, nil, not markerData.disabled)
-        proximityTool.setHUDMvisibility(markerData.hudMarker, not markerData.disabled)
+        ::endLabel::
+
+        disabledState = markerData.disabled
+        if this.storageData.hideAllMarkers then
+            disabledState = true
+        end
+
+        proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not disabledState)
+        proximityTool.setVisibility(markerData.localMarkerId, nil, not disabledState)
+        proximityTool.setHUDMvisibility(markerData.hudMarker, not disabledState)
     end
 
     for markerData, _ in pairs(markerDataHashTable) do
@@ -869,6 +888,8 @@ end
 
 
 function this.addMarkerForInteriorCellFromGlobal(data)
+    if this.storageData.hideAllMarkers then return end
+
     local markerData = data.markerData
     local description = data.description
     local doors = data.doors
@@ -878,17 +899,20 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     if not markerData or not markerData.record or not description then return end
 
     local recordData = proximityTool.getMarkerData(markerData.record)
-    if not recordData then return end
+    if recordData and config.data.tracking.proximityMarkers.enabled
+            and config.data.tracking.proximityMarkers.details.markers then
 
-    local newRecordData = tableLib.deepcopy(recordData)
-    newRecordData.description = {newRecordData.description, data.description}
+        local newRecordData = tableLib.deepcopy(recordData)
+        newRecordData.description = {newRecordData.description, data.description}
 
-    markerData.record = newRecordData
+        markerData.record = newRecordData
 
-    local id, groupId = proximityTool.addMarker(markerData)
-    if not id or not groupId then return end
+        local id, groupId = proximityTool.addMarker(markerData)
+        if id and groupId then
+            lastInteriorMarkers[id] = { id = id, groupId = groupId }
+        end
 
-    lastInteriorMarkers[id] = { id = id, groupId = groupId }
+    end
 
 
     if config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers then
@@ -920,7 +944,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
                 offset = util.vector3(0, 0, 25),
                 -- offsetMult = 0.3,
                 bonusSize = 10,
-                color = newRecordData.nameColor and newRecordData.nameColor or common.colorToArray(config.data.ui.defaultColor),
+                color = data.color and data.color or common.colorToArray(config.data.ui.defaultColor),
             },
             objects = doors,
             shortTerm = true,
@@ -936,7 +960,10 @@ end
 
 function this.createMarkersForExteriorDoor(ref)
     if not this.initialized then return end
-    if not config.data.tracking.hudMarkers.enabled then return end
+    if not (config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers) then
+        return
+    end
+
     if not types.Door.objectIsInstance(ref) or not types.Door.isTeleport(ref) then
         return
     end
@@ -945,9 +972,7 @@ function this.createMarkersForExteriorDoor(ref)
 
     exteriorDoors[ref.id] = ref
 
-    if not (config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers) then
-        return
-    end
+    if this.storageData.hideAllMarkers then return end
 
     local cellId = destCell.id
 
@@ -1095,6 +1120,60 @@ end
 
 function this.updateHUDM()
     proximityTool.updateHUDM()
+end
+
+
+function this.updateProximityMarkers()
+    proximityTool.update()
+end
+
+
+---@param params {recordId : string?, markerId : string?, groupId : string?, value : boolean}
+function this.setProximityMarkerVisibility(params)
+    if params.recordId then
+        proximityTool.setVisibility(params.recordId, nil, params.value)
+    else
+        proximityTool.setVisibility(params.markerId, params.groupId, params.value)
+    end
+end
+
+
+---@param params {markerId : string?, value : boolean}
+function this.setHUDMarkerVisibility(params)
+    proximityTool.setHUDMvisibility(params.markerId, params.value)
+end
+
+
+function this.getMarkersVisibility()
+    if not this.initialized then return end
+    return not this.storageData.hideAllMarkers or false
+end
+
+
+---@param params {toggle : boolean?, value : boolean?, includeQuestGivers : boolean?}
+function this.setMarkersVisibility(params)
+    if not this.initialized then return end
+
+    if params.value ~= nil then
+        this.storageData.hideAllMarkers = params.value
+    elseif params.toggle == true then
+        this.storageData.hideAllMarkers = not this.storageData.hideAllMarkers
+    end
+
+    for objId, _ in pairs(this.markerByObjectId) do
+        this.setDisableMarkerState{
+            objectId = objId,
+            update = true
+        }
+    end
+
+    this.updateTemporaryMarkers()
+
+    if params.includeQuestGivers then
+        core.sendGlobalEvent("QGL:updateQuestGiverMarkers")
+    end
+
+    this.updateMarkers()
 end
 
 

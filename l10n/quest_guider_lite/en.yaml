@@ -93,6 +93,10 @@ proximityToolMarkersEnabled: "Enable proximityTool markers"
 proximityToolMarkersEnabledDescription: "Applies only to newly created markers."
 mapByDefault: "Show map by default"
 mapByDefaultDescription: "If enabled, the map will be displayed by default when opening the object tracking menu."
+markerVisibilityKey: "Toggle marker visibility key"
+markerVisibilityKeyDescription: "Sets the key used to toggle the visibility of all markers added by the mod."
+enableShiftJournalMarkersToggle: "Enable Shift+Journal marker toggle"
+enableShiftJournalMarkersToggleDescription: "Lets you toggle all mod markers by using Shift + the mod journal key."
 
 hidden: "Hidden"
 finished: "Finished"
@@ -142,6 +146,7 @@ you: "You"
 hideShowAll: "Hide/show listed"
 removeAll: "Remove listed"
 removeTrackingFromListedMessageBox: "Remove tracking for all listed objects? This action cannot be undone."
+markersDisabled: "Markers are disabled"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."

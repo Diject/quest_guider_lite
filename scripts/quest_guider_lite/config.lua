@@ -35,7 +35,9 @@ this.default = {
                 givers = true,
                 markers = true,
             }
-        }
+        },
+        toggleVisibilityKey = "P",
+        toggleVisibilityByJournalKey = false,
     },
     journal = {
         overrideJournal = false,

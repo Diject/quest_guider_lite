@@ -156,7 +156,7 @@ end
 
 
 input.registerTrigger {
-    key = "QGL:journal.menuKey",
+    key = commonData.journalMenuTriggerId,
     l10n = commonData.l10nKey,
 }
 
@@ -168,13 +168,19 @@ local res, err = pcall(function()
             device = "keyboard",
             button = input.KEY[config.default.journal.menuKey],
             type = "trigger",
-            key = "QGL:journal.menuKey",
+            key = commonData.journalMenuTriggerId,
         })
     end
 end)
 if not res then
     print(err)
 end
+
+
+input.registerTrigger {
+    key = commonData.toggleMarkersTriggerId,
+    l10n = commonData.l10nKey,
+}
 
 
 I.Settings.registerGroup{
@@ -185,7 +191,7 @@ I.Settings.registerGroup{
     permanentStorage = true,
     order = 0,
     settings = {
-        inputKey{key = "journal.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = "QGL:journal.menuKey", default = config.default.journal.menuKey},
+        inputKey{key = "journal.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = commonData.journalMenuTriggerId, default = config.default.journal.menuKey},
         boolSetting{key = "journal.overrideJournal", name = "overrideJournal", description = "overrideJournalDescription", default = config.data.journal.overrideJournal},
         numberSetting{key = "journal.widthProportional", name = "width", description = "widthDescription", integer = true, min = 30, max = 100, default = config.default.journal.widthProportional},
         numberSetting{key = "journal.heightProportional", name = "height", description = "heightDescription", integer = true, min = 20, max = 100, default = config.default.journal.heightProportional},
@@ -238,6 +244,8 @@ I.Settings.registerGroup{
         numberSetting{key = "tracking.hudMarkers.range", name = "hudMarkersRange", description = "hudMarkersRangeDescription", integer = false, min = 0, default = config.default.tracking.hudMarkers.range},
         boolSetting{key = "tracking.hudMarkers.rayTracing", name = "hudMarkersRayTracing", description = "hudMarkersRayTracingDescription", default = config.data.tracking.hudMarkers.rayTracing},
         numberSetting{key = "tracking.hudMarkers.opacity", name = "hudMarkersOpacity", description = "hudMarkersOpacityDescription", integer = false, min = 0, max = 100, default = config.default.tracking.hudMarkers.opacity},
+        inputKey{key = "tracking.toggleVisibilityKey", name = "markerVisibilityKey", description = "markerVisibilityKeyDescription", argType = "trigger", argKey = commonData.toggleMarkersTriggerId, default = config.default.tracking.toggleVisibilityKey},
+        boolSetting{key = "tracking.toggleVisibilityByJournalKey", name = "enableShiftJournalMarkersToggle", description = "enableShiftJournalMarkersToggleDescription", default = config.data.tracking.toggleVisibilityByJournalKey},
     },
 }
 

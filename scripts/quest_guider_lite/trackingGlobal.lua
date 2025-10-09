@@ -113,7 +113,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
                 for qId, markerInfo in pairs(objData.markers) do
 
                     local markerData = markerInfo.data
-                    if markerData and markerData.localDoorMarkerId then
+                    if markerData then
 
                         local id = markerData.localDoorMarkerId..tostring(lowestDepth)
                         local markerInf = newMarkerData[id]
@@ -129,6 +129,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
                                 doors = {},
                                 disabled = markerData.disabled,
                                 objId = objId,
+                                color = objData.color,
                             }
                         end
 

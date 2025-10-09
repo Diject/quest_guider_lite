@@ -561,16 +561,34 @@ local function create(params)
                 }
             },
             {
-                template = templates.textNormal,
-                type = ui.TYPE.Text,
+                type = ui.TYPE.Flex,
                 props = {
-                    text = params.headerName and params.headerName or l10n("journal"),
-                    textSize = params.fontSize * 1.5,
-                    autoSize = true,
-                    textColor = config.data.ui.defaultColor,
-                    textShadow = true,
-                    textShadowColor = config.data.ui.shadowColor,
+                    horizontal = true,
+                    arrange = ui.ALIGNMENT.End
                 },
+                content = ui.content{
+                    {
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = params.headerName and params.headerName or l10n("journal"),
+                            textSize = params.fontSize * 1.4,
+                            autoSize = true,
+                            textColor = config.data.ui.defaultColor,
+                            textShadow = true,
+                            textShadowColor = config.data.ui.shadowColor,
+                        },
+                    },
+                    {
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = l10n("markersDisabled"),
+                            textSize = params.fontSize * 0.8,
+                            anchor = util.vector2(0, 1),
+                            autoSize = true,
+                            textColor = config.data.ui.defaultColor,
+                        },
+                    }
+                }
             },
             {
                 type = ui.TYPE.Flex,
@@ -650,6 +668,15 @@ local function create(params)
             },
         },
     }
+
+    meta.updateMarkersDisabledMessage = function(self)
+        mainHeader.content[2].content[2].props.visible = tracking.storageData.hideAllMarkers == true
+        if self.menu and self.menu.layout then
+            self:update()
+        end
+    end
+
+    meta:updateMarkersDisabledMessage()
 
     local questListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y)
     local searchBar
