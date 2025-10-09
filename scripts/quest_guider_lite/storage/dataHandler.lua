@@ -12,7 +12,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 ---@class questGuider.dataHandler.global
 local this = {}
 
-this.version = 8
+this.version = 7
 
 ---@type questDataGenerator.quests
 this.quests = {}
@@ -120,7 +120,7 @@ function this.initStorage()
         successfullyLoaded = true
     end
 
-    if successfullyLoaded and this.version >= this.info.version then
+    if successfullyLoaded then
         isReady = true
         versionChanged = false
         gameFileDataEmpty = #this.info.files == 0
