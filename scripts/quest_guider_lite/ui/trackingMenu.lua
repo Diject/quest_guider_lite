@@ -264,9 +264,12 @@ topicMenuMeta.showMainMap = function (self)
             local events = {
                 mouseRelease = async:callback(function(e, layout)
                     if layout.userData and layout.userData.pressed then
-                        local diaId = next(diaIds)
+                        local _, diaId = next(diaIds)
                         if diaId then
-                            playerRef:sendEvent("QGL:journalMenuSelectQuest", {qName = diaId})
+                            local qName = playerQuests.getQuestNameByDiaId(diaId)
+                            if qName then
+                                playerRef:sendEvent("QGL:journalMenuSelectQuest", {qName = qName})
+                            end
                         end
                     end
                 end),
