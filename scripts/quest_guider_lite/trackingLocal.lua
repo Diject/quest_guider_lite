@@ -71,10 +71,6 @@ this.initialized = false
 function this.init()
     if this.initialized then return true end
 
-    this.initialized = false
-    proximityTool = I.proximityTool
-    if not proximityTool then return false end
-
     if not storage.isPlayerStorageReady() then
         return false
     end
@@ -84,6 +80,11 @@ function this.init()
         storage.data[storageLabel] = {colorId = 1}
     end
     this.storageData = storage.data[storageLabel]
+
+    this.initialized = false
+    proximityTool = I.proximityTool
+    -- if not proximityTool then return false end
+
     this.storageData.markerByObjectId = this.storageData.markerByObjectId or {}
     this.storageData.trackedObjectsByQuestId = this.storageData.trackedObjectsByQuestId or {}
     this.storageData.lastObjectColor = this.storageData.lastObjectColor or {}
@@ -228,8 +229,8 @@ function this.addMarker(params)
         userData = userData,
     }
 
-    local createProximityMarkers = config.data.tracking.proximityMarkers.enabled and config.data.tracking.proximityMarkers.details.markers
-    local createHUDMarkers = config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers
+    local createProximityMarkers = proximityTool and config.data.tracking.proximityMarkers.enabled and config.data.tracking.proximityMarkers.details.markers
+    local createHUDMarkers = proximityTool and config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers
 
     if createProximityMarkers then
         objectMarkerData.localMarkerId = proximityTool.addRecord(markerRecordParams)
@@ -487,13 +488,13 @@ function this.setDisableMarkerState(params)
             disabledState = true
         end
 
-        if markerData.localDoorMarkerId then
+        if markerData.localDoorMarkerId and proximityTool then
             proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not disabledState)
         end
-        if markerData.localMarkerId then
+        if markerData.localMarkerId and proximityTool then
             proximityTool.setVisibility(markerData.localMarkerId, nil, not disabledState)
         end
-        if markerData.hudMarker then
+        if markerData.hudMarker and proximityTool then
             proximityTool.setHUDMvisibility(markerData.hudMarker, not disabledState)
         end
     end
@@ -744,16 +745,18 @@ local function removeMarker(params)
 
     local removed = false
 
-    recordIdsToRemove[""] = nil
-    for id, _ in pairs(recordIdsToRemove) do
-        proximityTool.removeRecord(id)
-        removed = true
-    end
+    if proximityTool then
+        recordIdsToRemove[""] = nil
+        for id, _ in pairs(recordIdsToRemove) do
+            proximityTool.removeRecord(id)
+            removed = true
+        end
 
-    hudmMarkersToRemove[""] = nil
-    for id, _ in pairs(hudmMarkersToRemove) do
-        proximityTool.removeHUDM(id)
-        removed = true
+        hudmMarkersToRemove[""] = nil
+        for id, _ in pairs(hudmMarkersToRemove) do
+            proximityTool.removeHUDM(id)
+            removed = true
+        end
     end
 
     return removed
@@ -851,7 +854,7 @@ end
 
 
 function this.addTrackingMarker(recordData, markerData)
-    if not this.initialized then return end
+    if not this.initialized or not proximityTool then return end
     if not recordData or not markerData then return end
 
     local recordId = proximityTool.addRecord(recordData)
@@ -864,7 +867,7 @@ end
 
 
 function this.addHUDMarker(markerData)
-    if not this.initialized then return end
+    if not this.initialized or not proximityTool then return end
     return proximityTool.addHUDM(markerData)
 end
 
@@ -872,7 +875,7 @@ end
 local interiorHUDMoffsetData = {offset = 0, step = 0}
 local interiorHUDMobjectOffset = {}
 function this.addMarkersForInteriorCell(cell)
-    if not this.init() then return end
+    if not this.init() or not proximityTool then return end
 
     for id, markerData in pairs(lastInteriorMarkers) do
         if markerData.id then
@@ -894,7 +897,7 @@ end
 
 
 function this.addMarkerForInteriorCellFromGlobal(data)
-    if this.storageData.hideAllMarkers then return end
+    if not proximityTool or this.storageData.hideAllMarkers then return end
 
     local markerData = data.markerData
     local description = data.description
@@ -965,7 +968,7 @@ end
 
 
 function this.createMarkersForExteriorDoor(ref)
-    if not this.initialized then return end
+    if not this.initialized or not proximityTool then return end
     if not (config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers) then
         return
     end
@@ -1027,7 +1030,7 @@ end
 
 
 function this.updateMarkersForExteriorDoors()
-    if not this.initialized then return end
+    if not this.initialized or not proximityTool then return end
     local foundOldMarkers = false
     for _, markerId in pairs(exteriorDoorHUDMarkers) do
         foundOldMarkers = proximityTool.removeHUDM(markerId) or foundOldMarkers
@@ -1104,38 +1107,45 @@ end
 
 
 function this.removeProximityRecord(id)
+    if not proximityTool then return end
     return proximityTool.removeRecord(id)
 end
 
 
 function this.removeProximityMarker(id, groupId)
+    if not proximityTool then return end
     return proximityTool.removeMarker(id, groupId)
 end
 
 
 function this.removeHUDMarker(id)
+    if not proximityTool then return end
     return proximityTool.removeHUDM(id)
 end
 
 
 function this.updateMarkers()
+    if not proximityTool then return end
     proximityTool.update()
     proximityTool.updateHUDM()
 end
 
 
 function this.updateHUDM()
+    if not proximityTool then return end
     proximityTool.updateHUDM()
 end
 
 
 function this.updateProximityMarkers()
+    if not proximityTool then return end
     proximityTool.update()
 end
 
 
 ---@param params {recordId : string?, markerId : string?, groupId : string?, value : boolean}
 function this.setProximityMarkerVisibility(params)
+    if not proximityTool then return end
     if params.recordId then
         proximityTool.setVisibility(params.recordId, nil, params.value)
     else
@@ -1146,6 +1156,7 @@ end
 
 ---@param params {markerId : string?, value : boolean}
 function this.setHUDMarkerVisibility(params)
+    if not proximityTool then return end
     proximityTool.setHUDMvisibility(params.markerId, params.value)
 end
 
