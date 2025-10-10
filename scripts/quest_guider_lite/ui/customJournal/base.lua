@@ -602,29 +602,6 @@ local function create(params)
                         template = templates.textNormal,
                         type = ui.TYPE.Text,
                         props = {
-                            text = l10n("tracking"),
-                            visible = tracking.initialized and params.createTrackingMenuFunc and true or false,
-                            textSize = params.fontSize * 1.25,
-                            autoSize = true,
-                            textColor = config.data.ui.defaultColor,
-                            textShadow = true,
-                            textShadowColor = config.data.ui.shadowColor,
-                            propagateEvents = false,
-                        },
-                        userData = {},
-                        events = {
-                            mouseRelease = async:callback(function(_, layout)
-                                if params.createTrackingMenuFunc then
-                                    params.createTrackingMenuFunc()
-                                end
-                            end),
-                        }
-                    },
-                    interval(params.fontSize * 3, 0),
-                    {
-                        template = templates.textNormal,
-                        type = ui.TYPE.Text,
-                        props = {
                             text = l10n("topics"),
                             visible = core.API_REVISION >= 93 and params.createTopicMenuFunc and true or false,
                             textSize = params.fontSize * 1.25,
@@ -639,6 +616,29 @@ local function create(params)
                             mouseRelease = async:callback(function(_, layout)
                                 if params.createTopicMenuFunc then
                                     params.createTopicMenuFunc()
+                                end
+                            end),
+                        }
+                    },
+                    interval(params.fontSize * 3, 0),
+                    {
+                        template = templates.textNormal,
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = l10n("tracking"),
+                            visible = tracking.initialized and params.createTrackingMenuFunc and true or false,
+                            textSize = params.fontSize * 1.25,
+                            autoSize = true,
+                            textColor = config.data.ui.defaultColor,
+                            textShadow = true,
+                            textShadowColor = config.data.ui.shadowColor,
+                            propagateEvents = false,
+                        },
+                        userData = {},
+                        events = {
+                            mouseRelease = async:callback(function(_, layout)
+                                if params.createTrackingMenuFunc then
+                                    params.createTrackingMenuFunc()
                                 end
                             end),
                         }
