@@ -487,9 +487,15 @@ function this.setDisableMarkerState(params)
             disabledState = true
         end
 
-        proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not disabledState)
-        proximityTool.setVisibility(markerData.localMarkerId, nil, not disabledState)
-        proximityTool.setHUDMvisibility(markerData.hudMarker, not disabledState)
+        if markerData.localDoorMarkerId then
+            proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not disabledState)
+        end
+        if markerData.localMarkerId then
+            proximityTool.setVisibility(markerData.localMarkerId, nil, not disabledState)
+        end
+        if markerData.hudMarker then
+            proximityTool.setHUDMvisibility(markerData.hudMarker, not disabledState)
+        end
     end
 
     for markerData, _ in pairs(markerDataHashTable) do
