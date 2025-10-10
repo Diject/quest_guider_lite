@@ -938,6 +938,72 @@ local function addPosData(arr, objData, ownerId, configData)
 end
 
 
+local function addCellData(cell, id, arr, configData)
+    if not cell.isExterior then
+        local exCellPos, doorPath, cellPath, isExterior, checkedCells
+        if findExitPosCache[cell.id] then
+            exCellPos, doorPath, cellPath, isExterior, checkedCells = table.unpack(findExitPosCache[cell.id])
+        else
+            exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+            findExitPosCache[cell.id] = {exCellPos, doorPath, cellPath, isExterior, checkedCells}
+        end
+
+        if exCellPos then
+
+            -- local descr
+            -- if cellPath then
+            --     for i = #cellPath, 1, -1 do
+            --         descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].name) or
+            --             string.format("\"%s\"", cellPath[i].name)
+            --     end
+            -- end
+
+            local exits = {}
+            local firstEntranceCellIds = {}
+            local exitPositions, _, entranceCells, lowestDepth = cellLib.findExitPositions(cell)
+            if exitPositions then
+                for _, pDt in pairs(exitPositions) do
+                    if pDt.depth <= lowestDepth + 1 then
+                        local nearestDoor = cellLib.findNearestDoor(pDt.pos)
+                        if nearestDoor then
+                            table.insert(exits, nearestDoor.position)
+                        else
+                            table.insert(exits, pDt.pos)
+                        end
+                    end
+                end
+                for cellId, depth in pairs(entranceCells or {}) do
+                    if depth <= lowestDepth + 1 then
+                        firstEntranceCellIds[cellId] = cellId
+                    end
+                end
+            end
+
+            table.insert(arr, {id = cell.name, exitPos = exCellPos, entrances = exits, firstEntranceCellIds = firstEntranceCellIds,
+                isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath})
+
+        else
+            local descr
+            if cellPath then
+                local list = {}
+                local count = 0
+                for cl, _ in pairs(checkedCells) do
+                    table.insert(list, cl.name)
+                    count = count + 1
+                end
+                tableLib.shuffle(list, count)
+                descr = stringLib.getValueEnumString(list, configData.journal.objectNames, l10n("reachableFrom").." %s")
+            end
+
+            table.insert(arr, {description = descr or cell.name, id = cell.name, })
+        end
+    else
+        local descr = cell.id
+        table.insert(arr, {description = descr, id = nil, exitPos = util.vector3(cell.gridX * 8192 + 4000, cell.gridY * 8192 + 4000, 0)})
+    end
+end
+
+
 
 ---@class questGuider.quest.getRequirementPositionData.positionData
 ---@field description string?
@@ -1139,70 +1205,10 @@ function this.getRequirementPositionData(requirement, customConfig)
     end
 
     for cell, id in pairs(cells) do
-        if not cell.isExterior then
-            local exCellPos, doorPath, cellPath, isExterior, checkedCells
-            if findExitPosCache[cell.id] then
-                exCellPos, doorPath, cellPath, isExterior, checkedCells = table.unpack(findExitPosCache[cell.id])
-            else
-                exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
-                findExitPosCache[cell.id] = {exCellPos, doorPath, cellPath, isExterior, checkedCells}
-            end
-
-            if exCellPos then
-
-                -- local descr
-                -- if cellPath then
-                --     for i = #cellPath, 1, -1 do
-                --         descr = descr and string.format("%s => \"%s\"", descr, cellPath[i].name) or
-                --             string.format("\"%s\"", cellPath[i].name)
-                --     end
-                -- end
-
-                local exits = {}
-                local firstEntranceCellIds = {}
-                local exitPositions, _, entranceCells, lowestDepth = cellLib.findExitPositions(cell)
-                if exitPositions then
-                    for _, pDt in pairs(exitPositions) do
-                        if pDt.depth <= lowestDepth + 1 then
-                            local nearestDoor = cellLib.findNearestDoor(pDt.pos)
-                            if nearestDoor then
-                                table.insert(exits, nearestDoor.position)
-                            else
-                                table.insert(exits, pDt.pos)
-                            end
-                        end
-                    end
-                    for cellId, depth in pairs(entranceCells or {}) do
-                        if depth <= lowestDepth + 1 then
-                            firstEntranceCellIds[cellId] = cellId
-                        end
-                    end
-                end
-
-                add(id, cell, {id = cell.name, exitPos = exCellPos, entrances = exits, firstEntranceCellIds = firstEntranceCellIds,
-                    isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath})
-
-            else
-                local descr
-                if cellPath then
-                    local list = {}
-                    local count = 0
-                    for cl, _ in pairs(checkedCells) do
-                        table.insert(list, cl.name)
-                        count = count + 1
-                    end
-                    tableLib.shuffle(list, count)
-                    descr = stringLib.getValueEnumString(list, configData.journal.objectNames, l10n("reachableFrom").." %s")
-                end
-
-                add(id, cell, {description = descr or cell.name, id = cell.name, })
-            end
-        else
-            local descr = cell.id
-            add(id, cell, {description = descr, id = nil, exitPos = util.vector3(cell.gridX * 8192 + 4000, cell.gridY * 8192 + 4000, 0)})
+        if not out[id] then
+            out[id] = {reqType = requirement.type, name = cell.displayName or cell.name or cell.id or "", positions = {}}
         end
-
-        ::continue::
+        addCellData(cell, id, out[id].positions, configData)
     end
 
     if tableLib.size(out) == 0 then
@@ -1262,6 +1268,12 @@ function this.getPositions(objectId, params)
 
     ---@type questGuider.quest.getRequirementPositionData.positionData[]
     local positions = {}
+
+    local cell = tes.getCell{id = objectId}
+    if cell then
+        addCellData(cell, objectId, positions, configData)
+        return positions
+    end
 
     local objectData = this.getObjectData(objectId)
     if not objectData then return end
