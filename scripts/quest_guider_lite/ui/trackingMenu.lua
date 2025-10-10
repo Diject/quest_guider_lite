@@ -201,7 +201,7 @@ topicMenuMeta.showMainMap = function (self)
 
     if not mapMeta or not self.positions then return end
 
-    mapMeta:focusOnWorldPosition(util.vector2(playerRef.position.x, playerRef.position.y))
+    mapMeta:setZoom(0)
 
     local posData = {}
 
