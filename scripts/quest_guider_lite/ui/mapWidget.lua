@@ -492,6 +492,7 @@ function this.new(params)
                                     relativePosition = meta:getRelativePositionByWorldPosition(playerRef.position),
                                     size = util.vector2(14 * stringLib.length(l10n("you")), 58),
                                     anchor = util.vector2(0.5, 1),
+                                    visible = playerRef.cell.isExterior,
                                 },
                                 userData = {},
                                 content = ui.content {
