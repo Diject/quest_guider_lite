@@ -105,7 +105,7 @@ function mapWidgetMeta:setZoom(zoom)
     local newSize = util.vector2(self.mapInfo.width * zoom, self.mapInfo.height * zoom)
     local oldPos = widget.props.position
 
-    local mouseOffset = self.layout.userData.mouseOffset
+    local mouseOffset = self.layout.userData.mainMouseOffset + self.layout.userData.additiveMouseOffset
     local mouseOnMap = mouseOffset - oldPos
 
     local rel = util.vector2(mouseOnMap.x / oldSize.x, mouseOnMap.y / oldSize.y)
@@ -261,14 +261,15 @@ function mapWidgetMeta:createMarker(pos, color, events, tooltipContent)
                 self.layout.userData.inFocus = false
                 marker.userData.pressed = false
                 if events.focusLoss then events.focusLoss(e, layout) end
-                self.layout.events.focusLoss(e, layout)
+                self.layout.events.focusLoss(e, layout, marker)
                 tooltip.destroy(layout)
             end),
 
             mouseMove = async:callback(function(e, layout)
                 self.layout.userData.inFocus = true
+                self.layout.userData.additiveMouseOffset = e.offset
                 if events.mouseMove then events.mouseMove(e, layout) end
-                self.layout.events.mouseMove(e, layout)
+                self.layout.events.mouseMove({offset = e.offset, position = e.position}, layout, marker)
 
                 if not tooltipContent then return end
                 tooltip.createOrMove(e, layout, tooltipContent)
@@ -277,13 +278,13 @@ function mapWidgetMeta:createMarker(pos, color, events, tooltipContent)
             mousePress = async:callback(function(e, layout)
                 marker.userData.pressed = true
                 if events.mousePress then events.mousePress(e, layout) end
-                self.layout.events.mousePress(e, layout)
+                self.layout.events.mousePress(e, layout, marker)
             end),
 
             mouseRelease = async:callback(function(e, layout)
                 if events.mouseRelease then events.mouseRelease(e, layout, marker.userData.pressed) end
                 marker.userData.pressed = false
-                self.layout.events.mouseRelease(e, layout)
+                self.layout.events.mouseRelease(e, layout, marker)
             end),
         }
     }
@@ -403,24 +404,37 @@ function this.new(params)
             end,
 
             inFocus = false,
-            mouseOffset = util.vector2(0, 0),
+            mainMouseOffset = util.vector2(0, 0),
+            additiveMouseOffset = util.vector2(0, 0),
         },
         events = {
-            mousePress = async:callback(function(e, layout)
-                main.userData.lastMousePos = e.position
+            mousePress = async:callback(function(e, layout, markerElement)
+                e.marker = markerElement
+                if markerElement then
+                    e.offset = main.userData.mainMouseOffset + e.offset
+                end
+
+                if e.button == 1 then
+                    main.userData.lastMousePos = e.position
+                end
             end),
 
-            mouseRelease = async:callback(function(_, layout)
-                main.userData.lastMousePos = nil
+            mouseRelease = async:callback(function(e, layout, markerElement)
+                if e.button == 1 then
+                    main.userData.lastMousePos = nil
+                end
             end),
 
-            focusLoss = async:callback(function(_, layout)
+            focusLoss = async:callback(function(_, layout, markerElement)
                 main.userData.lastMousePos = nil
                 main.userData.inFocus = false
             end),
 
-            mouseMove = async:callback(function(e, layout)
-                main.userData.mouseOffset = e.offset
+            mouseMove = async:callback(function(e, layout, markerElement)
+                if not markerElement then
+                    main.userData.mainMouseOffset = e.offset
+                    main.userData.additiveMouseOffset = util.vector2(0, 0)
+                end
                 main.userData.inFocus = true
 
                 if not main.userData.lastMousePos then return end
@@ -434,8 +448,8 @@ function this.new(params)
                 local newPos = util.vector2(newX, newY)
 
                 newPos = clampAndCenterPosition(newPos, mapSize, mainSize)
-
                 props.position = newPos
+
                 meta:update()
 
                 main.userData.lastMousePos = e.position
