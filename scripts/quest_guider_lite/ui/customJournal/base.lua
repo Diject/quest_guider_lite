@@ -670,7 +670,7 @@ local function create(params)
     }
 
     meta.updateMarkersDisabledMessage = function(self)
-        mainHeader.content[2].content[2].props.visible = tracking.storageData.hideAllMarkers == true
+        mainHeader.content[2].content[2].props.visible = (tracking.storageData ~= nil) and (tracking.storageData.hideAllMarkers == true) or false
         if self.menu and self.menu.layout then
             self:update()
         end
