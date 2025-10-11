@@ -215,7 +215,7 @@ topicMenuMeta.showMainMap = function (self)
                 local hash = string.format("%d_%d_%d", pos.x, pos.y, pos.z) ---@diagnostic disable-line: need-check-nil
 
                 if not objDt[hash] then
-                    objDt[hash] = {pos, stringLib.getPathToPosition(posDt)}
+                    objDt[hash] = {pos, stringLib.getPathToPosition(posDt), id}
                 end
             end
         end
@@ -275,9 +275,10 @@ topicMenuMeta.showMainMap = function (self)
                 end),
             }
 
-            mapMeta:createMarker(posDt[1], objectColor, events, positionElem and ui.content{
+            local markerLayout = mapMeta:createMarker(posDt[1], objectColor, events, positionElem and ui.content{
                 positionElem
             })
+            markerLayout.props.alpha = tracking.getDisabledState{objectId = posDt[3]} and 0.2 or 1
         end
 
         ::continue::
