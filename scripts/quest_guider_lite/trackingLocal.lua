@@ -69,6 +69,7 @@ this.initialized = false
 
 ---@return boolean isSuccessful
 function this.init()
+    proximityTool = I.proximityTool
     if this.initialized then return true end
 
     if not storage.isPlayerStorageReady() then
@@ -82,8 +83,6 @@ function this.init()
     this.storageData = storage.data[storageLabel]
 
     this.initialized = false
-    proximityTool = I.proximityTool
-    -- if not proximityTool then return false end
 
     this.storageData.markerByObjectId = this.storageData.markerByObjectId or {}
     this.storageData.trackedObjectsByQuestId = this.storageData.trackedObjectsByQuestId or {}
