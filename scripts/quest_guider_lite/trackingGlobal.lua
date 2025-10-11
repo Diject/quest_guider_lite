@@ -47,8 +47,6 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
         for qId, markerInfo in pairs(objData.markers) do
             local markerData = markerInfo.data
 
-            if not markerData.localDoorMarkerId then goto continue end
-
             for cellId, parentCellId in pairs(objData.targetCells or {}) do
                 for doorRef, doorData in pairs(doors) do
                     local targetCellDt = doorData.cells[parentCellId]
@@ -61,7 +59,6 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
                 end
             end
         end
-        ::continue::
     end
 
     for objId, objDoorDt in pairs(doorByObjId) do
@@ -90,7 +87,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
             end
         end
 
-        ---@type table<string, {description : string, markerData : proximityTool.marker, doors : any[], color : number[], objId : string}>
+        ---@type table<string, {description : string, markerData : proximityTool.marker?, doors : any[], color : number[], objId : string}>
         local newMarkerData = {}
 
         for doorRef, doorDt in pairs(objDoorDt) do
@@ -115,16 +112,10 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
                     local markerData = markerInfo.data
                     if markerData then
 
-                        local id = markerData.localDoorMarkerId..tostring(lowestDepth)
+                        local id = tostring(markerData)..tostring(lowestDepth)
                         local markerInf = newMarkerData[id]
                         if not markerInf then
                             markerInf = {
-                                markerData = {
-                                    record = markerData.localDoorMarkerId,
-                                    positions = {},
-                                    groupName = markerInfo.groupName,
-                                    shortTerm = true,
-                                },
                                 description = string.format(l10n("cellsAway", {count = lowestDepth})),
                                 doors = {},
                                 disabled = markerData.disabled,
@@ -133,15 +124,26 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
                             }
                         end
 
-                        table.insert(markerInf.markerData.positions, {
-                            cell = {
-                                isExterior = doorRef.cell.isExterior,
-                                id = doorRef.cell.id,
-                                gridX = doorRef.cell.gridX,
-                                gridY = doorRef.cell.gridY,
-                            },
-                            position = doorRef.position,
-                        })
+                        if markerData.localDoorMarkerId then
+                            if not markerInf.markerData then
+                                markerInf.markerData = {
+                                    record = markerData.localDoorMarkerId,
+                                    positions = {},
+                                    groupName = markerInfo.groupName,
+                                    shortTerm = true,
+                                }
+                            end
+
+                            table.insert(markerInf.markerData.positions, {
+                                cell = {
+                                    isExterior = doorRef.cell.isExterior,
+                                    id = doorRef.cell.id,
+                                    gridX = doorRef.cell.gridX,
+                                    gridY = doorRef.cell.gridY,
+                                },
+                                position = doorRef.position,
+                            })
+                        end
 
                         table.insert(markerInf.doors, doorRef)
 

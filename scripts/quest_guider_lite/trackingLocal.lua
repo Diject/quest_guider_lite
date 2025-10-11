@@ -904,20 +904,21 @@ function this.addMarkerForInteriorCellFromGlobal(data)
     local disabled = data.disabled
     local objectId = data.objId
 
-    if not markerData or not markerData.record or not description then return end
+    if markerData and markerData.record and description then
 
-    local recordData = proximityTool.getMarkerData(markerData.record)
-    if recordData and config.data.tracking.proximityMarkers.enabled
-            and config.data.tracking.proximityMarkers.details.markers then
+        local recordData = proximityTool.getMarkerData(markerData.record)
+        if recordData and config.data.tracking.proximityMarkers.enabled
+                and config.data.tracking.proximityMarkers.details.markers then
 
-        local newRecordData = tableLib.deepcopy(recordData)
-        newRecordData.description = {newRecordData.description, data.description}
+            local newRecordData = tableLib.deepcopy(recordData)
+            newRecordData.description = {newRecordData.description, data.description}
 
-        markerData.record = newRecordData
+            markerData.record = newRecordData
 
-        local id, groupId = proximityTool.addMarker(markerData)
-        if id and groupId then
-            lastInteriorMarkers[id] = { id = id, groupId = groupId }
+            local id, groupId = proximityTool.addMarker(markerData)
+            if id and groupId then
+                lastInteriorMarkers[id] = { id = id, groupId = groupId }
+            end
         end
 
     end
