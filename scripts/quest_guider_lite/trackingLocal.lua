@@ -14,6 +14,7 @@ local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
 local storage = require("scripts.quest_guider_lite.storage.localStorage")
 
+local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
@@ -72,6 +73,8 @@ function this.init()
     proximityTool = I.proximityTool
     if this.initialized then return true end
 
+    this.initialized = false
+
     if not storage.isPlayerStorageReady() then
         return false
     end
@@ -82,7 +85,7 @@ function this.init()
     end
     this.storageData = storage.data[storageLabel]
 
-    this.initialized = false
+    if not playerDataHandler.data.isReady then return false end
 
     this.storageData.markerByObjectId = this.storageData.markerByObjectId or {}
     this.storageData.trackedObjectsByQuestId = this.storageData.trackedObjectsByQuestId or {}
