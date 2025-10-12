@@ -474,6 +474,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
                                     if trackedState then
                                         tracking.removeMarker{objectId = objId, questId = diaId}
                                         playerRef:sendEvent("QGL:updateQuestMenu", {})
+                                        tracking.updateMarkers()
                                     else
                                         tracking.trackObject{diaId = diaId, objectId = objId, index = diaIndex}
                                     end
