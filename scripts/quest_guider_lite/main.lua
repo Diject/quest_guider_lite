@@ -489,7 +489,7 @@ return {
             local positionsByObjectId = {}
             for _, id in pairs(objIds or {}) do
                 local positions = questLib.getPositions(id, {findLinks = true, includeLinks = true})
-                if not positions then return end
+                if not positions then goto continue end
 
                 cellLib.fillDistanceToPlayer(positions, world.players[1])
 
@@ -498,6 +498,8 @@ return {
                 end)
 
                 positionsByObjectId[id] = positions
+
+                ::continue::
             end
 
             local out = {positions = positionsByObjectId, menuId = data.menuId}
