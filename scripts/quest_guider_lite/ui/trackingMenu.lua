@@ -199,7 +199,7 @@ topicMenuMeta.showMainMap = function (self)
         size = self.trackingInfoPanelSize,
     }
 
-    if not mapMeta or not self.positions then return end
+    if not mapMeta or not self.positions then return false end
 
     mapMeta:setZoom(0)
 
@@ -286,6 +286,7 @@ topicMenuMeta.showMainMap = function (self)
 
     content[1].content:add(mapElement)
     self:update()
+    return true
 end
 
 
@@ -1149,7 +1150,9 @@ local function create(params)
                 anchor = util.vector2(1, 0.5),
                 relativePosition = util.vector2(0.95, 0.5),
                 event = function (layout)
-                    meta:showMainMap()
+                    if not meta:showMainMap() then
+                        ui.showMessage(l10n("mapUpdateQuestDataMessage"))
+                    end
                 end
             }
         }
