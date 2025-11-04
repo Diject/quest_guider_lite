@@ -192,7 +192,7 @@ return function (params)
                     align = ui.ALIGNMENT.Center,
                     arrange = ui.ALIGNMENT.Center,
                 },
-                content = ui.content(buttonContent)
+                content = buttonContent
             }
         },
     }
