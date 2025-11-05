@@ -402,6 +402,8 @@ function this.addMarker(params)
 
     this.updateMarkers()
 
+    playerRef:sendEvent("QGL:journalMenuUpdateTrackedButtonVisibility")
+
     return objectTrackingData
 end
 
@@ -787,6 +789,8 @@ function this.removeMarker(params)
     end
     res = removeMarker(params) or res
 
+    playerRef:sendEvent("QGL:journalMenuUpdateTrackedButtonVisibility")
+
     return res
 end
 
@@ -795,6 +799,8 @@ function this.removeAll()
     for diaId, objects in pairs(this.trackedObjectsByDiaId) do
         this.removeMarker{questId = diaId}
     end
+
+    playerRef:sendEvent("QGL:journalMenuUpdateTrackedButtonVisibility")
 end
 
 
@@ -1099,6 +1105,12 @@ function this.getDiaTrackedObjects(diaId)
         return this.trackedObjectsByDiaId[diaId].objects or {}
     end
     return nil
+end
+
+
+function this.hasTrackedObjects()
+    if not this.initialized then return false end
+    return next(this.markerByObjectId) and true or false
 end
 
 

@@ -455,6 +455,19 @@ function journalMeta.fillQuestsContent(self)
 end
 
 
+---@return boolean changed
+function journalMeta:updateTrackedButtonVisibility()
+    if not self.trackedButtonLayout then return false end
+
+    local newVal = tracking.hasTrackedObjects() and self.params.createTrackingMenuFunc and true or false
+    if newVal ~= self.trackedButtonLayout.props.visible then
+        self.trackedButtonLayout.props.visible = newVal
+        return true
+    end
+    return false
+end
+
+
 ---@class questGuider.ui.customJournal.params
 ---@field menuId string?
 ---@field size any
@@ -512,6 +525,29 @@ local function create(params)
         },
         content = ui.content {
 
+        }
+    }
+
+    meta.trackedButtonLayout = {
+        template = templates.textNormal,
+        type = ui.TYPE.Text,
+        props = {
+            text = l10n("tracking"),
+            visible = tracking.hasTrackedObjects() and params.createTrackingMenuFunc and true or false,
+            textSize = params.fontSize * 1.25,
+            autoSize = true,
+            textColor = config.data.ui.defaultColor,
+            textShadow = true,
+            textShadowColor = config.data.ui.shadowColor,
+            propagateEvents = false,
+        },
+        userData = {},
+        events = {
+            mouseRelease = async:callback(function(_, layout)
+                if params.createTrackingMenuFunc then
+                    params.createTrackingMenuFunc()
+                end
+            end),
         }
     }
 
@@ -626,28 +662,7 @@ local function create(params)
                         }
                     },
                     interval(params.fontSize * 3, 0),
-                    {
-                        template = templates.textNormal,
-                        type = ui.TYPE.Text,
-                        props = {
-                            text = l10n("tracking"),
-                            visible = tracking.initialized and params.createTrackingMenuFunc and true or false,
-                            textSize = params.fontSize * 1.25,
-                            autoSize = true,
-                            textColor = config.data.ui.defaultColor,
-                            textShadow = true,
-                            textShadowColor = config.data.ui.shadowColor,
-                            propagateEvents = false,
-                        },
-                        userData = {},
-                        events = {
-                            mouseRelease = async:callback(function(_, layout)
-                                if params.createTrackingMenuFunc then
-                                    params.createTrackingMenuFunc()
-                                end
-                            end),
-                        }
-                    },
+                    meta.trackedButtonLayout,
                     interval(params.fontSize * 3, 0),
                     {
                         template = templates.textNormal,

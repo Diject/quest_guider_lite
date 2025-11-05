@@ -650,5 +650,14 @@ return {
 
             journalMenu:selectQuest(data.qName)
         end,
+
+        ["QGL:journalMenuUpdateTrackedButtonVisibility"] = function ()
+            local journalMenu = activeMenus[commonData.journalMenuId]
+            if not journalMenu then return end
+
+            if journalMenu:updateTrackedButtonVisibility() then
+                journalMenu:update()
+            end
+        end,
     },
 }
