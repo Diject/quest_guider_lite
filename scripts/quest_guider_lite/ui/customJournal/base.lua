@@ -138,7 +138,8 @@ journalMeta.selectQuest = function (self, qName)
         selectedLayout.content[3].props.textShadowColor = config.data.ui.shadowColor
     end
 
-    if self:getQuestScrollBox() and self:getQuestScrollBox().name == qName then
+    local sb = self:getQuestScrollBox()
+    if sb and sb.name == qName and self.textFilter == sb.userData.lastFilter then
         applyTextShadow()
         return
     end
@@ -153,6 +154,9 @@ journalMeta.selectQuest = function (self, qName)
         showOnlyFirst = self.params.showOnlyFirst,
         questName = selectedLayout.userData.questName,
         size = self.questInfoPanelSize,
+        userData = {
+            lastFilter = self.textFilter
+        },
         updateFunc = function ()
             self:update()
         end,
@@ -406,6 +410,7 @@ function journalMeta.fillQuestsContent(self)
                     if qListScrollBoxMeta.lastMovedDistance < 30 then
                         self:fillQuestsContent()
                         self:selectQuest(qName)
+                        self:update()
                     end
                 end),
             },
@@ -861,6 +866,7 @@ local function create(params)
     meta.menu = ui.create(mainFlex)
 
     meta:fillQuestsContent()
+    meta:update()
 
     local function onMouseWheelCallback(content, value)
         for _, dt in pairs(content) do
