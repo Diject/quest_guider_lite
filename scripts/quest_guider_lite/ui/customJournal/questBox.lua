@@ -15,6 +15,7 @@ local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local common = require('scripts.quest_guider_lite.common')
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
+local tableLib = require("scripts.quest_guider_lite.utils.table")
 
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -415,6 +416,7 @@ end
 ---@field showOnlyFirst boolean?
 ---@field updateFunc function
 ---@field parent questGuider.ui.customJournal
+---@field userData table
 
 
 ---@param params questGuider.ui.questBox.params
@@ -435,6 +437,13 @@ function this.create(params)
 
     local journalContent = ui.content{}
 
+    local userData = {
+        questBoxMeta = meta,
+    }
+    if params.userData then
+        tableLib.copy(params.userData, userData)
+    end
+
     local journalEntries = scrollBox{
         name = params.questName,
         updateFunc = params.updateFunc,
@@ -443,9 +452,7 @@ function this.create(params)
         scrollAmount = params.size.y / 5,
         content = journalContent,
         contentHeight = 0,
-        userData = {
-            questBoxMeta = meta,
-        }
+        userData = userData
     }
 
     local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{meta = meta, filter = meta.parent.textFilter}
