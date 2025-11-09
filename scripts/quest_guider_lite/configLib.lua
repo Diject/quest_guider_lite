@@ -29,7 +29,7 @@ for _, section in pairs(this.storageSections) do
         if key then
             local value = section:get(key)
             local res
-            if type(value) == "userdata" then
+            if type(value) == "userdata" and not value.__index then ---@diagnostic disable-line: undefined-field
                 res = {}
                 for n, v in pairs(value) do
                     res[n] = v
