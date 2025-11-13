@@ -41,6 +41,15 @@ function this.registerTrackedQuestGiver(inputData, markerRecordId, hudMarkerId)
         refDt.markerId = markerRecordId
         refDt.hudMarkerId = hudMarkerId
     else
+        local oldMarkerId = this.trackedQuestGivers[objectRecordId].markerId
+        local oldHudMarkerId = this.trackedQuestGivers[objectRecordId].hudMarkerId
+        if oldMarkerId and oldMarkerId ~= markerRecordId then
+            world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = oldMarkerId})
+        end
+        if oldHudMarkerId and oldHudMarkerId ~= hudMarkerId then
+            world.players[1]:sendEvent("QGL:removeHUDMarker", {id = oldHudMarkerId})
+        end
+
         this.trackedQuestGivers[objectRecordId].markerId = markerRecordId
         this.trackedQuestGivers[objectRecordId].hudMarkerId = hudMarkerId
     end
