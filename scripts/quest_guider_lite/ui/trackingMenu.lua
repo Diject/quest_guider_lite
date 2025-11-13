@@ -224,6 +224,7 @@ topicMenuMeta.showMainMap = function (self)
     local screenSize = uiUtils.getScaledScreenSize()
 
     for id, objPoss in pairs(posData) do
+        if tableLib.count(objPoss) > config.data.tracking.maxPos then goto continue end
 
         local trackingData = tracking.getTrackedObjectData(id)
         if not trackingData then goto continue end
