@@ -217,7 +217,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                     textLinks[str] = true
                 end
 
-                local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text)
+                local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
                 table.insert(actorNames, entry.actor)
                 newText = string.format("%s\t\t____ID_%s____: \"%s\"\n\n",
                     newText,

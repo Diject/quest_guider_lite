@@ -218,7 +218,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
                     for j = startIndex, endIndex do
                         local entry = topic.entries[j]
-                        local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text)
+                        local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
                         topicText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
                             topicText,
                             config.data.ui.objectColor:asHex(),
