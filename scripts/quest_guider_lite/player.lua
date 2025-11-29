@@ -29,6 +29,8 @@ local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataH
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 
+local controllerScrollTimer = require("scripts.quest_guider_lite.input.controllerScroll")
+
 local mapWidget = require("scripts.quest_guider_lite.ui.mapWidget")
 local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
 local createTopicMenu = require("scripts.quest_guider_lite.ui.topicMenu")
@@ -139,6 +141,16 @@ local function onMouseWheel(vertical)
 end
 
 
+controllerScrollTimer.callback = function (axisVal)
+    axisVal = -axisVal
+    if axisVal > 0.5 then
+        onMouseWheel(1)
+    elseif axisVal < -0.5 then
+        onMouseWheel(-1)
+    end
+end
+
+
 local function onMouseButtonRelease(buttonId)
     for _, menu in pairs(activeMenus) do
         if menu.onMouseClick then
@@ -223,6 +235,7 @@ local function toggleMenu()
         activeMenus[commonData.journalMenuId] = nil
         if not next(activeMenus) then
             I.UI.removeMode("Journal")
+            controllerScrollTimer.stop()
         end
     else
         I.UI.setMode("Journal", { windows = {} })
@@ -244,6 +257,7 @@ local function toggleMenu()
                         activeMenus[commonData.topicsMenuId] = nil
                         if not next(activeMenus) then
                             I.UI.removeMode("Journal")
+                            controllerScrollTimer.stop()
                         end
                     end
                 }
@@ -262,6 +276,7 @@ local function toggleMenu()
                         activeMenus[commonData.trackingMenuId] = nil
                         if not next(activeMenus) then
                             I.UI.removeMode("Journal")
+                            controllerScrollTimer.stop()
                         end
                     end
                 }
@@ -270,6 +285,7 @@ local function toggleMenu()
                 activeMenus[commonData.journalMenuId] = nil
                 if not next(activeMenus) then
                     I.UI.removeMode("Journal")
+                    controllerScrollTimer.stop()
                 end
             end
         }
@@ -305,6 +321,7 @@ input.registerTriggerHandler(commonData.journalMenuTriggerId, async:callback(fun
                 activeMenus[commonData.allQuestsMenuId] = nil
                 if not next(activeMenus) then
                     I.UI.removeMode("Journal")
+                    controllerScrollTimer.stop()
                 end
             end
         }
@@ -535,6 +552,7 @@ return {
                             activeMenus[commonData.journalMenuId] = nil
                             if not next(activeMenus) then
                                 I.UI.removeMode("Journal")
+                                controllerScrollTimer.stop()
                             end
                         end
                     }
@@ -570,6 +588,7 @@ return {
                     activeMenus[objName] = nil
                     if not next(activeMenus) then
                         I.UI.removeMode("Journal")
+                        controllerScrollTimer.stop()
                     end
                 end
             }
@@ -604,6 +623,7 @@ return {
                     activeMenus[commonData.simpleMapMenuId] = nil
                     if not next(activeMenus) then
                         I.UI.removeMode("Journal")
+                        controllerScrollTimer.stop()
                     end
                 end
             }

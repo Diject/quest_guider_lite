@@ -7,6 +7,8 @@ local async = require('openmw.async')
 
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 
+local controllerScroll = require("scripts.quest_guider_lite.input.controllerScroll")
+
 local config = require("scripts.quest_guider_lite.config")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
@@ -403,6 +405,8 @@ return function(params)
     meta.getLayout = function (self)
         return contentData
     end
+
+    controllerScroll.start()
 
     return contentData
 end
