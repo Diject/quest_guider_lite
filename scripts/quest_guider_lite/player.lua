@@ -336,7 +336,18 @@ input.registerTriggerHandler(commonData.journalMenuTriggerId, async:callback(fun
 end))
 
 if config.data.journal.overrideJournal then
-    I.UI.registerWindow("Journal", function() toggleMenu() end, function () toggleMenu() end)
+    I.UI.registerWindow("Journal",
+        function() toggleMenu() end,
+        function ()
+            if activeMenus[commonData.journalMenuId] then
+                local menu = activeMenus[commonData.journalMenuId].menu
+                if activeMenus[commonData.journalMenuId].params.onClose then
+                    activeMenus[commonData.journalMenuId].params.onClose()
+                end
+                menu:destroy()
+                activeMenus[commonData.journalMenuId] = nil
+            end
+        end)
 end
 
 
