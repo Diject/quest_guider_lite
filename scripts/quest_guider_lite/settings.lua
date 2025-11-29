@@ -69,7 +69,7 @@ end
 local function checkBoxes(args)
     return {
         key = args.key,
-        renderer = "AdvWMap:checkboxes",
+        renderer = "QGL:checkboxes",
         name = args.name,
         description = args.description,
         default = args.default or {},

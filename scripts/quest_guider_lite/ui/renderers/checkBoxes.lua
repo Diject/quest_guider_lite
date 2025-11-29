@@ -21,7 +21,7 @@ local commonData = require("scripts.quest_guider_lite.common")
 ---@field checkBoxes UI.renderer.checkBoxesRenderer.checkBoxes[]
 
 
-I.Settings.registerRenderer("AdvWMap:checkboxes", function(value, set, argument)
+I.Settings.registerRenderer("QGL:checkboxes", function(value, set, argument)
     do
         local args = {}
         for n, v in pairs(argument) do
