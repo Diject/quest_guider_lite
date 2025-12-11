@@ -281,7 +281,7 @@ function this.addMarker(params)
                 end
             end
 
-            if data.position and not data.id then
+            if markEntrances and data.position and not data.id then
                 table.insert(positionalMarkers.positions, {
                     cell = {
                         isExterior = data.id and false or true,
@@ -351,7 +351,7 @@ function this.addMarker(params)
             end
         end
     end
-
+print(#positionalMarkers.positions)
 
     if createHUDMarkers then
         local scale = 1.5 * uiUtils.getScaledScreenSize().y / 1080
