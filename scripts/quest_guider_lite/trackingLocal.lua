@@ -126,9 +126,11 @@ function this.addMarker(params)
 
     if not questData or not positionData then return end
 
+    local qName = playerQuests.getQuestNameByDiaId(params.questId) or questData.name or ""
+
     if params.reqData and common.forbiddenForTracking[params.reqData.data.type or ""] then return end
 
-    local playerQuestData = playerQuests.getQuestStorageData(questData.name)
+    local playerQuestData = playerQuests.getQuestStorageData(qName)
 
     if playerQuestData then
         if not config.data.tracking.trackDisabled and playerQuestData.disabled then
@@ -188,7 +190,7 @@ function this.addMarker(params)
     if currentIndex then
         text = stringLib.removeSpecialCharactersFromJournalText(playerQuests.getJournalText(params.questId, currentIndex))
     end
-    if text == questData.name then text = nil end
+    if text == qName then text = nil end
 
     local priority = params.priority or 0
 
@@ -196,7 +198,7 @@ function this.addMarker(params)
         type = "tracking",
         diaId = params.questId,
         index = params.questStage,
-        questName = questData.name,
+        questName = qName,
     }
 
     ---@type proximityTool.record
@@ -252,7 +254,7 @@ function this.addMarker(params)
     objectTrackingData.markers[params.questId] = {
         id = params.questId,
         index = params.questStage,
-        groupName = questData.name,
+        groupName = qName,
         data = objectMarkerData,
         itemCount = positionData.itemCount,
         actorCount = positionData.actorCount,
@@ -267,8 +269,8 @@ function this.addMarker(params)
 
     local markEntrances = #positionData.positions < config.data.tracking.maxPos
 
-    local positionalMarkers = { record = objectMarkerData.localMarkerId, groupName = questData.name, positions = {} }
-    local doorMarkers = { record = objectMarkerData.localDoorMarkerId, groupName = questData.name, positions = {} }
+    local positionalMarkers = { record = objectMarkerData.localMarkerId, groupName = qName, positions = {} }
+    local doorMarkers = { record = objectMarkerData.localDoorMarkerId, groupName = qName, positions = {} }
 
     for _, data in pairs(positionData.positions or {}) do
 
@@ -337,7 +339,7 @@ function this.addMarker(params)
                     record = objectMarkerData.localMarkerId,
                     objectId = listOfObjects[1],
                     positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
-                    groupName = questData.name,
+                    groupName = qName,
                     itemId = isItem and objectId or nil,
                 }
             else
@@ -345,13 +347,13 @@ function this.addMarker(params)
                     record = objectMarkerData.localMarkerId,
                     objectIds = listOfObjects,
                     positions = next(positionalMarkers.positions) and positionalMarkers.positions or nil,
-                    groupName = questData.name,
+                    groupName = qName,
                     itemId = isItem and objectId or nil,
                 }
             end
         end
     end
-print(#positionalMarkers.positions)
+
 
     if createHUDMarkers then
         local scale = 1.5 * uiUtils.getScaledScreenSize().y / 1080
@@ -395,7 +397,7 @@ print(#positionalMarkers.positions)
         this.handleTrackingRequirements()
     end
 
-    local storageData = playerQuests.getQuestStorageData(params.questData.name)
+    local storageData = playerQuests.getQuestStorageData(qName)
     if storageData and storageData.disabled or this.storageData.hideAllMarkers then
         this.setDisableMarkerState{ questId = params.questId, value = true }
     end

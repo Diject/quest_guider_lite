@@ -14,7 +14,7 @@ local this = {}
 ---@return tes3travelDestinationNode[]|nil doorPath
 ---@return tes3cellData[]|nil cellPath
 ---@return boolean|nil isExterior
----@return table<tes3cell,boolean>|nil checkedCells
+---@return table<string,tes3cell>|nil checkedCells
 function this.findExitPos(cell, path, checked, cellPath)
     if not checked then checked = {} end
     if not path then path = {} end
@@ -24,12 +24,16 @@ function this.findExitPos(cell, path, checked, cellPath)
     end
 
     if checked[cell.id] then return nil, nil, nil, nil, checked end
-    checked[cell.id] = true
+    checked[cell.id] = cell
     for _, door in pairs(cell:getAll(types.Door)) do
         if not types.Door.isTeleport(door) or not door.enabled then goto continue end
 
-        local destCell = types.Door.destCell(door)
-        local destPos = types.Door.destPosition(door)
+        local destCell
+        local destPos
+        pcall(function ()
+            destCell = types.Door.destCell(door)
+            destPos = types.Door.destPosition(door)
+        end)
 
         if not destCell or not destPos then goto continue end
 

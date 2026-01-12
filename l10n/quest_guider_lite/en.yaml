@@ -182,7 +182,7 @@ types.requirementType.CustomDisposition: "Disposition of the actor is #operator#
 types.requirementType.PreviousDialogChoice: "\"#variable#\" (#value#) dialogue option is selected"
 types.requirementType.CustomPCFaction: "The player in #factionValue# faction"
 types.requirementType.Dead: "The number of deaths #varName# (#variable#) is #operator# #value#"
-types.requirementType.CustomActorCell: "Find #objectName# in \"#value#\""
+types.requirementType.CustomActorCell: "Find #objectName# in \"#valCellName#\""
 types.requirementType.NotActorID: "The actor is#negNotContr# #varName#"
 types.requirementType.CustomPCRank: "#rankName# rank for #factionVar#"
 types.requirementType.CustomActorGender: "Someone's gender is #operator# #maleFemaleValue#"

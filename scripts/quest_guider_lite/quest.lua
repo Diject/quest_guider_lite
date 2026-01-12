@@ -277,6 +277,27 @@ local function isDialogueAvailable(dialogue)
 end
 
 
+---@param cellName string
+---@return string
+local function getNameByCellName(cellName)
+    local name
+    local cell = tes.getCell{id = cellName}
+    if cell then
+        local dt = tes.getCellData(cell)
+        name = dt.name
+    end
+    if not name then
+        cell = tes.getCell{name = cellName}
+        if cell then
+            local dt = tes.getCellData(cell)
+            name = dt.name
+        end
+    end
+
+    return name or cellName
+end
+
+
 ---@class questGuider.quest.getDescriptionDataFromBlock.returnArr
 ---@field str string description
 ---@field priority number
@@ -375,11 +396,11 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                     environment.valueObj = cell
                     goto done
                 end
-                -- local region = world.getCellByName(value)
-                -- if region then
-                --     environment.valueObj = region
-                --     goto done
-                -- end
+                local exCell = tes.getCell{name = value}
+                if exCell then
+                    environment.valueObj = exCell
+                    goto done
+                end
                 -- local faction = tes3.getFaction(value)
                 -- if faction then
                 --     environment.valueObj = faction
@@ -406,11 +427,11 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                     environment.variableObj = cell
                     goto done
                 end
-                -- local region = world.getCellByName(variable)
-                -- if region then
-                --     environment.variableObj = region
-                --     goto done
-                -- end
+                local exCell = tes.getCell{name = value}
+                if exCell then
+                    environment.variableObj = exCell
+                    goto done
+                end
                 -- local faction = tes3.getFaction(variable)
                 -- if faction then
                 --     environment.variableObj = faction
@@ -450,6 +471,8 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                     mapped[pattern] = environment.skill and (tes.skillName[environment.skill] or "???") or "???"
                 elseif codeStr == "attributeName" then
                     mapped[pattern] = environment.attribute and (tes.attributeName[environment.attribute] or "???") or "???"
+                elseif codeStr == "valCellName" then
+                    mapped[pattern] = getNameByCellName(environment.value)
                 elseif codeStr == "weaponType" then
                     mapped[pattern] = environment.value and (weaponTypeNameById[environment.value] or "???") or "???"
                 elseif codeStr == "magicEffect" then
@@ -907,8 +930,9 @@ local function addPosData(arr, objData, ownerId, configData)
                     if cellPath then
                         local list = {}
                         local count = 0
-                        for cl, _ in pairs(checkedCells) do
-                            table.insert(list, cl.name)
+                        for _, cl in pairs(checkedCells) do
+                            local cellData = tes.getCellData(cl)
+                            table.insert(list, cellData.name or "???")
                             count = count + 1
                         end
                         tableLib.shuffle(list, count)
@@ -987,19 +1011,20 @@ local function addCellData(cell, id, arr, configData)
             if cellPath then
                 local list = {}
                 local count = 0
-                for cl, _ in pairs(checkedCells) do
-                    table.insert(list, cl.name)
+                for _, cl in pairs(checkedCells) do
+                    local cellData = tes.getCellData(cl)
+                    table.insert(list, cellData.name or "???")
                     count = count + 1
                 end
                 tableLib.shuffle(list, count)
                 descr = stringLib.getValueEnumString(list, configData.journal.objectNames, l10n("reachableFrom").." %s")
             end
 
-            table.insert(arr, {description = descr or cell.name, id = cell.name, })
+            table.insert(arr, {description = descr or cell.displayName or cell.name or "???", id = cell.name, })
         end
     else
-        local descr = cell.id
-        table.insert(arr, {description = descr, id = nil, exitPos = util.vector3(cell.gridX * 8192 + 4000, cell.gridY * 8192 + 4000, 0)})
+        local cellDt = tes.getCellData(cell)
+        table.insert(arr, {description = cellDt.name, id = nil, exitPos = util.vector3(cell.gridX * 8192 + 4000, cell.gridY * 8192 + 4000, 0)})
     end
 end
 
@@ -1123,6 +1148,12 @@ function this.getRequirementPositionData(requirement, customConfig)
                 local cell = tes.getCell{id = value}
                 if cell then
                     cells[cell] = value
+                    goto continue
+                end
+
+                local exCell = tes.getCell{name = value}
+                if exCell then
+                    cells[exCell] = value
                     goto continue
                 end
 
@@ -1272,6 +1303,12 @@ function this.getPositions(objectId, params)
     local cell = tes.getCell{id = objectId}
     if cell then
         addCellData(cell, objectId, positions, configData)
+        return positions
+    end
+
+    local exCell = tes.getCell{name = objectId}
+    if exCell then
+        addCellData(exCell, objectId, positions, configData)
         return positions
     end
 
@@ -1442,8 +1479,9 @@ function this.getObjectPositionDescription(objData, maxNames)
                         if not approxEnabled then
                             local list = {}
                             local count = 0
-                            for cl, _ in pairs(checkedCells) do
-                                table.insert(list, cl.name)
+                            for _, cl in pairs(checkedCells) do
+                                local cellData = tes.getCellData(cl)
+                                table.insert(list, cellData.name or "???")
                                 count = count + 1
                             end
                             tableLib.shuffle(list, count)

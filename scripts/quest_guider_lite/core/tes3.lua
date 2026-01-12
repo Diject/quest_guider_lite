@@ -89,12 +89,14 @@ function this.getScript(id)
 end
 
 
----@param params {id : string?, position : tes3vector3?, x : integer?, y : integer?}
+---@param params {id : string?, name : string?, position : tes3vector3?, x : integer?, y : integer?}
 function this.getCell(params)
 	local func = function ()
 		local cell
 		if params.id then
 			cell = world.getCellById(params.id)
+		elseif params.name then
+			cell = world.getCellByName(params.name)
 		elseif params.position then
 			local x = math.floor(params.position.x / 8192)
 			local y = math.floor(params.position.y / 8192)
