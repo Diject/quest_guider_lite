@@ -132,22 +132,17 @@ function this.init()
 
         local journalFuncs = playerFunc.journal(playerRef)
 
-        local year = 427
-        local lastMonth
-
         for _, entry in ipairs(journalFuncs.journalTextEntries) do
-            if (lastMonth or entry.month) > entry.month then year = year + 1 end
 
             local dia = core.dialogue.journal.records[entry.questId or ""]
             if dia then
                 local questName = dia.questName or ""
 
                 qEntries[questName] = qEntries[questName] or {}
-                table.insert(qEntries[questName], {entry = entry, dia = dia, year = year})
+                table.insert(qEntries[questName], {entry = entry, dia = dia})
 
             end
 
-            lastMonth = entry.month
         end
 
     end
@@ -185,7 +180,7 @@ function this.init()
                             end
                         end
 
-                        local timestamp = dateLib.getTimestampByDate(entry.day, entry.month, entryData.year) + i
+                        local timestamp = dateLib.getTimestampByDate(entry.day) + i
                         storageQuestData.timestamp = math.max(storageQuestData.timestamp, timestamp)
 
                         table.insert(storageQuestData.list, {
@@ -203,11 +198,11 @@ function this.init()
             local storageQuestData = initStorageQuestData(qName)
             if storageQuestData then
                 storageQuestData.finished = storageQuestData.finished or q.finished
-                storageQuestData.timestamp = timeLib.time
+                storageQuestData.timestamp = core.getGameTime()
                 table.insert(storageQuestData.list, {
                     diaId = q.id,
                     index = q.stage,
-                    timestamp = timeLib.time,
+                    timestamp = core.getGameTime(),
                 })
             end
 
@@ -380,11 +375,11 @@ function this.update(diaId, index)
     local questData = initStorageQuestData(dia.questName or "")
     if questData then
         questData.finished = questData.finished or qDia.finished
-        questData.timestamp = timeLib.time
+        questData.timestamp = core.getGameTime()
         table.insert(questData.list, {
             diaId = diaId,
             index = index,
-            timestamp = timeLib.time,
+            timestamp = core.getGameTime(),
             cellData = cellData.getCellData(playerRef.cell) ---@diagnostic disable-line: need-check-nil
         })
     end

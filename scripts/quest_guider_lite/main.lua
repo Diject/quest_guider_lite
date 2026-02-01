@@ -393,11 +393,6 @@ local function updateQuestMenu()
 end
 
 
-time.runRepeatedly(function ()
-    world.players[1]:sendEvent("QGL:updateTime", {time = world.getGameTime()})
-end, time.minute, {type = time.GameTime})
-world.players[1]:sendEvent("QGL:updateTime", {time = world.getGameTime()})
-
 
 return {
     interfaceName = common.interfaceName,

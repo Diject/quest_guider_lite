@@ -1,4 +1,7 @@
 local core = require("openmw.core")
+local commonData = require("scripts.quest_guider_lite.common")
+
+local l10n = core.l10n(commonData.l10nKey)
 
 local this = {}
 
@@ -59,63 +62,34 @@ local months_in_year = 12
     end
 
     local function day_suffix(d)
-        if d >= 11 and d <= 13 then return "th" end
+        if d >= 11 and d <= 13 then return l10n("date.suffix.th") end
         local last = d % 10
-        if last == 1 then return "st"
-        elseif last == 2 then return "nd"
-        elseif last == 3 then return "rd"
-        else return "th" end
+        if last == 1 then return l10n("date.suffix.st")
+        elseif last == 2 then return l10n("date.suffix.nd")
+        elseif last == 3 then return l10n("date.suffix.rd")
+        else return l10n("date.suffix.th") end
     end
 
     local suffix = day_suffix(day)
     local month_name = morrowindMonths[month][1]
 
-    local result = string.format("%d%s %s, 3E %d %02d:%02d",
-        day, suffix, month_name, year, hour, minute)
+    local result = l10n("date.format", {
+        day = day,
+        suffix = suffix,
+        month = month_name,
+        year = year,
+        hour = string.format("%02d", hour),
+        minute = string.format("%02d", minute)
+    })
 
     return result
 end
 
 
+---@param days number Days since start date
 ---@return number timestamp
-function this.getTimestampByDate(day, month, year)
-    if year < startYear or (year == startYear and month < startMonth)
-        or (year == startYear and month == startMonth and day < startDay) then
-            return 0
-    end
-
-    local days = 0
-
-    if year == startYear then
-        if month == startMonth then
-            days = day - startDay
-        else
-            days = days + morrowindMonths[startMonth][2] - startDay
-            for i = startMonth + 1, month - 1 do
-                days = days + morrowindMonths[i][2]
-            end
-            days = days + day
-        end
-
-    else
-        days = days + morrowindMonths[startMonth][2] - startDay
-        for i = startMonth + 1, monthsInYear do
-            days = days + morrowindMonths[i][2]
-        end
-
-        for i = startYear + 1, year - 1 do
-            days = days + daysInYear
-        end
-
-        for i = 1, month - 1 do
-            days = days + morrowindMonths[i][2]
-        end
-
-        days = days + day
-    end
-
+function this.getTimestampByDate(days)
     local timestamp = days * 86400
-
     return timestamp
 end
 

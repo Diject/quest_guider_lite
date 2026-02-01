@@ -26,7 +26,6 @@ local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
 local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
 
-local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 
 local controllerScrollTimer = require("scripts.quest_guider_lite.input.controllerScroll")
@@ -519,10 +518,6 @@ return {
         ["QGL:addMarkerForInteriorCellTracking"] = function (data)
             tracking.addMarkerForInteriorCellFromGlobal(data)
             tracking.updateMarkers()
-        end,
-
-        ["QGL:updateTime"] = function (data)
-            timeLib.time = data.time
         end,
 
         ["QGL:fillQuestBoxQuestInfo"] = fillQuestBoxQuestInfo,
