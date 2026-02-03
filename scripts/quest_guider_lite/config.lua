@@ -63,6 +63,7 @@ this.default = {
         maxTopicEntriesInJournal = 2,
         maxPosDescrInTracking = 3,
         mapByDefault = true,
+        useGlobalDate = true,
     },
     ui = {
         fontSize = 20,

@@ -1,4 +1,5 @@
 local core = require("openmw.core")
+local calendar = require("openmw_aux.calendar")
 local commonData = require("scripts.quest_guider_lite.common")
 
 local l10n = core.l10n(commonData.l10nKey)
@@ -6,81 +7,10 @@ local l10n = core.l10n(commonData.l10nKey)
 local this = {}
 
 
-local morrowindMonths = {
-    {core.getGMST("sMonthMorningstar") or "Morning Star", 31},
-    {core.getGMST("sMonthSunsdawn") or "Sun's Dawn", 28},
-    {core.getGMST("sMonthFirstseed") or "First Seed", 31},
-    {core.getGMST("sMonthRainshand") or "Rain's Hand", 30},
-    {core.getGMST("sMonthSecondseed") or "Second Seed", 31},
-    {core.getGMST("sMonthMidyear") or "Mid Year", 30},
-    {core.getGMST("sMonthSunsheight") or "Sun's Height", 31},
-    {core.getGMST("sMonthLastseed") or "Last Seed", 31},
-    {core.getGMST("sMonthHeartfire") or "Hearthfire", 30},
-    {core.getGMST("sMonthFrostfall") or "Frostfall", 31},
-    {core.getGMST("sMonthSunsdusk") or "Sun's Dusk", 30},
-    {core.getGMST("sMonthEveningstar") or "Evening Star", 31},
-}
-
-
-local daysInYear = 0
-for _, monthData in pairs(morrowindMonths) do
-    daysInYear = daysInYear + monthData[2]
-end
-
-local monthsInYear = 12
-
-local startHour = 0
-local startDay = 15
-local startMonth = 8
-local startYear = 427
-
-
 ---@param time number
 ---@return string
 function this.getDateByTime(time)
-local months_in_year = 12
-
-    local total_seconds = time + (startHour * 3600)
-
-    local total_days = math.floor(total_seconds / 86400)
-    local remaining_seconds = total_seconds % 86400
-
-    local hour = math.floor(remaining_seconds / 3600)
-    local minute = math.floor((remaining_seconds % 3600) / 60)
-
-    local day = startDay + total_days
-    local month = startMonth
-    local year = startYear
-
-    while day > morrowindMonths[month][2] do
-        day = day - morrowindMonths[month][2]
-        month = month + 1
-        if month > months_in_year then
-            month = 1
-            year = year + 1
-        end
-    end
-
-    local function day_suffix(d)
-        if d >= 11 and d <= 13 then return l10n("date.suffix.th") end
-        local last = d % 10
-        if last == 1 then return l10n("date.suffix.st")
-        elseif last == 2 then return l10n("date.suffix.nd")
-        elseif last == 3 then return l10n("date.suffix.rd")
-        else return l10n("date.suffix.th") end
-    end
-
-    local suffix = day_suffix(day)
-    local month_name = morrowindMonths[month][1]
-
-    local result = l10n("date.format", {
-        day = day,
-        suffix = suffix,
-        month = month_name,
-        year = year,
-        hour = string.format("%02d", hour),
-        minute = string.format("%02d", minute)
-    })
+    local result = calendar.formatGameTime(l10n("dateFormat"), time)
 
     return result
 end

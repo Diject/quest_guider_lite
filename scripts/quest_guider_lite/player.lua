@@ -23,6 +23,8 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local configLib = require("scripts.quest_guider_lite.configLib")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
+local dateLib = require("scripts.quest_guider_lite.utils.date")
+local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
 local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
 
@@ -88,6 +90,7 @@ end))
 
 
 playerDataHandler.init()
+timeLib.requestTimeUpdate()
 
 
 -- for cases when the load order is incorrect
@@ -388,6 +391,7 @@ local onQuestUpdateTimerStarted = false
 return {
     engineHandlers = {
         onQuestUpdate = function(questId, stage)
+            timeLib.requestTimeUpdate()
             playerQuests.update(questId, stage)
 
             if not tracking.initialized then return end
@@ -421,6 +425,10 @@ return {
         onMouseButtonRelease = onMouseButtonRelease,
     },
     eventHandlers = {
+        UiModeChanged = function (e)
+            timeLib.requestTimeUpdate()
+        end,
+
         ["QGL:addMarker"] = function(data)
             tracking.addMarker(data)
         end,
@@ -684,6 +692,10 @@ return {
             if journalMenu:updateTrackedButtonVisibility() then
                 journalMenu:update()
             end
+        end,
+
+        ["QGL:requestTimeUpdate"] = function (data)
+            timeLib.setGlobalTime(data.day, data.month, data.year)
         end,
     },
 }

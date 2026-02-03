@@ -151,7 +151,7 @@ function questBoxMeta._fillJournal(self, content, params)
         end
 
         local dateStr = self.params.isQuestList and string.format(l10n("tooltipIDStringStart"), qInfo.diaId, tostring(qInfo.index))
-            or timeLib.getDateByTime(qInfo.timestamp or 0)
+            or timeLib.getDateByTime(timeLib.getTimestamp(qInfo))
 
         local height = uiUtils.getTextHeight(text, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, 1, true)
         local textElemSize = util.vector2(self.scrollBoxContentSize.x, height)

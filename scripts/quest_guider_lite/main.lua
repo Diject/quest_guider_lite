@@ -2,6 +2,7 @@ local async = require('openmw.async')
 local world = require('openmw.world')
 local types = require('openmw.types')
 local time = require('openmw_aux.time')
+local core = require("openmw.core")
 
 local config = require("scripts.quest_guider_lite.config")
 
@@ -20,7 +21,7 @@ local killCounter = require("scripts.quest_guider_lite.killCounter")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 local playerQuests = require('scripts.quest_guider_lite.playerQuests')
 
-local l10n = require('openmw.core').l10n(common.l10nKey)
+local l10n = core.l10n(common.l10nKey)
 
 
 ---@class questGuider.main.fillQuestBoxQuestInfo.returnFieldDt
@@ -41,6 +42,13 @@ end
 local function onLoad()
     -- dataHandler.init()
     -- testing.printRandomQuestList()
+end
+
+
+local function sendPlayerEvent(event, data)
+    for _, pl in pairs(world.players) do
+        pl:sendEvent(event, data)
+    end
 end
 
 
@@ -393,6 +401,18 @@ local function updateQuestMenu()
 end
 
 
+local function updateTime(pl)
+    local vars = world.mwscript.getGlobalVariables(pl)
+
+    local day = vars["Day"]
+    local month = vars["Month"]
+    local year = vars["Year"]
+    if not year  or not month or not day then return end
+
+    sendPlayerEvent("QGL:requestTimeUpdate", {day = day, month = month, year = year})
+end
+
+
 
 return {
     interfaceName = common.interfaceName,
@@ -535,6 +555,8 @@ return {
 
         ["QGL:setScaledScreenSize"] = function (data)
             questGivers.scaledScreenSize = data
-        end
+        end,
+
+        ["QGL:requestTimeUpdate"] = updateTime,
     },
 }

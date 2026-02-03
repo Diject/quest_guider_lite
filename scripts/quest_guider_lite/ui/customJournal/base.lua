@@ -221,7 +221,7 @@ local function hasText(questData, text)
             return true
         end
 
-        local dateStr = timeLib.getDateByTime(dt.timestamp or 0)
+        local dateStr = timeLib.getDateByTime(timeLib.getTimestamp(dt))
         if stringLib.utf8_lower(dateStr):find(text, 1, true) then
             return true
         end
@@ -292,10 +292,11 @@ function journalMeta.fillQuestsContent(self)
     local finishedSubVal = 200000000000
     local disabledSubVal = 100000000000
     local function compareFunc(a, b)
-        local aVal = a.timestamp or 0
+        local aVal = timeLib.getTimestamp(a)
         aVal = a.finished and aVal - finishedSubVal
             or a.disabled and aVal - disabledSubVal or aVal
-        local bVal = b.timestamp or 0
+
+        local bVal = timeLib.getTimestamp(b)
         bVal = b.finished and bVal - finishedSubVal
             or b.disabled and bVal - disabledSubVal or bVal
         return aVal > bVal

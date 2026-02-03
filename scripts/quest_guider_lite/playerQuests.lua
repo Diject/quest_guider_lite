@@ -2,7 +2,8 @@ local include = require("scripts.quest_guider_lite.utils.include")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local commonData = require("scripts.quest_guider_lite.common")
-local timeLib = require("scripts.quest_guider_lite.timeLocal")
+---@module "scripts.quest_guider_lite.timeLocal"
+local timeLib = include("scripts.quest_guider_lite.timeLocal")
 local cellData = require("scripts.quest_guider_lite.core.cellData")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local dateLib = require("scripts.quest_guider_lite.utils.date")
@@ -47,6 +48,7 @@ local this = {}
 ---@field diaId string
 ---@field index integer
 ---@field timestamp number
+---@field globalTime number?
 ---@field cellData tes3cellData?
 
 ---@class questGuider.playerQuest.storageQuestData
@@ -54,6 +56,7 @@ local this = {}
 ---@field disabled boolean?
 ---@field finished boolean?
 ---@field timestamp number?
+---@field globalTime number?
 ---@field list questGuider.playerQuest.storageQuestInfo[]
 
 ---@class questGuider.playerQuest.storageData
@@ -203,6 +206,7 @@ function this.init()
                     diaId = q.id,
                     index = q.stage,
                     timestamp = core.getGameTime(),
+                    globalTime = timeLib.getGlobalTimestamp()
                 })
             end
 
@@ -274,6 +278,7 @@ function this.generateStorageQuestDataByDiaIdList(list)
                 tempDias = {},
                 name = qName,
                 timestamp = plData and plData.timestamp,
+                globalTime = plData and plData.globalTime,
                 disabled = plData and plData.disabled,
                 finished = plData and plData.finished,
             }
@@ -376,10 +381,12 @@ function this.update(diaId, index)
     if questData then
         questData.finished = questData.finished or qDia.finished
         questData.timestamp = core.getGameTime()
+        questData.globalTime = timeLib.getGlobalTimestamp()
         table.insert(questData.list, {
             diaId = diaId,
             index = index,
             timestamp = core.getGameTime(),
+            globalTime = timeLib.getGlobalTimestamp(),
             cellData = cellData.getCellData(playerRef.cell) ---@diagnostic disable-line: need-check-nil
         })
     end

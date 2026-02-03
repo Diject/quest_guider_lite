@@ -157,11 +157,7 @@ questDataNotFound: "Quest data not found."
 questDataDisabled: "Quest data is disabled."
 questDataIncorrectFolderError: "Quest Guider Lite: Quest data is installed incorrectly. Quest data files must be in the \"questData\" folder."
 
-date.suffix.st: "st"
-date.suffix.nd: "nd"
-date.suffix.rd: "rd"
-date.suffix.th: "th"
-date.format: "{day}{suffix} {month}, 3E {year} {hour}:{minute}"
+dateFormat: "%d %B 3E %Y, %H:%M"
 
 
 true_l: "true"
