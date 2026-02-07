@@ -66,9 +66,8 @@ journalMeta.resetQuestListColors = function (self)
 
     ---@type questGuider.ui.scrollBox
     local questBoxMeta = questList.userData.scrollBoxMeta
-    local layout = questBoxMeta:getMainFlex()
 
-    for _, elem in ipairs(layout.content) do
+    for _, elem in ipairs(questBoxMeta:getContent()) do
         elem.content[3].props.textShadow = false
     end
 end
@@ -78,9 +77,8 @@ journalMeta.updateQuestListTrackedColors = function (self)
 
     ---@type questGuider.ui.scrollBox
     local questBoxMeta = questList.userData.scrollBoxMeta
-    local layout = questBoxMeta:getMainFlex()
 
-    for _, elem in ipairs(layout.content) do
+    for _, elem in ipairs(questBoxMeta:getContent()) do
         if elem.userData and elem.userData.playerQuestData then
             elem.content[1].content = ui.content{}
             self:_addFlags(elem.content[1].content, elem.userData.playerQuestData)
@@ -122,11 +120,11 @@ journalMeta.selectQuest = function (self, qName)
 
     ---@type questGuider.ui.scrollBox
     local scrollBoxMeta = self:getQuestList().userData.scrollBoxMeta
-    local qListLayout = scrollBoxMeta:getMainFlex()
+    local qListContent = scrollBoxMeta:getContent()
 
     local qMainLay = self:getQuestMain()
 
-    local succ, selectedLayout = pcall(function() return qListLayout.content[qName] end)
+    local succ, selectedLayout = pcall(function() return qListContent[qName] end)
     if not succ or not selectedLayout then
         self:clearQuestInfo()
         self:setQuestListSelectedFlad(nil)
@@ -189,7 +187,7 @@ function journalMeta.updateNextStageBlocks(self)
     ---@type questGuider.ui.scrollBox
     local scrlBox = qBox:getScrollBox().userData.scrollBoxMeta
 
-    for _, scrollContentElement in pairs(scrlBox:getMainFlex().content) do
+    for _, scrollContentElement in pairs(scrlBox:getContent()) do
         for _, nextStagesBlock in pairs(scrollContentElement.content or {}) do
             if not nextStagesBlock.userData or not nextStagesBlock.userData or not nextStagesBlock.userData.meta
                     or nextStagesBlock.userData.meta.type ~= commonData.elementMetatableTypes.nextStages then
@@ -284,7 +282,7 @@ function journalMeta.fillQuestsContent(self)
     local sBoxMeta = qList.userData.scrollBoxMeta
     sBoxMeta:clearContent()
 
-    local content = sBoxMeta:getMainFlex().content
+    local content = sBoxMeta:getContent()
 
     ---@type table<string, questGuider.playerQuest.storageQuestData>
     local questData = self.storageTypeQuestData or playerQuests.getStorageData().questData
@@ -387,6 +385,7 @@ function journalMeta.fillQuestsContent(self)
             },
             name = qName,
             userData = {
+                height = params.fontSize or 18,
                 questName = qName,
                 playerQuestData = dt,
             },
@@ -448,6 +447,7 @@ function journalMeta.fillQuestsContent(self)
 
     local height = #content * (params.fontSize or 18)
     sBoxMeta:setContentHeight(height)
+    sBoxMeta:updateContent()
     local scrollPos = sBoxMeta:getScrollPosition()
     local scrollElemHeight = sBoxMeta.params.size.y
     if scrollPos > height then
@@ -823,6 +823,7 @@ local function create(params)
         size = util.vector2(questListSize.x - 2, questListSize.y - params.fontSize * 2 - 13),
         scrollAmount = params.size.y / 5,
         contentHeight = 0,
+        autoOptimize = true,
         content = questsContent
     }
 

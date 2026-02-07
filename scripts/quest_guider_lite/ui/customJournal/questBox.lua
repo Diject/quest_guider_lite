@@ -48,7 +48,7 @@ function questBoxMeta.getScrollBoxMeta(self)
 end
 
 function questBoxMeta.getButtonWidget(self)
-    return self:getScrollBoxMeta():getMainFlex().content[1].content[3]
+    return self:getScrollBoxMeta():getContent()[1].content[3]
 end
 
 function questBoxMeta.getButtonFlex(self)
@@ -56,7 +56,7 @@ function questBoxMeta.getButtonFlex(self)
 end
 
 function questBoxMeta.getHeader(self)
-    return self:getScrollBoxMeta():getMainFlex().content[1]
+    return self:getScrollBoxMeta():getContent()[1]
 end
 
 function questBoxMeta.addTrackButtons(self, showRemoveBtn)
@@ -304,7 +304,9 @@ function questBoxMeta._fillJournal(self, content, params)
                             parentScrollBoxUserData = self:getScrollBox().userData,
                             event = function (layout)
                                 changeEntryBlockText(true)
-                                self:getScrollBoxMeta():setContentHeight(uiUtils.getContentHeight(content))
+                                local sb = self:getScrollBoxMeta()
+                                sb:calcContentHeight()
+                                sb:updateContent()
                             end,
                             updateFunc = function ()
                                 self.params.updateFunc()
@@ -364,7 +366,9 @@ function questBoxMeta._fillJournal(self, content, params)
         end
     end
 
-    self:getScrollBoxMeta():setContentHeight(uiUtils.getContentHeight(content))
+    local sb = self:getScrollBoxMeta()
+    sb:calcContentHeight()
+    sb:updateContent()
 end
 
 
@@ -400,7 +404,9 @@ function questBoxMeta:updateColors()
         stageTextElem.props.text = uiUtils.removeColorMarkers(stageTextElem.props.text)
 
         stageTextElem.userData.changeEntryBlockTextFunc()
-        self:getScrollBoxMeta():setContentHeight(uiUtils.getContentHeight(self:getScrollBoxMeta():getMainFlex().content))
+        local sb = self:getScrollBoxMeta()
+        sb:calcContentHeight()
+        sb:updateContent()
     end
 end
 
@@ -452,6 +458,7 @@ function this.create(params)
         scrollAmount = params.size.y / 5,
         content = journalContent,
         contentHeight = 0,
+        autoOptimize = true,
         userData = userData
     }
 

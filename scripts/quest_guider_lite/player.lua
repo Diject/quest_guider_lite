@@ -189,10 +189,10 @@ local function fillQuestBoxQuestInfo(params)
         ---@type questGuider.ui.scrollBox
         local scrollBox = questBox:getScrollBox().userData.scrollBoxMeta
 
-        local scrollBoxElement = scrollBox:getMainFlex()
+        local scrollBoxContent = scrollBox:getContent()
 
         for contentIndex, dt in pairs(params.data) do
-            local element = scrollBoxElement.content[contentIndex]
+            local element = scrollBoxContent[contentIndex]
             if not element then goto continue end
 
             element.content:add(
@@ -204,13 +204,14 @@ local function fillQuestBoxQuestInfo(params)
                     isQuestListMode = params.menuId ~= commonData.journalMenuId,
                     parentScrollBoxUserData = questBox:getScrollBox().userData,
                     updateHeightFunc = function ()
-                        scrollBox:setContentHeight(uiUtils.getContentHeight(scrollBoxElement.content))
+                        scrollBox:calcContentHeight()
+                        scrollBox:updateContent()
                     end,
                     updateFunc = function ()
                         activeMenus[params.menuId]:update()
                     end,
                     thisElementInContent = function ()
-                        return scrollBox:getMainFlex().content[contentIndex].content[#element.content]
+                        return scrollBox:getContent()[contentIndex].content[#element.content]
                     end
                 }
             )
@@ -218,7 +219,8 @@ local function fillQuestBoxQuestInfo(params)
             ::continue::
         end
 
-        scrollBox:setContentHeight(uiUtils.getContentHeight(scrollBoxElement.content))
+        scrollBox:calcContentHeight()
+        scrollBox:updateContent()
 
         activeMenus[params.menuId]:update()
     end

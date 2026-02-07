@@ -10,6 +10,55 @@ local this = {}
 this.whiteTexture = ui.texture{ path = "white" }
 
 
+function this.removeFromContent(content, index)
+    if type(index) == "string" then
+        index = content.__nameIndex[index]
+    end
+
+    if not index then return end
+
+    local val = rawget(content, index)
+    if not val then return end
+
+    local oldName = val and val.name
+    if oldName then
+        content.__nameIndex[oldName] = nil
+    end
+
+    for i = index, #content - 1 do
+        local v = rawget(content, i + 1)
+        rawset(content, i, v)
+        if type(v.name) == 'string' then
+            content.__nameIndex[v.name] = i
+        end
+    end
+    rawset(content, #content, nil)
+
+    return index
+end
+
+
+function this.clearContent(content)
+    for i = #content, 1, -1 do
+        this.removeFromContent(content, i)
+    end
+end
+
+
+function this.getFromContent(content, index)
+    if type(index) == "string" then
+        return rawget(content, content.__nameIndex[index])
+    else
+        return rawget(content, index)
+    end
+end
+
+
+function this.isExistsInContent(content, index)
+    return this.getFromContent(content, index) ~= nil
+end
+
+
 function this.getTextHeight(text, fontSize, width, mul, extraRowCount, removeColors)
     if removeColors then
         text = this.removeColorMarkers(text)
@@ -39,6 +88,21 @@ function this.getTextHeight(text, fontSize, width, mul, extraRowCount, removeCol
 end
 
 
+function this.getElementHeight(elem)
+    if elem.userData and elem.userData.height then
+        return elem.userData.height
+    elseif elem.props and elem.props.size then
+        return elem.props.size.y
+    elseif elem.props and elem.props.textSize then
+        return elem.props.textSize + (elem.props.textShadow and 1 or 0)
+    elseif elem.content then
+        return this.getContentHeight(elem.content, elem.props and elem.props.horisontal or false)
+    end
+
+    return 0
+end
+
+
 ---@return number
 function this.getContentHeight(content, isHorisontal)
     local res = 0
@@ -52,15 +116,7 @@ function this.getContentHeight(content, isHorisontal)
     end
 
     for _, elem in pairs(content) do
-        if elem.props and elem.props.size then
-            add(elem.props.size.y)
-        elseif elem.props and elem.props.textSize then
-            add(elem.props.textSize)
-        elseif elem.userData and elem.userData.height then
-            add(elem.userData.height)
-        elseif elem.content then
-            add(this.getContentHeight(elem.content, elem.props and elem.props.horisontal or false))
-        end
+        add(this.getElementHeight(elem))
     end
 
     return res

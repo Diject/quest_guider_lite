@@ -64,9 +64,9 @@ topicMenuMeta.resetListColors = function (self)
 
     ---@type questGuider.ui.scrollBox
     local topicBoxMeta = topicList.userData.scrollBoxMeta
-    local layout = topicBoxMeta:getMainFlex()
+    local content = topicBoxMeta:getContent()
 
-    for _, elem in ipairs(layout.content) do
+    for _, elem in ipairs(content) do
         elem.content[1].props.textShadow = false
     end
 end
@@ -97,7 +97,7 @@ topicMenuMeta.updateListElements = function (self)
     ---@type questGuider.ui.scrollBox
     local listSBMeta = list.userData.scrollBoxMeta
 
-    for _, elem in pairs(listSBMeta:getMainFlex().content) do
+    for _, elem in pairs(listSBMeta:getContent()) do
         if not elem.userData or not elem.userData.trackingData or not elem.userData.objectId then goto continue end
 
         ---@type questGuider.tracking.objectRecord
@@ -309,11 +309,11 @@ topicMenuMeta.selectTracked = function (self, trackedId)
 
     ---@type questGuider.ui.scrollBox
     local topicListSBMeta = self:getTrackingList().userData.scrollBoxMeta
-    local qListLayout = topicListSBMeta:getMainFlex()
+    local qListContent = topicListSBMeta:getContent()
 
     local qMainLay = self:getMain()
 
-    local succ, selectedLayout = pcall(function() return qListLayout.content[trackedId] end)
+    local succ, selectedLayout = pcall(function() return qListContent[trackedId] end)
     if not succ or not selectedLayout then
         self:clearTrackingInfo()
         self:setListSelectedFlad(nil)
@@ -365,7 +365,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
         local topicSBMeta = self:getTrackingInfoScrollBox().userData.scrollBoxMeta
 
         if not elemContent then
-            elemContent = topicSBMeta:getMainFlex().content
+            elemContent = topicSBMeta:getContent()
             if not elemContent then return end
         end
 
@@ -553,7 +553,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
             ::continue::
         end
 
-        topicSBMeta:setContentHeight(uiUtils.getContentHeight(elementContent))
+        topicSBMeta:calcContentHeight()
     end
 
 
@@ -564,7 +564,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
 
         ---@type questGuider.ui.scrollBox
         local topicSBMeta = sb.userData.scrollBoxMeta
-        local flexElement = topicSBMeta:getMainFlex().content[3]
+        local flexElement = topicSBMeta:getContent()[3]
         if not flexElement then return end
 
         local content = ui.content{}
@@ -694,7 +694,8 @@ topicMenuMeta.selectTracked = function (self, trackedId)
             }
         end
 
-        topicSBMeta:setContentHeight(uiUtils.getContentHeight(elementContent))
+        topicSBMeta:calcContentHeight()
+        topicSBMeta:updateContent()
     end
 
 
@@ -711,13 +712,17 @@ topicMenuMeta.selectTracked = function (self, trackedId)
         content = elementContent,
         contentHeight = 0,
         leftOffset = params.fontSize / 3,
+        autoOptimize = true,
     }
 
     updateContent(elementContent)
 
     drawPositionInfo(self.positions and self.positions[trackedId])
 
-    qMainLay.content[2].userData.scrollBoxMeta:setContentHeight(uiUtils.getContentHeight(elementContent))
+    ---@type questGuider.ui.scrollBox
+    local sb = qMainLay.content[2].userData.scrollBoxMeta
+    sb:calcContentHeight()
+    sb:updateContent()
 
     self:resetListSelection()
     self:setListSelectedFlad(trackedId)
@@ -740,7 +745,7 @@ function topicMenuMeta.fillTrackingListContent(self)
     local sBoxMeta = qList.userData.scrollBoxMeta
     sBoxMeta:clearContent()
 
-    local content = sBoxMeta:getMainFlex().content
+    local content = sBoxMeta:getContent()
 
     ---@type table<string, table<string, {list :string[], diaId : string}>>
     local trackingObjectsByQId = {}
@@ -835,6 +840,7 @@ function topicMenuMeta.fillTrackingListContent(self)
             },
             name = dt.id,
             userData = {
+                height = params.fontSize or 18,
                 trackingData = trackingData,
                 objectId = dt.id,
                 diaId = dt.diaId,
@@ -890,6 +896,7 @@ function topicMenuMeta.fillTrackingListContent(self)
 
     local height = #content * (params.fontSize or 18)
     sBoxMeta:setContentHeight(height)
+    sBoxMeta:updateContent()
     local scrollPos = sBoxMeta:getScrollPosition()
     local scrollElemHeight = sBoxMeta.params.size.y
     if scrollPos > height then
@@ -903,7 +910,7 @@ function topicMenuMeta:removeListed()
     ---@type questGuider.ui.scrollBox
     local sBoxMeta = qList.userData.scrollBoxMeta
 
-    local content = sBoxMeta:getMainFlex().content
+    local content = sBoxMeta:getContent()
 
     for _, el in pairs(content) do
         if not el.userData or not el.userData.diaId then goto continue end
@@ -1181,7 +1188,7 @@ local function create(params)
                     ---@type questGuider.ui.scrollBox
                     local sBoxMeta = qList.userData.scrollBoxMeta
 
-                    local content = sBoxMeta:getMainFlex().content
+                    local content = sBoxMeta:getContent()
 
                     for _, el in pairs(content) do
                         if not el.userData or not el.userData.diaId then goto continue end
@@ -1223,6 +1230,7 @@ local function create(params)
         content = trackingContent,
         contentHeight = 0,
         withoutBorders = true,
+        autoOptimize = true,
     }
 
     local trackingList = {

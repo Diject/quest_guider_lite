@@ -58,9 +58,9 @@ topicMenuMeta.resetTopicListColors = function (self)
 
     ---@type questGuider.ui.scrollBox
     local topicBoxMeta = topicList.userData.scrollBoxMeta
-    local layout = topicBoxMeta:getMainFlex()
+    local content = topicBoxMeta:getContent()
 
-    for _, elem in ipairs(layout.content) do
+    for _, elem in ipairs(content) do
         elem.content[1].props.textShadow = false
     end
 end
@@ -134,11 +134,11 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
     ---@type questGuider.ui.scrollBox
     local topicListSBMeta = self:getTopicList().userData.scrollBoxMeta
-    local qListLayout = topicListSBMeta:getMainFlex()
+    local qListContent = topicListSBMeta:getContent()
 
     local qMainLay = self:getTopicMain()
 
-    local succ, selectedLayout = pcall(function() return qListLayout.content[topicId] end)
+    local succ, selectedLayout = pcall(function() return qListContent[topicId] end)
     if not succ or not selectedLayout then
         self:clearTopicInfo()
         self:setTopicListSelectedFlad(nil)
@@ -172,7 +172,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
         local mainFlex = topicSBMeta:getMainFlex()
 
         if not topicInfoContent then
-            topicInfoContent = mainFlex.content
+            topicInfoContent = topicSBMeta:getContent()
         end
 
         local success, pcallRes = pcall(function ()
@@ -431,7 +431,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                     position = util.vector2(headerSize.x / 2, params.fontSize * 2 + 8),
                     event = function (layout)
                         updateTopicText(nil, true)
-                        qMainLay.content[2].userData.scrollBoxMeta:setContentHeight(uiUtils.getContentHeight(topicContent))
+                        qMainLay.content[2].userData.scrollBoxMeta:calcContentHeight()
                     end
                 },
             },
@@ -474,11 +474,15 @@ topicMenuMeta.selectTopic = function (self, topicId)
         },
         content = topicContent,
         contentHeight = 0,
+        autoOptimize = true,
     }
 
     updateTopicText(topicContent, true)
 
-    qMainLay.content[2].userData.scrollBoxMeta:setContentHeight(uiUtils.getContentHeight(topicContent))
+    ---@type questGuider.ui.scrollBox
+    local sb = qMainLay.content[2].userData.scrollBoxMeta
+    sb:calcContentHeight()
+    sb:updateContent()
 
     self:resetTopicListSelection()
     self:setTopicListSelectedFlad(topicId)
@@ -519,7 +523,7 @@ function topicMenuMeta.fillTopicsContent(self)
     local sBoxMeta = qList.userData.scrollBoxMeta
     sBoxMeta:clearContent()
 
-    local content = sBoxMeta:getMainFlex().content
+    local content = sBoxMeta:getContent()
 
     local topicData = playerQuests.getTopicList()
 
@@ -554,6 +558,7 @@ function topicMenuMeta.fillTopicsContent(self)
             },
             name = dt.id,
             userData = {
+                height = params.fontSize or 18,
                 topicName = topicName,
                 topicData = dt,
                 heightInList = heightInList,
@@ -608,6 +613,7 @@ function topicMenuMeta.fillTopicsContent(self)
 
     local height = #content * (params.fontSize or 18)
     sBoxMeta:setContentHeight(height)
+    sBoxMeta:updateContent()
     local scrollPos = sBoxMeta:getScrollPosition()
     local scrollElemHeight = sBoxMeta.params.size.y
     if scrollPos > height then
@@ -871,6 +877,7 @@ local function create(params)
         scrollAmount = params.size.y / 5,
         content = topicsContent,
         contentHeight = 0,
+        autoOptimize = true,
     }
 
     local topicList = {
