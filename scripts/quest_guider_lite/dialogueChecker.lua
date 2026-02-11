@@ -1,9 +1,10 @@
+local include = require("scripts.quest_guider_lite.utils.include")
 
-local world = require("openmw.world")
+local world = include("openmw.world")
 local types = require("openmw.types")
 local core = require("openmw.core")
 
-local playerRef = world.players[1]
+local playerRef = include("openmw.self") or world.players[1] ---@diagnostic disable-line: need-check-nil
 
 local myTypes = require("scripts.quest_guider_lite.types")
 

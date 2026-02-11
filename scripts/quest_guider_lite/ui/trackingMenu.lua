@@ -29,6 +29,7 @@ local button = require("scripts.quest_guider_lite.ui.button")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
+local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
 local mapWidget = require("scripts.quest_guider_lite.ui.mapWidget")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
@@ -44,15 +45,15 @@ topicMenuMeta.menu = nil
 
 
 topicMenuMeta.getTrackingList = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[3]
+    return self.trackingListLayout.content[3]
 end
 
 topicMenuMeta.getSearchBar = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[1]
+    return self.trackingListLayout.content[1]
 end
 
 topicMenuMeta.getMain = function (self)
-    return self.menu.layout.content[2].content[1]
+    return self.mainWindowLayout.content[1]
 end
 
 topicMenuMeta.getTrackingInfoScrollBox = function (self)
@@ -67,7 +68,7 @@ topicMenuMeta.resetListColors = function (self)
     local content = topicBoxMeta:getContent()
 
     for _, elem in ipairs(content) do
-        elem.content[1].props.textShadow = false
+        elem.props.textShadow = false
     end
 end
 
@@ -326,8 +327,8 @@ topicMenuMeta.selectTracked = function (self, trackedId)
     end
 
     local function applyTextShadow()
-        selectedLayout.content[1].props.textShadow = true
-        selectedLayout.content[1].props.textShadowColor = config.data.ui.shadowColor
+        selectedLayout.props.textShadow = true
+        selectedLayout.props.textShadowColor = config.data.ui.shadowColor
     end
 
     if self:getTrackingInfoScrollBox() and self:getTrackingInfoScrollBox().name == trackedId then
@@ -699,9 +700,9 @@ topicMenuMeta.selectTracked = function (self, trackedId)
     end
 
 
-    qMainLay.content[2] = scrollBox{
+    qMainLay.content[2] = params.createSBFunc {
         updateFunc = function ()
-            self.menu:update()
+            self:update()
         end,
         size = self.trackingInfoPanelSize,
         scrollAmount = self.params.size.y / 5,
@@ -733,12 +734,18 @@ end
 
 
 topicMenuMeta.update = function(self)
-    self.menu:update()
+    if self.menu then
+        self.menu:update()
+    elseif self.params.updateFunc then
+        self.params.updateFunc()
+    end
 end
 
 
 function topicMenuMeta.fillTrackingListContent(self)
     local params = self.params
+
+    local screenSize = uiUtils.getScaledScreenSize()
 
     local qList = self:getTrackingList()
     ---@type questGuider.ui.scrollBox
@@ -757,12 +764,12 @@ function topicMenuMeta.fillTrackingListContent(self)
 
         if not trackingObjectsByQId[qName] then trackingObjectsByQId[qName] = {} end
         for objId, list in pairs(dt.objects) do
-            trackingObjectsByQId[qName][objId] = {list, diaId = diaId}
+            trackingObjectsByQId[qName][objId] = {list = list, diaId = diaId}
             trackingObjects[objId] = {list = list, diaId = diaId}
         end
     end
 
-    ---@type {name : string, id : string?, objects : string[]?, qName : string?, diaId : string?}[]
+    ---@type {name : string, id : string?, objects : string[]?, qName : string?, diaId : string?, diaIds : string[]}[]
     local recordList = {}
     if localStorage.data.trackingListCheckBox then
         for objId, listData in pairs(trackingObjects) do
@@ -787,9 +794,11 @@ function topicMenuMeta.fillTrackingListContent(self)
             end
 
             local objects = {}
+            local diaIds = {}
             for objId, listData in pairs(trackingObjectsByQId[qName]) do
                 local record = getObject(objId)
                 local objName = record and record.name or ""
+                diaIds[listData.diaId] = true
 
                 if valid or self.textFilter == "" or stringLib.utf8_lower(objName):find(self.textFilter, 1, true) then
                     table.insert(objects, {name = objName, id = objId, objects = listData.list, qName = qName, diaId = listData.diaId})
@@ -803,7 +812,7 @@ function topicMenuMeta.fillTrackingListContent(self)
                 return (stringLib.utf8_lower(a.name or "") < stringLib.utf8_lower(b.name or ""))
             end)
 
-            table.insert(recordList, {name = qName})
+            table.insert(recordList, {name = qName, diaIds = tableLib.keys(diaIds)})
             for _, dt in ipairs(objects) do
                 table.insert(recordList, dt)
             end
@@ -827,14 +836,17 @@ function topicMenuMeta.fillTrackingListContent(self)
             or config.data.ui.defaultColor
 
         local text = dt.name == "" and dt.id and string.format("(%s)", dt.id) or dt.name or "???"
-        text = trackingData and "\t\t"..text or text
+        text = trackingData and "  "..text or text
 
         local contentData
         contentData = {
-            type = ui.TYPE.Flex,
+            type = ui.TYPE.Text,
             props = {
-                autoSize = true,
-                horizontal = true,
+                text = uiUtils.colorize(text, self.textFilter, "#"..config.data.ui.selectionColor:asHex(), "#"..textColor:asHex()),
+                textSize = params.fontSize or 18,
+                textColor = textColor,
+                multiline = false,
+                wordWrap = false,
                 propagateEvents = false,
                 alpha = tracking.getDisabledState{objectId = dt.id} and 0.4 or 1
             },
@@ -854,10 +866,88 @@ function topicMenuMeta.fillTrackingListContent(self)
 
                 focusLoss = async:callback(function(e, layout)
                     topicListSBMeta:focusLoss(e)
+                    layout.userData.tooltipAttempted = false
+                    tooltip.destroy(layout)
                 end),
 
                 mouseMove = async:callback(function(e, layout)
                     topicListSBMeta:mouseMove(e)
+
+                    if not tooltip.isExists(layout) and not layout.userData.tooltipAttempted then
+                        layout.userData.tooltipAttempted = true
+                        local ttext
+                        if dt.diaIds then
+                            for _, dId in pairs(dt.diaIds) do
+                                local index = playerQuests.getCurrentIndex(dId)
+                                if not index then goto continue end
+
+                                local t = playerQuests.getJournalText(dId, index)
+                                if not t then goto continue end
+
+                                ttext = string.format("%s%s%s", ttext or "", ttext and "\n\n" or "", t)
+
+                                ::continue::
+                            end
+
+                        elseif self.positions and dt.id then
+                            ---@type questGuider.quest.getRequirementPositionData.positionData[]
+                            local objPoss = self.positions[dt.id]
+                            if not objPoss then goto nextStep end
+
+                            local cnt = 0
+                            local hasMore = false
+                            local strLines = {}
+                            for _, p in pairs(objPoss) do
+                                if config.data.journal.maxPosDescrInTracking <= cnt then
+                                    hasMore = true
+                                    break
+                                end
+
+                                local descr = stringLib.getPathToPosition(p)
+
+                                if descr then
+                                    table.insert(strLines, cnt == 0 and descr or "\n\n"..descr)
+                                    cnt = cnt + 1
+                                end
+                            end
+                            if hasMore then
+                                table.insert(strLines, "\n\n"..l10n("ellipsis"))
+                            end
+
+                            if next(strLines) then
+                               ttext = table.concat(strLines)
+                            end
+
+                            ::nextStep::
+                        end
+
+                        if ttext then
+                            local tooltipContent = ui.content{
+                                {
+                                    type = ui.TYPE.TextEdit,
+                                    props = {
+                                        text = ttext,
+                                        textColor = config.data.ui.defaultColor,
+                                        textSize = config.data.ui.fontSize * 1.1,
+                                        anchor = util.vector2(0.5, 0),
+                                        size = util.vector2(screenSize.x * 0.25, 0),
+                                        multiline = true,
+                                        wordWrap = true,
+                                        textAlignH = ui.ALIGNMENT.Center,
+                                        textAlignV = ui.ALIGNMENT.Center,
+                                        readOnly = true,
+                                        autoSize = true,
+                                    },
+                                }
+                            }
+
+                            tooltip.createOrMove(e, layout, tooltipContent)
+                        else
+                            tooltip.createOrMove(e, layout, ui.content{})
+                        end
+                    else
+                        tooltip.move(e, layout)
+                    end
                 end),
 
                 mouseRelease = async:callback(function(e, layout)
@@ -865,26 +955,46 @@ function topicMenuMeta.fillTrackingListContent(self)
 
                     topicListSBMeta:mouseRelease(e)
 
-                    if topicListSBMeta.lastMovedDistance < 30 and trackingData then
+                    if topicListSBMeta.lastMovedDistance > 30 or not trackingData or not self.positions then
+                        return
+                    end
+
+                    if self.params.advWMapMenu then
+                        layout.userData.posClickIndex = (layout.userData.posClickIndex or 0) + 1
+                        local poss = self.positions and self.positions[dt.id]
+                        if not poss then return end
+                        ---@type questGuider.quest.getRequirementPositionData.positionData
+                        local pos = poss[layout.userData.posClickIndex]
+                        if not pos then
+                            layout.userData.posClickIndex = 1
+                            pos = poss[layout.userData.posClickIndex]
+                            if not pos then
+                                return
+                            end
+                        end
+
+                        local cellId = pos.id and pos.id:lower()
+                        ---@type AdvancedWorldMap.Menu.Map
+                        local menu = self.params.advWMapMenu
+
+                        if menu.mapWidget.cellId ~= cellId then
+                            if not menu:updateMapWidgetCell(cellId) then
+                                return
+                            end
+                        end
+
+                        if pos.position then
+                            menu.mapWidget:focusOnWorldPosition(pos.position)
+                            menu.mapWidget:updateMarkers()
+                        end
+                        menu:update()
+
+                    else
                         self:fillTrackingListContent()
                         self:selectTracked(dt.id)
                     end
                 end),
             },
-            content = ui.content {
-                {
-                    template = templates.textNormal,
-                    type = ui.TYPE.Text,
-                    props = {
-                        text = uiUtils.colorize(text, self.textFilter, "#"..config.data.ui.selectionColor:asHex(), "#"..textColor:asHex()),
-                        textSize = params.fontSize or 18,
-                        textColor = textColor,
-                        multiline = false,
-                        wordWrap = false,
-                        textAlignH = ui.ALIGNMENT.Start,
-                    },
-                }
-            }
         }
 
         content:add(contentData)
@@ -925,8 +1035,10 @@ function topicMenuMeta:removeListed()
 end
 
 
+local this = {}
 
----@class questGuider.ui.trackingMenu.params
+
+---@class questGuider.ui.trackingMenu.contentParams
 ---@field menuId string?
 ---@field size any
 ---@field sizeProportional any
@@ -934,17 +1046,29 @@ end
 ---@field relativePosition any?
 ---@field headerName string?
 ---@field onClose function?
+---@field listMode boolean?
+---@field updateFunc function?
+---@field createSBFunc function?
+---@field tooltipLib any?
+---@field advWMapMenu AdvancedWorldMap.Menu.Map?
+---@field advWMapInt AdvancedWorldMap.Interface?
+---@field advWMapTrackingInt AdvWMap_tracking.Interface?
 
----@param params questGuider.ui.trackingMenu.params
-local function create(params)
+---@param params questGuider.ui.trackingMenu.contentParams
+---@return questGuider.ui.trackingMenuMeta
+function this.createContent(params)
 
-    params.fontSize = params.fontSize or 18
+    params.advWMapInt = I.AdvancedWorldMap
+    params.advWMapTrackingInt = I.AdvWMap_tracking
+
+    params.fontSize = params.fontSize or config.data.ui.fontSize
+    params.createSBFunc = params.createSBFunc or params.advWMapInt and params.advWMapInt.uiElements.scrollBox or scrollBox
+    params.tooltipLib = params.tooltipLib or params.advWMapInt and params.advWMapInt.uiElements.tooltip or tooltip
 
     ---@class questGuider.ui.trackingMenuMeta
     local meta = setmetatable({}, topicMenuMeta)
 
     local function updateFunc()
-        if not meta.menu then return end
         meta:update()
     end
 
@@ -982,7 +1106,7 @@ local function create(params)
         }
     }
 
-    local mainHeader = {
+    local mainHeader = not params.listMode and {
         type = ui.TYPE.Widget,
         props = {
             size = util.vector2(params.size.x + 6, params.fontSize * 1.5),
@@ -1057,9 +1181,10 @@ local function create(params)
                 }
             },
         },
-    }
+    } or nil
 
-    local trackingListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y)
+    local trackingListSize = not params.listMode and
+        util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y) or params.size
     local searchBar
     searchBar = {
         type = ui.TYPE.Widget,
@@ -1080,12 +1205,13 @@ local function create(params)
                         props = {
                             autoSize = false,
                             textSize = params.fontSize,
-                            size = util.vector2(params.size.x * 0.2, params.fontSize + 4),
+                            size = util.vector2(trackingListSize.x * 0.7, params.fontSize + 4),
                             textColor = config.data.ui.defaultColor,
                         },
                         events = {
                             textChanged = async:callback(function(text, layout)
                                 meta.textFilter = text
+                                searchBar.content[1].content[1].props.text = text
                             end),
                             keyRelease = async:callback(function(e, layout)
                                 if e.code == input.KEY.Enter then
@@ -1118,11 +1244,14 @@ local function create(params)
                 event = function (layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillTrackingListContent()
-                    meta:selectTracked(selectedQuest)
 
-                    local qBox = meta:getTrackingInfoScrollBox()
-                    if qBox and qBox.userData and qBox.userData.updateText then
-                        qBox.userData.updateText()
+                    if not meta.params.listMode then
+                        meta:selectTracked(selectedQuest)
+
+                        local qBox = meta:getTrackingInfoScrollBox()
+                        if qBox and qBox.userData and qBox.userData.updateText then
+                            qBox.userData.updateText()
+                        end
                     end
                 end
             },
@@ -1150,7 +1279,7 @@ local function create(params)
                     meta:fillTrackingListContent()
                 end
             },
-            button{
+            params.listMode ~= true and button{
                 updateFunc = function ()
                     meta:update()
                 end,
@@ -1163,11 +1292,11 @@ local function create(params)
                         ui.showMessage(l10n("mapUpdateQuestDataMessage"))
                     end
                 end
-            }
+            } or nil,
         }
     }
 
-    local isHide = true
+    local isHidden = true
     local bottomBtnsSize = util.vector2(trackingListSize.x - 2, params.fontSize * 2)
     local bottomBtns = {
         type = ui.TYPE.Widget,
@@ -1196,13 +1325,13 @@ local function create(params)
                         tracking.setDisableMarkerState{
                             objectId = el.userData.objectId,
                             questId = el.userData.diaId,
-                            value = isHide,
+                            value = isHidden,
                             isUserDisabled = true,
                         }
 
                         ::continue::
                     end
-                    isHide = not isHide
+                    isHidden = not isHidden
                     meta:fillTrackingListContent()
                     meta:clearTrackingInfo()
                     meta:resetListSelection()
@@ -1223,7 +1352,7 @@ local function create(params)
 
     local trackingContent = ui.content{}
 
-    local trackingListBox = scrollBox{
+    local trackingListBox = params.createSBFunc {
         updateFunc = updateFunc,
         size = util.vector2(trackingListSize.x - 2, trackingListSize.y - params.fontSize * 5 - 10),
         scrollAmount = params.size.y / 5,
@@ -1248,8 +1377,10 @@ local function create(params)
         }
     }
 
+    meta.trackingListLayout = trackingList
 
-    local mainWindow = {
+
+    local mainWindow = not params.listMode and {
         template = customTemplates.boxSolidThick,
         props = {
 
@@ -1276,9 +1407,11 @@ local function create(params)
                 }
             }
         }
-    }
+    } or nil
 
-    local mainFlex = {
+    meta.mainWindowLayout = mainWindow
+
+    local mainLayout = not params.listMode and {
         type = ui.TYPE.Flex,
         layer = "Windows",
         props = {
@@ -1294,9 +1427,32 @@ local function create(params)
             mainHeader,
             mainWindow,
         }
-    }
+    } or trackingList
 
-    meta.menu = ui.create(mainFlex)
+    meta.layout = mainLayout
+
+    meta:fillTrackingListContent()
+
+
+    return meta
+end
+
+
+---@class questGuider.ui.trackingMenu.params
+---@field menuId string?
+---@field size any
+---@field sizeProportional any
+---@field fontSize integer?
+---@field relativePosition any?
+---@field headerName string?
+---@field onClose function?
+
+---@param params questGuider.ui.trackingMenu.params
+function this.createMenu(params)
+    ---@class questGuider.ui.trackingMenuMeta
+    local meta = this.createContent(params)
+
+    meta.menu = ui.create(meta.layout)
 
     meta:fillTrackingListContent()
 
@@ -1327,9 +1483,8 @@ local function create(params)
         menuId = meta.params.menuId,
     })
 
-
     return meta
 end
 
 
-return create
+return this

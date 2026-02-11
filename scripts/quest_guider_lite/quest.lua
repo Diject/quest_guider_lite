@@ -19,6 +19,7 @@ local requirementChecker = require("scripts.quest_guider_lite.requirementChecker
 local dialogueChecker = require("scripts.quest_guider_lite.dialogueChecker")
 
 local tes = require("scripts.quest_guider_lite.core.tes3")
+local questBase = require("scripts.quest_guider_lite.questBase")
 local getObject = require("scripts.quest_guider_lite.core.getObject")
 
 local commonData = require("scripts.quest_guider_lite.common")
@@ -88,153 +89,14 @@ function this.getLocalVariableDataByScriptName(scriptName)
     return dataHandler.localVariablesByScriptId[scriptName:lower()]
 end
 
----@param questData string|questDataGenerator.questData
----@return integer[]|nil
-function this.getIndexes(questData)
-    if not questData then return end
-    if type(questData) == "string" then
-        questData = this.getQuestData(questData) ---@diagnostic disable-line: cast-local-type
-    end
-    if not questData then return end
 
-    local indexes = {}
-    for ind, _ in pairs(questData) do
-        local indInt = tonumber(ind)
-        if indInt then
-            table.insert(indexes, indInt)
-        end
-    end
-    table.sort(indexes)
-    return indexes
-end
+this.getIndexes = questBase.getIndexes
 
----@param questData string|questDataGenerator.questData
----@return integer|nil
-function this.getFirstIndex(questData)
-    local indexes = this.getIndexes(questData)
-    if not indexes or #indexes == 0 then return end
 
-    return indexes[1]
-end
+this.getFirstIndex = questBase.getFirstIndex
 
----@param questData string|questDataGenerator.questData
----@param quesId string?
----@param questIndex integer|string
----@param params {findInLinked: boolean?, findCompleted: boolean?}?
----@return integer[]?
----@return table<string, {index: integer, qData: questDataGenerator.questData}>?
-function this.getNextIndexes(questData, quesId, questIndex, params)
-    if not params then params = {} end
-    if not questData then return end
-    if type(questData) == "string" then
-        questData = this.getQuestData(questData) ---@diagnostic disable-line: cast-local-type
-    end
-    if not questData then return end
 
-    local tpData = questData[tostring(questIndex)]
-
-    if tpData and tpData.finished then
-        return
-    end
-
-    local plIndex = params.findCompleted == false and playerQuests.getCurrentIndex(quesId or "") or -1
-    plIndex = plIndex or -1
-
-    ---@type table<string, {index: integer, qData: questDataGenerator.questData}>
-    local linkedNext
-
-    if params.findInLinked and questData.links then
-        for _, linkedId in pairs(questData.links) do
-            local linkData = this.getQuestData(linkedId)
-            if not linkData then goto continue end
-
-            local firstIndex = this.getFirstIndex(linkData)
-            if not firstIndex then goto continue end
-            local linkRequirements = linkData[tostring(firstIndex)]
-            if not linkRequirements then goto continue end
-
-            if params.findCompleted == false and (playerQuests.getCurrentIndex(linkedId) or 0) ~= 0 then
-                goto continue
-            end
-
-            local valid = false
-            for _, block in pairs(linkRequirements.requirements) do
-                valid = valid or requirementChecker.checkBlock(block, {
-                    allowedTypes = {
-                        [myTypes.requirementType.Journal] = true,
-                    },
-                    threatErrorsAs = true,
-                })
-                if valid then break end
-            end
-
-            if valid then
-                linkedNext = linkedNext or {}
-                linkedNext[linkedId] = {index = firstIndex, qData = linkData}
-            end
-
-            ::continue::
-        end
-    end
-
-    if not tpData and not linkedNext then
-        local intQuestIndex = tonumber(questIndex)
-        for i, index in ipairs(this.getIndexes(questData) or {}) do
-            if intQuestIndex and index > intQuestIndex then
-                tpData = questData[tostring(index)]
-                break
-            end
-        end
-        if not tpData or tpData.finished then return end
-    end
-
-    if not tpData then return nil, linkedNext end
-
-    local nextIndexes = {}
-    local foundNextIndex = false
-    if tpData.next then
-        for _, ind in pairs(tpData.next) do
-            if plIndex < ind then
-                nextIndexes[ind] = true
-                foundNextIndex = true
-            end
-        end
-    end
-    if not foundNextIndex and tpData.nextIndex and not (plIndex >= tpData.nextIndex) then
-        nextIndexes[tpData.nextIndex] = true
-    end
-
-    -- adds the next sequential index if its requirements are met
-    if tableLib.count(nextIndexes) == 1 and not nextIndexes[tpData.nextIndex] then
-        ---@type questDataGenerator.stageData
-        local nextIndexData = questData[tostring(tpData.nextIndex)]
-        if nextIndexData then
-            local valid = false
-            for _, block in pairs(nextIndexData.requirements) do
-                valid = valid or requirementChecker.checkBlock(block, {
-                    ignoredTypes = {
-                        [myTypes.requirementType.CustomDisposition] = true,
-                        [myTypes.requirementType.CustomDialogue] = true,
-                    },
-                    threatErrorsAs = true,
-                })
-                if valid then break end
-            end
-
-            if valid then
-                nextIndexes[tpData.nextIndex] = true
-            end
-        end
-    end
-
-    local nextIndexKeys = tableLib.keys(nextIndexes)
-
-    if #nextIndexKeys == 0 then return nil, linkedNext end
-
-    table.sort(nextIndexKeys)
-
-    return nextIndexKeys, linkedNext
-end
+this.getNextIndexes = questBase.getNextIndexes
 
 
 ---@param tb {[1] : string} table with object ids
@@ -1210,7 +1072,7 @@ function this.getRequirementPositionData(requirement, customConfig)
         addPosData(positions, objectData, nil, configData)
 
         if not out[id] then
-            out[id] = {reqType = requirement.type, name = object.editorName or object.name or object.id or "", positions = {}}
+            out[id] = {reqType = requirement.type, name = object.name or object.id or "", positions = {}}
         end
 
         local outD = out[id]
@@ -1338,93 +1200,7 @@ function this.getPositions(objectId, params)
 end
 
 
----@param questId string
----@param questIndex integer|string
----@return boolean?
-function this.checkConditionsForQuest(questId, questIndex, ref)
-    local questData = this.getQuestData(questId)
-    if not questData then return end
-
-    local indexStr = tostring(questIndex)
-    local stageData = questData[indexStr]
-    if not stageData then return end
-
-    local requirements = stageData.requirements or {}
-
-    if #requirements == 0 then return true end
-
-    if not ref then
-
-        local allowedTypes = {
-            [myTypes.requirementType.Journal] = true,
-            [myTypes.requirementType.CustomPCFaction] = true,
-            [myTypes.requirementType.CustomPCRank] = true,
-            [myTypes.requirementType.CustomGlobal] = true,
-            [myTypes.requirementType.Dead] = true,
-            [myTypes.requirementType.CustomOnDeath] = true,
-            [myTypes.requirementType.Item] = true,
-        }
-
-        for _, reqBlock in pairs(stageData.requirements or {}) do
-            local ret = requirementChecker.checkBlock(reqBlock, {
-                allowedTypes = allowedTypes,
-                threatErrorsAs = true,
-            })
-
-            if ret then
-                return true
-            end
-        end
-
-    else
-        local ignoredTypes = {
-            [myTypes.requirementType.CustomDisposition] = true,
-            [myTypes.requirementType.CustomDialogue] = true,
-        }
-
-        local truthTable = {
-            [myTypes.requirementType.PreviousDialogChoice] = true,
-        }
-
-        for _, reqBlock in pairs(stageData.requirements or {}) do
-            local ret = requirementChecker.checkBlock(reqBlock, {
-                ignoredTypes = ignoredTypes,
-                threatErrorsAs = true,
-                reference = ref,
-            })
-
-            if ret then
-                local foundDiaReq = false
-                for _, req in pairs(reqBlock) do
-                    if req.type == myTypes.requirementType.CustomDialogue then
-                        foundDiaReq = true
-                        local diaId = stringLib.convertDialogueName(req.variable)
-                        local infoId = req.value
-
-                        local checkerRes = dialogueChecker.isDialogueTopicAvailable(ref, diaId, infoId, {
-                            skipDisposition = true,
-                            checkBlockOptions = {
-                                ignoredTypes = ignoredTypes,
-                                typeTruthTable = truthTable,
-                                threatErrorsAs = false,
-                            }
-                        })
-
-                        if checkerRes then return true end
-                        break
-                    end
-                end
-
-                if not foundDiaReq then
-                    return true
-                end
-            end
-        end
-
-    end
-
-    return false
-end
+this.checkConditionsForQuest = questBase.checkConditionsForQuest
 
 
 ---@param objData questDataGenerator.objectInfo

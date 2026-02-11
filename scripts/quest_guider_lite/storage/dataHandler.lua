@@ -190,4 +190,19 @@ function this.isVersionChanged()
     return versionChanged
 end
 
+
+---@param recordId string
+---@return questDataGenerator.objectInfo
+function this.getObjectData(recordId)
+    return this.questObjects[recordId]
+end
+
+
+---@param diaId string
+---@return questDataGenerator.questData|nil
+function this.getQuestData(diaId)
+    return this.quests[diaId:lower()]
+end
+
+
 return this

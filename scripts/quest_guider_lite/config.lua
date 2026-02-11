@@ -36,6 +36,15 @@ this.default = {
                 markers = true,
             }
         },
+        advWMapMarkers = {
+            enabled = true,
+            size = 12,
+            wSize = 18,
+            details = {
+                givers = true,
+                markers = true,
+            }
+        },
         toggleVisibilityKey = "P",
         toggleVisibilityByJournalKey = false,
     },

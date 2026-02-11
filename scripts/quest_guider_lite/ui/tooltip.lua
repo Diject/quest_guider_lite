@@ -9,6 +9,8 @@ local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 
 local this = {}
 
+this.lastTooltip = nil
+
 function this.calcTooltipPosAnchor(cursorPos)
     local screenSize = uiUtils.getScaledScreenSize()
 
@@ -28,60 +30,73 @@ function this.calcTooltipPosAnchor(cursorPos)
     return tooltipPos, anchor
 end
 
-function this.createOrMove(coord, parent, layoutContent)
-    if not parent.userData then parent.userData = {} end
 
+function this.create(coord, parent, layoutContent)
     local position, anchor = this.calcTooltipPosAnchor(coord.position)
 
-    if not parent.userData.tooltip then
-        if not layoutContent then return end
+    this.destroyLast()
+    if not layoutContent or #layoutContent == 0 then return end
 
-        local tooltipLayout = {
-            template = customTemplates.boxSolid,
-            layer = "Notification",
-            name = "QGL:tooltip",
-            props = {
-                position = position,
-                anchor = anchor,
-            },
-            content = ui.content {
-                {
-                    type = ui.TYPE.Flex,
-                    props = {
-                        horizontal = false,
-                    },
-                    content = layoutContent,
-                }
+    local tooltipLayout = {
+        template = customTemplates.boxSolid,
+        layer = "Notification",
+        name = "QGL:tooltip",
+        props = {
+            position = position,
+            anchor = anchor,
+        },
+        content = ui.content {
+            {
+                type = ui.TYPE.Flex,
+                props = {
+                    horizontal = false,
+                    align = ui.ALIGNMENT.Center,
+                    arrange = ui.ALIGNMENT.Center,
+                },
+                content = layoutContent,
             }
         }
+    }
 
-        parent.userData["tooltip"] = ui.create(tooltipLayout)
+    local tooltip = ui.create(tooltipLayout)
+    parent.userData["tooltip"] = tooltip
+    this.lastTooltip = tooltip
 
-        if core.isWorldPaused() then
-            local timer = async:newUnsavableSimulationTimer(0.1, function ()
+    if core.isWorldPaused() then
+        local timer = async:newUnsavableSimulationTimer(0.1, function ()
+            if not parent.userData.tooltip then return end
+            local tooltipHandler = parent.userData.tooltip
+            parent.userData.tooltip = nil
+            this.lastTooltip = nil
+            tooltipHandler:destroy()
+        end)
+    else
+        local timer
+        timer = time.runRepeatedly(function ()
+            if UI.getMode() == nil then
+                timer()
                 if not parent.userData.tooltip then return end
                 local tooltipHandler = parent.userData.tooltip
                 parent.userData.tooltip = nil
+                this.lastTooltip = nil
                 tooltipHandler:destroy()
-            end)
-        else
-            local timer
-            timer = time.runRepeatedly(function ()
-                if UI.getMode() == nil then
-                    timer()
-                    if not parent.userData.tooltip then return end
-                    local tooltipHandler = parent.userData.tooltip
-                    parent.userData.tooltip = nil
-                    tooltipHandler:destroy()
-                end
-            end, 0.2)
-        end
+            end
+        end, 0.2)
+    end
 
+    return true
+end
+
+
+function this.move(coord, parent)
+    if not parent.userData then parent.userData = {} end
+
+    if not parent.userData.tooltip or not parent.userData.tooltip.layout then
+        parent.userData.tooltip = nil
         return
     end
 
-
-    if not parent.userData.tooltip then return end
+    local position, anchor = this.calcTooltipPosAnchor(coord.position)
 
     local props = parent.userData.tooltip.layout.props
 
@@ -91,16 +106,44 @@ function this.createOrMove(coord, parent, layoutContent)
 end
 
 
+---@return boolean? new
+function this.createOrMove(coord, parent, layoutContent)
+    if not parent.userData then parent.userData = {} end
+
+    if not parent.userData.tooltip and this.create(coord, parent, layoutContent) then
+        return true
+    end
+
+    this.move(coord, parent)
+end
+
+
 function this.destroy(parent)
     if not parent.userData or not parent.userData.tooltip then return end
     local tooltipHandler = parent.userData.tooltip
     parent.userData.tooltip = nil
-    tooltipHandler:destroy()
+    local co = coroutine.create(function (...)
+        tooltipHandler:destroy()
+    end)
+    coroutine.resume(co)
 end
 
 
 function this.isExists(parent)
-    return parent and parent.userData and parent.userData.tooltip and parent.userData.tooltip.valid
+    return parent and parent.userData and parent.userData.tooltip and parent.userData.tooltip.layout and true or false
+end
+
+
+function this.get(parent)
+    return parent and parent.userData and parent.userData.tooltip
+end
+
+
+function this.destroyLast()
+    if this.lastTooltip and this.lastTooltip.layout then
+        this.lastTooltip:destroy()
+    end
+    this.lastTooltip = nil
 end
 
 

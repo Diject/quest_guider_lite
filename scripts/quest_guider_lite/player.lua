@@ -20,6 +20,7 @@ local config = require("scripts.quest_guider_lite.configLib")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local questLib = require("scripts.quest_guider_lite.questBase")
 local configLib = require("scripts.quest_guider_lite.configLib")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
@@ -27,6 +28,7 @@ local dateLib = require("scripts.quest_guider_lite.utils.date")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
 local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
+local advWMapIntegration = require("scripts.quest_guider_lite.map.advWMapIntegration")
 
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 
@@ -35,7 +37,7 @@ local controllerScrollTimer = require("scripts.quest_guider_lite.input.controlle
 local mapWidget = require("scripts.quest_guider_lite.ui.mapWidget")
 local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
 local createTopicMenu = require("scripts.quest_guider_lite.ui.topicMenu")
-local createTrackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu")
+local createTrackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu").createMenu
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
 local simpleMap = require("scripts.quest_guider_lite.ui.mapMenu")
 local messageBox = require("scripts.quest_guider_lite.ui.messageBox")
@@ -96,6 +98,7 @@ timeLib.requestTimeUpdate()
 -- for cases when the load order is incorrect
 async:newUnsavableSimulationTimer(0.001, function ()
     tracking.init()
+    advWMapIntegration.init()
 end)
 
 local function onInit()
@@ -355,6 +358,62 @@ if config.data.journal.overrideJournal then
 end
 
 
+local function markerClick(userData)
+    if not userData then return end
+
+    if userData.type == "tracking" and userData.questName then ---@diagnostic disable-line: need-check-nil
+        if not activeMenus[commonData.journalMenuId] then
+            I.UI.setMode("Journal", { windows = {} })
+            activeMenus[commonData.journalMenuId] = createQuestMenu{
+                fontSize = config.data.ui.fontSize,
+                sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+                relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+                onClose = function ()
+                    activeMenus[commonData.journalMenuId] = nil
+                    if not next(activeMenus) then
+                        I.UI.removeMode("Journal")
+                        controllerScrollTimer.stop()
+                    end
+                end
+            }
+        end
+        activeMenus[commonData.journalMenuId]:selectQuest(userData.questName) ---@diagnostic disable-line: need-check-nil
+    end
+end
+
+
+local function giverMarkerClick(userData)
+    if not userData or (userData.type ~= "questGiver" and userData.type ~= "doorQuestGiver") then
+        return
+    end
+
+    local objName = userData.objName or ""
+    if activeMenus[objName] then
+        activeMenus[objName].menu:destroy()
+        activeMenus[objName] = nil
+    end
+
+    activeMenus[objName] = createQuestMenu{
+        fontSize = config.data.ui.fontSize,
+        sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+        relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+        headerName = objName,
+        questList = userData.diaIds,
+        isQuestList = true,
+        showReqsForAll = true,
+        showOnlyFirst = true,
+        hideStageText = true,
+        onClose = function ()
+            activeMenus[objName] = nil
+            if not next(activeMenus) then
+                I.UI.removeMode("Journal")
+                controllerScrollTimer.stop()
+            end
+        end
+    }
+end
+
+
 input.registerTriggerHandler(commonData.toggleMarkersTriggerId, async:callback(function()
     tracking.setMarkersVisibility{toggle = true, includeQuestGivers = true}
     if activeMenus[commonData.journalMenuId] then
@@ -453,6 +512,7 @@ return {
 
             local createProximityMarkers = config.data.tracking.proximityMarkers.enabled and config.data.tracking.proximityMarkers.details.givers
             local createHUDMarkers = config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.givers
+            local createAdvWMapMarkers = config.data.tracking.advWMapMarkers.enabled and config.data.tracking.advWMapMarkers.details.givers
 
             local recordId, markerId, markerGroupId
             if createProximityMarkers then
@@ -468,6 +528,10 @@ return {
                 if tracking.storageData.hideAllMarkers and hudMarkerId then
                     tracking.setHUDMarkerVisibility{markerId = hudMarkerId, value = false}
                 end
+            end
+
+            if createAdvWMapMarkers and data.type == "door" then
+                advWMapIntegration.createDoorGiversMarker(data.ref, data.questNames)
             end
 
             tracking.updateMarkers()
@@ -557,70 +621,57 @@ return {
             end
             local userData = data.recordData.userData
 
-            if userData.type == "tracking" and userData.questName then ---@diagnostic disable-line: need-check-nil
-                if not activeMenus[commonData.journalMenuId] then
-                    I.UI.setMode("Journal", { windows = {} })
-                    activeMenus[commonData.journalMenuId] = createQuestMenu{
-                        fontSize = config.data.ui.fontSize,
-                        sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
-                        relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
-                        onClose = function ()
-                            activeMenus[commonData.journalMenuId] = nil
-                            if not next(activeMenus) then
-                                I.UI.removeMode("Journal")
-                                controllerScrollTimer.stop()
-                            end
-                        end
-                    }
-                end
-                activeMenus[commonData.journalMenuId]:selectQuest(userData.questName) ---@diagnostic disable-line: need-check-nil
-            end
+            markerClick(userData)
+        end,
+
+        ---@param data AdvWMap_tracking.onClickCallbackParams
+        [commonData.advWMapMarkerCallback] = function (data)
+            if data.button ~= 1 or not data.template.userData then return end
+
+            markerClick(data.template.userData)
         end,
 
         ---@param data proximityTool.event.callbackParams
         ["QGL:questGiverMarkerCallback"] = function (data)
-            if not data.recordData or not data.recordData.userData
-                    or (data.recordData.userData.type ~= "questGiver" and data.recordData.userData.type ~= "doorQuestGiver") then
+            if not data.recordData or not data.recordData.userData then
                 return
             end
 
-            local objName = data.recordData.userData.objName or ""
-            if activeMenus[objName] then
-                activeMenus[objName].menu:destroy()
-                activeMenus[objName] = nil
-            end
+            giverMarkerClick(data.recordData.userData)
+        end,
 
-            activeMenus[objName] = createQuestMenu{
-                fontSize = config.data.ui.fontSize,
-                sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
-                relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
-                headerName = objName,
-                questList = data.recordData.userData.diaIds,
-                isQuestList = true,
-                showReqsForAll = true,
-                showOnlyFirst = true,
-                hideStageText = true,
-                onClose = function ()
-                    activeMenus[objName] = nil
-                    if not next(activeMenus) then
-                        I.UI.removeMode("Journal")
-                        controllerScrollTimer.stop()
-                    end
-                end
-            }
+        ---@param data AdvWMap_tracking.onClickCallbackParams
+        [commonData.advWMapGiverCallback] = function (data)
+            if data.button ~= 1 or not data.object or not data.template.userData then return end
+
+            local giverQuests = questLib.getGiverQuests(data.object)
+            if not giverQuests then return end
+
+            local recordId = data.object.recordId
+            local record = data.object.type.record(recordId)
+
+            local tb = tableLib.copy(data.template.userData)
+            tb.diaIds = tableLib.keys(giverQuests)
+            tb.objName = (record or {}).name or l10n("questGiverU")
+
+            giverMarkerClick(tb)
         end,
 
         ["QGL:getPositionsForTrackingMenu"] = function (data)
-            if not data.menuId or not data.positions then return end
+            if not data.positions then return end
 
-            ---@type questGuider.ui.trackingMenuMeta
-            local menu = activeMenus[data.menuId]
-            if not menu then return end
+            if data.menuId then
+                ---@type questGuider.ui.trackingMenuMeta
+                local menu = activeMenus[data.menuId]
+                if not menu then return end
 
-            menu.positions = data.positions
+                menu.positions = data.positions
 
-            if configLib.data.journal.mapByDefault then
-                menu:showMainMap()
+                if configLib.data.journal.mapByDefault then
+                    menu:showMainMap()
+                end
+            elseif data.advWMapMode then
+                advWMapIntegration.addPosDataToWidget(data.positions)
             end
         end,
 

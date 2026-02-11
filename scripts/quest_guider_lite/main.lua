@@ -409,7 +409,7 @@ local function updateTime(pl)
     local year = vars["Year"]
     if not year  or not month or not day then return end
 
-    sendPlayerEvent("QGL:requestTimeUpdate", {day = day, month = month, year = year})
+    pl:sendEvent("QGL:requestTimeUpdate", {day = day, month = month, year = year})
 end
 
 
@@ -517,7 +517,7 @@ return {
                 ::continue::
             end
 
-            local out = {positions = positionsByObjectId, menuId = data.menuId}
+            local out = {positions = positionsByObjectId, menuId = data.menuId, advWMapMode = data.advWMapMode}
 
             world.players[1]:sendEvent("QGL:getPositionsForTrackingMenu", out)
         end,

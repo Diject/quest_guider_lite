@@ -244,6 +244,15 @@ I.Settings.registerGroup{
         numberSetting{key = "tracking.hudMarkers.range", name = "hudMarkersRange", description = "hudMarkersRangeDescription", integer = false, min = 0, default = config.default.tracking.hudMarkers.range},
         boolSetting{key = "tracking.hudMarkers.rayTracing", name = "hudMarkersRayTracing", description = "hudMarkersRayTracingDescription", default = config.default.tracking.hudMarkers.rayTracing},
         numberSetting{key = "tracking.hudMarkers.opacity", name = "hudMarkersOpacity", description = "hudMarkersOpacityDescription", integer = false, min = 0, max = 100, default = config.default.tracking.hudMarkers.opacity},
+        boolSetting{key = "tracking.advWMapMarkers.enabled", name = "advWMapMarkersEnabled", description = "advWMapMarkersEnabledDescription", default = config.default.tracking.advWMapMarkers.enabled},
+        checkBoxes{key = "tracking.advWMapMarkers.details", name = "empty", description = "useForAdvWMapMarkersDescription", default = config.default.tracking.advWMapMarkers.details,
+            checkBoxes = {
+                {key = "givers", name = "questGiversLabel", default = config.default.tracking.advWMapMarkers.details.givers},
+                {key = "markers", name = "questObjectsLabel", default = config.default.tracking.advWMapMarkers.details.markers},
+            }
+        },
+        numberSetting{key = "tracking.advWMapMarkers.size", name = "advWMapMarkerSize", description = "advWMapMarkerSizeDescription", integer = true, min = 1, default = config.default.tracking.advWMapMarkers.size},
+        numberSetting{key = "tracking.advWMapMarkers.wSize", name = "advWMapMarkerSizeOnWorldMap", description = "advWMapMarkerSizeOnWorldMapDescription", integer = true, min = 1, default = config.default.tracking.advWMapMarkers.wSize},
         inputKey{key = "tracking.toggleVisibilityKey", name = "markerVisibilityKey", description = "markerVisibilityKeyDescription", argType = "trigger", argKey = commonData.toggleMarkersTriggerId, default = config.default.tracking.toggleVisibilityKey},
         boolSetting{key = "tracking.toggleVisibilityByJournalKey", name = "enableShiftJournalMarkersToggle", description = "enableShiftJournalMarkersToggleDescription", default = config.default.tracking.toggleVisibilityByJournalKey},
     },

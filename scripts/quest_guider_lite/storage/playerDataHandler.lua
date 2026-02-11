@@ -34,16 +34,13 @@ function this.init()
     if isReady then
         local dt = stor:asTable() or {}
 
-        ---@type questGuiderLite.event.dataReady.data
-        this.data = {
-            quests = dt.quests or {},
-            questObjects = dt.questObjects or {},
-            localVariablesByScriptId = dt.localVariablesByScriptId or {},
-            dialogueTopics = dt.dialogueTopics or {},
-            mapInfo = dt.mapInfo,
-            info = dt.info,
-            isReady = isReady,
-        }
+        this.data.quests = dt.quests or {}
+        this.data.questObjects = dt.questObjects or {}
+        this.data.localVariablesByScriptId = dt.localVariablesByScriptId or {}
+        this.data.dialogueTopics = dt.dialogueTopics or {}
+        this.data.mapInfo = dt.mapInfo
+        this.data.info = dt.info
+        this.data.isReady = isReady
 
         core.sendGlobalEvent("QGL:Interop:DataReady", this.data)
         player:sendEvent("QGL:Interop:DataReady", this.data)
@@ -57,6 +54,21 @@ function this.isMapImageExists()
         return vfs.fileExists(mapImagePath)
     end
     return false
+end
+
+
+
+---@param recordId string
+---@return questDataGenerator.objectInfo
+function this.getObjectData(recordId)
+    return this.data.questObjects[recordId]
+end
+
+
+---@param diaId string
+---@return questDataGenerator.questData|nil
+function this.getQuestData(diaId)
+    return this.data.quests[diaId:lower()]
 end
 
 

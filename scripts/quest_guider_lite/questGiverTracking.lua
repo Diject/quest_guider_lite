@@ -57,6 +57,8 @@ end
 
 
 function this.createQuestGiverMarker(ref)
+    if not ref.enabled then return end
+
     local recordId = ref.recordId
 
     do
@@ -203,14 +205,14 @@ end
 
 
 function this.createQuestGiverMarkerForDoor(ref)
-    if not types.Door.isTeleport(ref) then return end
+    if not types.Door.isTeleport(ref) or not ref.enabled then return end
 
     local destCell = types.Door.destCell(ref)
     if not destCell then return end
 
     local destCellData = tes3.getCellData(destCell)
 
-    local cellsData = cellLib.findReachableCellsByNode({cell = destCell}) ---@diagnostic disable-line: missing-fields
+    local cellsData = cellLib.findReachableCellsByNode({cell = destCell}, nil, nil, 3) ---@diagnostic disable-line: missing-fields
 
     ---@type table<string, {data : questDataGenerator.objectInfo, ref : any}>
     local giverIdsWithData = {}
@@ -311,6 +313,7 @@ function this.createQuestGiverMarkerForDoor(ref)
         type = "door",
         objectRecordId = ref.recordId,
         refId = ref.id,
+        ref = ref,
         questNames = questNames,
         recordData = recordData,
         markerData = markerData,

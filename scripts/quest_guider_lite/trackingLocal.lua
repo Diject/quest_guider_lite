@@ -18,6 +18,7 @@ local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataH
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
+local advWMapIntegration
 
 local requirementType = require("scripts.quest_guider_lite.types.requirement")
 
@@ -27,8 +28,10 @@ local l10n = core.l10n(common.l10nKey)
 
 ---@type proximityTool
 local proximityTool = I.proximityTool
+---@type AdvWMap_tracking.Interface
+local advWMap_tracking = I.AdvWMap_tracking
 
-local storageLabel = "tracking"
+local storageLabel = common.trackingDataLabel
 
 
 local this = {}
@@ -46,6 +49,10 @@ local exteriorDoors = {}
 ---@field localMarkerId string|nil
 ---@field localDoorMarkerId string|nil
 ---@field hudMarker string?
+---@field advWMapMain string?
+---@field advWMapMarker string?
+---@field advWMapWorldMarker string?
+---@field advWMapDoorMarker string?
 ---@field disabled boolean?
 ---@field userDisabled boolean?
 
@@ -71,7 +78,11 @@ this.initialized = false
 ---@return boolean isSuccessful
 function this.init()
     proximityTool = I.proximityTool
+    advWMap_tracking = I.AdvWMap_tracking
+
     if this.initialized then return true end
+
+    advWMapIntegration = require("scripts.quest_guider_lite.map.advWMapIntegration")
 
     this.initialized = false
 
@@ -96,6 +107,18 @@ function this.init()
     this.lastObjectColor = this.storageData.lastObjectColor
 
     this.scannedCellsForTemporaryMarkers = {}
+
+    advWMapIntegration.giverMarkersVisible = not this.storageData.hideAllMarkers
+    advWMapIntegration.trackingLib = this
+
+    for _, objData in pairs(this.markerByObjectId) do
+        for _, mrkData in pairs(objData.markers) do
+            local doorTemplateId = mrkData.data.advWMapDoorMarker
+            if doorTemplateId then
+                advWMapIntegration.registerTargetCells(doorTemplateId, objData.targetCells or {})
+            end
+        end
+    end
 
     this.initialized = true
     return this.initialized
@@ -235,6 +258,7 @@ function this.addMarker(params)
 
     local createProximityMarkers = proximityTool and config.data.tracking.proximityMarkers.enabled and config.data.tracking.proximityMarkers.details.markers
     local createHUDMarkers = proximityTool and config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers
+    local createAdvWMapMarkers = advWMap_tracking and config.data.tracking.advWMapMarkers.enabled and config.data.tracking.advWMapMarkers.details.markers
 
     if createProximityMarkers then
         objectMarkerData.localMarkerId = proximityTool.addRecord(markerRecordParams)
@@ -274,25 +298,21 @@ function this.addMarker(params)
 
     for _, data in pairs(positionData.positions or {}) do
 
-        if objectMarkerData.localMarkerId then
-
-            local rawData = data.rawData
-            if rawData then
-                if rawData.id then
-                    objects[rawData.id] = true
-                end
+        local rawData = data.rawData
+        if rawData then
+            if rawData.id then
+                objects[rawData.id] = true
             end
+        end
 
-            if markEntrances and data.position and not data.id then
-                table.insert(positionalMarkers.positions, {
-                    cell = {
-                        isExterior = data.id and false or true,
-                        id = data.id,
-                    },
-                    position = data.position,
-                })
-            end
-
+        if markEntrances and data.position and not data.id then
+            table.insert(positionalMarkers.positions, {
+                cell = {
+                    isExterior = data.id and false or true,
+                    id = data.id,
+                },
+                position = data.position,
+            })
         end
 
         if data.id ~= nil then
@@ -303,7 +323,7 @@ function this.addMarker(params)
                 if markEntrances then
                     local exitPositions = data.entrances
 
-                    if exitPositions and objectMarkerData.localDoorMarkerId then
+                    if exitPositions then
 
                         for _, posData in pairs(exitPositions) do
                             ---@type proximityTool.positionData
@@ -383,6 +403,143 @@ function this.addMarker(params)
     end
 
 
+    if createAdvWMapMarkers then
+        local color = util.color.rgb(objectTrackingData.color[1], objectTrackingData.color[2], objectTrackingData.color[3])
+        color = config.data.tracking.colored and color or config.data.ui.defaultColor
+        ---@type AdvWMap_tracking.TemplateData
+        local template = {
+            path = common.mapMarkerPath,
+            pathA = common.mapMarkerUpPath,
+            pathB = common.mapMarkerDownPath,
+            size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
+            anchor = util.vector2(0.5, 1),
+            color = color,
+            temp = false,
+            userData = userData,
+            onClick = common.advWMapMarkerCallback,
+            tText = {"@name@", qName, text}
+        }
+
+        local templId = advWMap_tracking.addTemplate(template)
+
+        if templId then
+            ---@type AdvWMap_tracking.Position[]?
+            local positions
+            local records
+            if next(listOfObjects) then
+                records = listOfObjects
+            end
+
+            if positionalMarkers.positions and next(positionalMarkers.positions) then
+                positions = {}
+
+                for _, posDt in pairs(positionalMarkers.positions) do
+                    table.insert(positions, {pos = posDt.position, id = posDt.cell.id})
+                end
+            end
+
+            ---@type AdvWMap_tracking.MarkerData
+            local marker = {
+                template = templId,
+                records = records,
+                positions = positions,
+                item = isItem and objectId or nil,
+                temp = false,
+                priority = 100 - (positions and #positions or 0),
+            }
+
+            local markerId = advWMap_tracking.addMarker(marker)
+
+            if markerId then
+                objectMarkerData.advWMapMarker = templId
+                objectMarkerData.advWMapMain = markerId
+                advWMapIntegration.setMarkerTemplateVisibility(templId, true)
+            end
+        end
+
+        do
+            local positions = {}
+            for _, dt in pairs(doorMarkers.positions or {}) do
+                local pos = dt.position
+                positions[string.format("%d_%d", pos.x / 1024, pos.y / 1024)] = {pos = pos}
+            end
+            for _, dt in pairs(positionalMarkers.positions or {}) do
+                local pos = dt.position
+                positions[string.format("%d_%d", pos.x / 1024, pos.y / 1024)] = {pos = pos}
+            end
+            positions = tableLib.values(positions)
+
+            if not next(positions) then goto tonext end
+
+            ---@type AdvWMap_tracking.TemplateData
+            local wTemplate = {
+                path = common.mapMarkerPath,
+                size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.wSize,
+                anchor = util.vector2(0.5, 1),
+                color = color,
+                temp = false,
+                userData = userData,
+                onClick = common.advWMapMarkerCallback,
+                tText = {"@name@", qName, text}
+            }
+
+            local wTemplId = advWMap_tracking.addTemplate(wTemplate)
+
+            if wTemplId then
+                ---@type AdvWMap_tracking.MarkerData
+                local marker = {
+                    template = wTemplate,
+                    positions = positions,
+                    zoomOut = true,
+                    temp = false,
+                }
+
+                local markerId = advWMap_tracking.addMarker(marker)
+
+                if markerId then
+                    objectMarkerData.advWMapWorldMarker = wTemplId
+                    advWMapIntegration.setMarkerTemplateVisibility(wTemplId, true)
+                end
+            end
+
+            ::tonext::
+        end
+
+        local doorPoss = {}
+        local doorCnt = 0
+        for _, dt in pairs(doorMarkers.positions or {}) do
+            table.insert(doorPoss, {pos = dt.position, id = dt.cell.id})
+            doorCnt = doorCnt + 1
+        end
+
+        ---@type AdvWMap_tracking.TemplateData
+        local dTemplate = {
+            path = common.mapMarkerPath,
+            layer = "nonInteractive",
+            size = util.vector2(1, 1) * (config.data.tracking.advWMapMarkers.size * 0.8),
+            anchor = util.vector2(0.5, 1),
+            color = color,
+            temp = false,
+            userData = {
+                priority = 100 - doorCnt,
+                diaId = params.questId,
+                index = params.questStage,
+                objtId = objectId,
+                objName = params.objectName,
+                color = color
+            },
+        }
+
+        local dTemplId = advWMap_tracking.addTemplate(dTemplate)
+        if dTemplId then
+            advWMapIntegration.registerTargetCells(dTemplId, objectTrackingData.targetCells or {})
+            objectMarkerData.advWMapDoorMarker = dTemplId
+            advWMapIntegration.setMarkerTemplateVisibility(dTemplId, true)
+        end
+
+    end
+
+
     this.markerByObjectId[objectId] = objectTrackingData
 
     qTrackingInfo.objects[objectId] = listOfObjects
@@ -403,6 +560,9 @@ function this.addMarker(params)
     end
 
     this.updateMarkers()
+    if advWMap_tracking then
+        advWMapIntegration.updateCellMarkers()
+    end
 
     playerRef:sendEvent("QGL:journalMenuUpdateTrackedButtonVisibility")
 
@@ -502,6 +662,15 @@ function this.setDisableMarkerState(params)
         end
         if markerData.hudMarker and proximityTool then
             proximityTool.setHUDMvisibility(markerData.hudMarker, not disabledState)
+        end
+        if markerData.advWMapDoorMarker and advWMap_tracking then
+            advWMapIntegration.setMarkerTemplateVisibility(markerData.advWMapDoorMarker, not disabledState)
+        end
+        if markerData.advWMapMarker and advWMap_tracking then
+            advWMapIntegration.setMarkerTemplateVisibility(markerData.advWMapMarker, not disabledState)
+        end
+        if markerData.advWMapWorldMarker and advWMap_tracking then
+            advWMapIntegration.setMarkerTemplateVisibility(markerData.advWMapWorldMarker, not disabledState)
         end
     end
 
@@ -704,12 +873,16 @@ end
 local function removeMarker(params)
     local recordIdsToRemove = {}
     local hudmMarkersToRemove = {}
+    local advWMapMarkersToRemove = {}
 
     ---@param rec questGuider.tracking.markerRecord
     local function addToRemove(rec)
         recordIdsToRemove[rec.localDoorMarkerId or ""] = true
         recordIdsToRemove[rec.localMarkerId or ""] = true
         hudmMarkersToRemove[rec.hudMarker or ""] = true
+        advWMapMarkersToRemove[rec.advWMapDoorMarker or ""] = true
+        advWMapMarkersToRemove[rec.advWMapMarker or ""] = true
+        advWMapMarkersToRemove[rec.advWMapWorldMarker or ""] = true
     end
 
     for objId, objData in pairs(this.markerByObjectId) do
@@ -718,6 +891,9 @@ local function removeMarker(params)
         for qId, markerData in pairs(objData.markers) do
             if params.questId and qId ~= params.questId then goto continue end
 
+            if markerData.data.advWMapDoorMarker then
+                advWMapIntegration.unregisterTargetCells(markerData.data.advWMapDoorMarker, objData.targetCells or {})
+            end
             addToRemove(markerData.data)
             objData.markers[qId] = nil
 
@@ -761,6 +937,15 @@ local function removeMarker(params)
         hudmMarkersToRemove[""] = nil
         for id, _ in pairs(hudmMarkersToRemove) do
             proximityTool.removeHUDM(id)
+            removed = true
+        end
+    end
+
+    if advWMap_tracking then
+        advWMapMarkersToRemove[""] = nil
+        for id, _ in pairs(advWMapMarkersToRemove) do
+            advWMapIntegration.unregisterTemplate(id)
+            advWMap_tracking.removeTemplate(id)
             removed = true
         end
     end
@@ -979,7 +1164,7 @@ end
 
 
 function this.createMarkersForExteriorDoor(ref)
-    if not this.initialized or not proximityTool then return end
+    if not ref.enabled or not this.initialized or not proximityTool then return end
     if not (config.data.tracking.hudMarkers.enabled and config.data.tracking.hudMarkers.details.markers) then
         return
     end
@@ -1204,6 +1389,7 @@ function this.setMarkersVisibility(params)
     this.updateTemporaryMarkers()
 
     if params.includeQuestGivers then
+        advWMapIntegration.setGiverMarkersVisibility(not this.storageData.hideAllMarkers)
         core.sendGlobalEvent("QGL:updateQuestGiverMarkers")
     end
 

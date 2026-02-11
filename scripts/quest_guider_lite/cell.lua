@@ -61,9 +61,10 @@ end
 
 ---@param node tes3travelDestinationNode
 ---@param cells table<string, {cell : tes3cell, depth : integer}>? by editor name
+---@param mDepth number? max depth for search, default 20
 ---@return table<string, {cell : tes3cell, depth : integer}>?
 ---@return boolean? hasExitToExterior
-function this.findReachableCellsByNode(node, cells, depth)
+function this.findReachableCellsByNode(node, cells, depth, mDepth)
     if not node.cell then return end
     if not cells then cells = {} end
     if not depth then depth = 1 end
@@ -71,7 +72,7 @@ function this.findReachableCellsByNode(node, cells, depth)
     local hasExitToExterior = node.cell.isExterior
 
     local cellData = cells[node.cell.id]
-    if (cellData and cellData.depth <= depth) or depth > maxDepth then
+    if (cellData and cellData.depth <= depth) or depth > (mDepth or maxDepth) then
         return cells, false
     end
 
@@ -96,7 +97,9 @@ function this.findReachableCellsByNode(node, cells, depth)
         if destCell.isExterior then
             hasExitToExterior = true
         else
-            local cls, hasExit = this.findReachableCellsByNode({cell = destCell, cellData = tes3.getCellData(destCell), marker = {position = destPos}}, cells, depth + 1)
+            local cls, hasExit = this.findReachableCellsByNode(
+                {cell = destCell, cellData = tes3.getCellData(destCell), marker = {position = destPos}}, cells, depth + 1, mDepth
+            )
             hasExitToExterior = hasExitToExterior or hasExit
         end
 

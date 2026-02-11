@@ -26,6 +26,8 @@ this.elementMetatableTypes = {
 this.dataStorageName = "QuestGuider:dataStorage"
 this.localDataName = "QuestGuider:playerData"
 
+this.advWMapWidgetId = "QuestGuider:Widget"
+
 this.journalMenuTriggerId = "QGL:journal.menuKey"
 this.toggleMarkersTriggerId = "QGL:markers.toggleVisibility"
 
@@ -63,7 +65,11 @@ end)
 
 this.playerQuestDataLabel = "playerQuests"
 this.killCounterDataLabel = "killCounter"
+this.trackingDataLabel = "tracking"
+this.aWMIntegrationDataLabel = "advWMapIntegration"
 
+this.advWMapMarkerCallback = "QGL:advWMapMarkerCallback"
+this.advWMapGiverCallback = "QGL:advWMapGiverCallback"
 
 this.hudMarkerPath = "textures/icons/quest_guider/HUDMarker.dds"
 this.hudQuestionMarkPath = "textures/icons/quest_guider/HUDQuestionMark.dds"
@@ -72,7 +78,13 @@ this.exclamationMarkPath = "textures/icons/quest_guider/exclamationMark.dds"
 this.doorMarkPath = "textures/icons/quest_guider/toDoorIcon.dds"
 this.doorExclMarkPath = "textures/icons/quest_guider/doorExclIcon.dds"
 this.mapMarkerPath = "textures/icons/quest_guider/mapMarker.dds"
+this.mapMarkerUpPath = "textures/icons/quest_guider/mapMarkerUp.dds"
+this.mapMarkerDownPath = "textures/icons/quest_guider/mapMarkerDown.dds"
 this.playerMapMarkerPath = "textures/icons/quest_guider/playerMapMarker.dds"
+this.mapGiverMarkerPath = "textures/icons/quest_guider/exclamationMarkM.dds"
+this.mapGiverMarkerUpPath = "textures/icons/quest_guider/exclamationMarkUpM.dds"
+this.mapGiverMarkerDownPath = "textures/icons/quest_guider/exclamationMarkDownM.dds"
+this.mapWidgetIcoPath = "textures/icons/quest_guider/mapWidgetIco.png"
 
 this.questGiverGroup = "~__QGL:GIVER__"
 

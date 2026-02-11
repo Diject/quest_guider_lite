@@ -554,10 +554,22 @@ local dataFuncs = {
 
     [reqTypes.requirementType.CustomDialogue] = function (req)
         if not req.variable then return end
+        if core.API_REVISION < 93 then return operator.check(true, true, req.operator) end
+
         local dialogueId = stringLib.convertDialogueName(req.variable)
         if playerQuests.getTopicData(dialogueId) then
             return operator.check(true, true, req.operator)
+        else
+            for topicName, data in pairs(playerQuests.getTopicList() or {}) do
+                for _, entry in pairs(data.entries) do
+                    local text = stringLib.utf8_lower(entry.text or "")
+                    if text:find(dialogueId) then
+                        return operator.check(true, true, req.operator)
+                    end
+                end
+            end
         end
+
         return operator.check(false, true, req.operator)
     end,
 }
