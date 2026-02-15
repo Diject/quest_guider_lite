@@ -127,14 +127,13 @@ end
 
 local function inputKey(args)
     local data = {
-        renderer = "inputBinding",
+        renderer = "DijectKeyBindings:inputBinding",
         key = args.key,
         name = args.name,
         description = args.description,
         default = args.default,
         argument = {
-            key = args.argKey,
-            type = args.argType
+            action = args.action
         }
     }
     return data
@@ -155,32 +154,54 @@ local function color(args)
 end
 
 
-input.registerTrigger {
-    key = commonData.journalMenuTriggerId,
-    l10n = commonData.l10nKey,
-}
-
--- f this
+-- This code registers key bindings. It also contains some code to migrate old keybindings to the new system.
 local res, err = pcall(function()
-    local bindingSection = storage.playerSection('OMWInputBindings')
-    if bindingSection:get(config.default.journal.menuKey) == nil then
-        bindingSection:set(config.default.journal.menuKey, {
-            device = "keyboard",
-            button = input.KEY[config.default.journal.menuKey],
-            type = "trigger",
-            key = commonData.journalMenuTriggerId,
-        })
+    local bindingSection = storage.playerSection("OMWInputBindings")
+
+    local inputModSettings = storage.playerSection(commonData.configInputSectionName)
+
+    local mainModSettings = storage.playerSection(commonData.configJournalSectionName)
+    local journalMenuKey = mainModSettings:get("journal.menuKey")
+    print(journalMenuKey)
+    if journalMenuKey ~= nil then
+        local journalMenuKeyBind = bindingSection:get(journalMenuKey)
+        if journalMenuKeyBind and journalMenuKeyBind.key == commonData.journalMenuTriggerId then
+            bindingSection:set(journalMenuKey, nil)
+            I.DijectKeyBindings.registerKey(commonData.journalMenuTriggerId, journalMenuKey)
+        end
     end
+
+    local trackingModSettings = storage.playerSection(commonData.configTrackingSectionName)
+    local toggleTrackingKey = trackingModSettings:get("tracking.toggleVisibilityKey")
+    if toggleTrackingKey ~= nil then
+        local journalMenuKeyBind = bindingSection:get(toggleTrackingKey)
+        if journalMenuKeyBind and journalMenuKeyBind.key == commonData.toggleMarkersTriggerId then
+            bindingSection:set(toggleTrackingKey, nil)
+            I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, toggleTrackingKey)
+            inputModSettings:set("input.keys.toggleMarkersVisibility", toggleTrackingKey)
+            trackingModSettings:set("tracking.toggleVisibilityKey", nil)
+        end
+    end
+
+    local initialized = inputModSettings:get("input.initialized")
+    if  initialized then return end
+
+    I.DijectKeyBindings.registerKey(commonData.nextQuestTriggerId, config.default.input.keys.nextQuest)
+    I.DijectKeyBindings.registerKey(commonData.previousQuestTriggerId, config.default.input.keys.previousQuest)
+    I.DijectKeyBindings.registerKey(commonData.toggleTrackObjectsTriggerId, config.default.input.keys.toggleTrackObjects)
+    I.DijectKeyBindings.registerKey(commonData.trackObjectsTriggerId, config.default.input.keys.trackObjects)
+    I.DijectKeyBindings.registerKey(commonData.untrackObjectsTriggerId, config.default.input.keys.untrackObjects)
+    I.DijectKeyBindings.registerKey(commonData.toggleTopTopicsTriggerId, config.default.input.keys.toggleTopTopics)
+
+    if not journalMenuKey then
+        I.DijectKeyBindings.registerKey(commonData.journalMenuTriggerId, config.default.journal.menuKey)
+    end
+
+    inputModSettings:set("input.initialized", true)
 end)
 if not res then
     print(err)
 end
-
-
-input.registerTrigger {
-    key = commonData.toggleMarkersTriggerId,
-    l10n = commonData.l10nKey,
-}
 
 
 I.Settings.registerGroup{
@@ -191,7 +212,7 @@ I.Settings.registerGroup{
     permanentStorage = true,
     order = 0,
     settings = {
-        inputKey{key = "journal.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", argType = "trigger", argKey = commonData.journalMenuTriggerId, default = config.default.journal.menuKey},
+        inputKey{key = "journal.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", action = commonData.journalMenuTriggerId, default = config.default.journal.menuKey},
         boolSetting{key = "journal.overrideJournal", name = "overrideJournal", description = "overrideJournalDescription", default = config.default.journal.overrideJournal},
         numberSetting{key = "journal.widthProportional", name = "width", description = "widthDescription", integer = true, min = 30, max = 100, default = config.default.journal.widthProportional},
         numberSetting{key = "journal.heightProportional", name = "height", description = "heightDescription", integer = true, min = 20, max = 100, default = config.default.journal.heightProportional},
@@ -253,9 +274,29 @@ I.Settings.registerGroup{
         },
         numberSetting{key = "tracking.advWMapMarkers.size", name = "advWMapMarkerSize", description = "advWMapMarkerSizeDescription", integer = true, min = 1, default = config.default.tracking.advWMapMarkers.size},
         numberSetting{key = "tracking.advWMapMarkers.wSize", name = "advWMapMarkerSizeOnWorldMap", description = "advWMapMarkerSizeOnWorldMapDescription", integer = true, min = 1, default = config.default.tracking.advWMapMarkers.wSize},
-        inputKey{key = "tracking.toggleVisibilityKey", name = "markerVisibilityKey", description = "markerVisibilityKeyDescription", argType = "trigger", argKey = commonData.toggleMarkersTriggerId, default = config.default.tracking.toggleVisibilityKey},
         boolSetting{key = "tracking.toggleVisibilityByJournalKey", name = "enableShiftJournalMarkersToggle", description = "enableShiftJournalMarkersToggleDescription", default = config.default.tracking.toggleVisibilityByJournalKey},
     },
+}
+
+
+I.Settings.registerGroup{
+    key = commonData.configInputSectionName,
+    page = commonData.settingPage,
+    l10n = commonData.l10nKey,
+    name = "InputSettings",
+    description = "InputSettingsDescription",
+    permanentStorage = true,
+    order = 2,
+    settings = {
+        inputKey{key = "input.keys.toggleMarkersVisibility", name = "markerVisibilityKey", description = "markerVisibilityKeyDescription", action = commonData.toggleMarkersTriggerId, default = config.default.input.keys.toggleMarkersVisibility},
+        boolSetting{key = "input.gamepadJournalScroll", name = "gamepadJournalScroll", description = "gamepadJournalScrollDescription", default = config.default.input.gamepadJournalScroll},
+        inputKey{key = "input.keys.previousQuest", name = "previousQuestKey", description = "previousQuestKeyDescription", action = commonData.previousQuestTriggerId, default = config.default.input.keys.previousQuest},
+        inputKey{key = "input.keys.nextQuest", name = "nextQuestKey", description = "nextQuestKeyDescription", action = commonData.nextQuestTriggerId, default = config.default.input.keys.nextQuest},
+        inputKey{key = "input.keys.toggleTrackObjects", name = "toggleTrackObjectsKey", description = "toggleTrackObjectsKeyDescription", action = commonData.toggleTrackObjectsTriggerId, default = config.default.input.keys.toggleTrackObjects},
+        inputKey{key = "input.keys.trackObjects", name = "trackObjectsKey", description = "trackObjectsKeyDescription", action = commonData.trackObjectsTriggerId, default = config.default.input.keys.trackObjects},
+        inputKey{key = "input.keys.untrackObjects", name = "untrackObjectsKey", description = "untrackObjectsKeyDescription", action = commonData.untrackObjectsTriggerId, default = config.default.input.keys.untrackObjects},
+        inputKey{key = "input.keys.toggleTopTopics", name = "toggleTopTopicsKey", description = "toggleTopTopicsKeyDescription", action = commonData.toggleTopTopicsTriggerId, default = config.default.input.keys.toggleTopTopics},
+    }
 }
 
 
@@ -265,7 +306,7 @@ I.Settings.registerGroup{
     l10n = commonData.l10nKey,
     name = "UI",
     permanentStorage = true,
-    order = 2,
+    order = 3,
     settings = {
         numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
         color{key = "ui.defaultColor", name = "textColor", description = "textColorSettingDescription", default = config.default.ui.defaultColor},

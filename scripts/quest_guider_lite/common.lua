@@ -16,6 +16,7 @@ this.configUISectionName = "Settings:QGL:UI"
 this.configQuestDataSectionName = "Settings:QGL:QuestData"
 this.configTrackingSectionName = "Settings:QGL:Tracking"
 this.settingStorageToRemoveId = "Settings:QGL:ToRemove"
+this.configInputSectionName = "Settings:QGL:Input"
 
 this.miscPalyerStorage = "QuestGuider:MiscPlayerStorage"
 
@@ -30,6 +31,12 @@ this.advWMapWidgetId = "QuestGuider:Widget"
 
 this.journalMenuTriggerId = "QGL:journal.menuKey"
 this.toggleMarkersTriggerId = "QGL:markers.toggleVisibility"
+this.previousQuestTriggerId = "QGL:previousQuest"
+this.nextQuestTriggerId = "QGL:nextQuest"
+this.toggleTrackObjectsTriggerId = "QGL:toggleTrackObjects"
+this.trackObjectsTriggerId = "QGL:trackObjects"
+this.untrackObjectsTriggerId = "QGL:untrackObjects"
+this.toggleTopTopicsTriggerId = "QGL:toggleTopTopics"
 
 this.defaultColorData = {202/255, 165/255, 96/255}
 this.defaultColor = util.color.rgb(this.defaultColorData[1], this.defaultColorData[2], this.defaultColorData[3])

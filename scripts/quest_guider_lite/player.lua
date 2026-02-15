@@ -27,6 +27,7 @@ local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local dateLib = require("scripts.quest_guider_lite.utils.date")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
+local menuMode = require("scripts.quest_guider_lite.ui.menuMode")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
 local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
@@ -151,6 +152,21 @@ controllerScrollTimer.callback = function (axisVal)
 end
 
 
+local gamepadJournalScrollEnabled = false
+local function gamepadJournalScroll(lTr, rTr)
+    if not gamepadJournalScrollEnabled then return end
+    lTr = lTr < 0.5 and 0 or lTr
+    rTr = rTr < 0.5 and 0 or rTr
+
+    local menu = menuHandler.getMenu(commonData.journalMenuId)
+    if not menu then return end
+
+    menu:scrollQuestInfo(rTr - lTr)
+end
+
+controllerScrollTimer.triggerCallback = gamepadJournalScroll
+
+
 local function onMouseButtonRelease(buttonId)
     menuHandler.onMouseReleaseCallback(buttonId)
 end
@@ -260,7 +276,7 @@ local function toggleMenu()
 end
 
 
-input.registerTriggerHandler(commonData.journalMenuTriggerId, async:callback(function()
+I.DijectKeyBindings.action.register(commonData.journalMenuTriggerId, async:callback(function()
     if input.isCtrlPressed() and input.isShiftPressed() then
         menuHandler.destroyMenu(commonData.allQuestsMenuId)
         menuHandler.activateMenuMode()
@@ -340,7 +356,7 @@ local function giverMarkerClick(userData)
 end
 
 
-input.registerTriggerHandler(commonData.toggleMarkersTriggerId, async:callback(function()
+I.DijectKeyBindings.action.register(commonData.toggleMarkersTriggerId, async:callback(function()
     tracking.setMarkersVisibility{toggle = true, includeQuestGivers = true}
     if menuHandler.getMenu(commonData.journalMenuId) then
         menuHandler.getMenu(commonData.journalMenuId):updateMarkersDisabledMessage()
@@ -348,8 +364,14 @@ input.registerTriggerHandler(commonData.toggleMarkersTriggerId, async:callback(f
 end))
 
 
-local function onKeyRelease(key)
+local function onKeyPress(key)
     if key.code == input.KEY.Escape then
+        menuHandler.destroyAllMenus()
+    end
+end
+
+local function onControllerButtonPress(button)
+    if button == input.CONTROLLER_BUTTON.B then
         menuHandler.destroyAllMenus()
     end
 end
@@ -366,12 +388,69 @@ local function handleTracking()
 end
 
 
-menuHandler.onMenuModeActivated = function ()
+-- Input
+do
+    local function nextQ()
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if not mainMenu then return end
 
-end
+        mainMenu:selectNextPreviousQuestInList(1)
+    end
 
-menuHandler.onMenuModeDeactivated = function ()
+    local function prevQ()
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+            if not mainMenu then return end
 
+        mainMenu:selectNextPreviousQuestInList(-1)
+    end
+
+    local function toggleTrackObjects()
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleTrackObjects()
+    end
+
+    local function trackObjects()
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if not mainMenu then return end
+
+        mainMenu:trackObjects()
+    end
+
+    local function untrackObjects()
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if not mainMenu then return end
+
+        mainMenu:untrackObjects()
+    end
+
+    local function toggleTopTopics()
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleTopTopics()
+    end
+
+    menuHandler.onMenuModeActivated = function ()
+        I.DijectKeyBindings.action.register(commonData.nextQuestTriggerId, nextQ)
+        I.DijectKeyBindings.action.register(commonData.previousQuestTriggerId, prevQ)
+        I.DijectKeyBindings.action.register(commonData.trackObjectsTriggerId, trackObjects)
+        I.DijectKeyBindings.action.register(commonData.untrackObjectsTriggerId, untrackObjects)
+        I.DijectKeyBindings.action.register(commonData.toggleTrackObjectsTriggerId, toggleTrackObjects)
+        I.DijectKeyBindings.action.register(commonData.toggleTopTopicsTriggerId, toggleTopTopics)
+        gamepadJournalScrollEnabled = config.data.input.gamepadJournalScroll
+    end
+
+    menuHandler.onMenuModeDeactivated = function ()
+        I.DijectKeyBindings.action.unregister(commonData.nextQuestTriggerId, nextQ)
+        I.DijectKeyBindings.action.unregister(commonData.previousQuestTriggerId, prevQ)
+        I.DijectKeyBindings.action.unregister(commonData.trackObjectsTriggerId, trackObjects)
+        I.DijectKeyBindings.action.unregister(commonData.untrackObjectsTriggerId, untrackObjects)
+        I.DijectKeyBindings.action.unregister(commonData.toggleTrackObjectsTriggerId, toggleTrackObjects)
+        I.DijectKeyBindings.action.unregister(commonData.toggleTopTopicsTriggerId, toggleTopTopics)
+        gamepadJournalScrollEnabled = false
+    end
 end
 
 
@@ -410,7 +489,8 @@ return {
         onSave = onSave,
         onLoad = onLoad,
         onInit = onInit,
-        onKeyRelease = onKeyRelease,
+        onKeyPress = onKeyPress,
+        onControllerButtonPress = onControllerButtonPress,
         onFrame = function(dt)
             realTimer.updateTimers()
         end,

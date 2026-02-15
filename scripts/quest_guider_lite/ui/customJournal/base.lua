@@ -912,6 +912,106 @@ local function create(params)
         onMouseWheelCallback(layout.content, vertical)
     end
 
+    meta.selectNextPreviousQuestInList = function (self, step)
+        local questList = self:getQuestList()
+        local selected = self:getQuestListSelectedFladValue()
+
+        local selectedIndex = nil
+        local sBoxMeta = questList.userData.scrollBoxMeta
+        local content = questList.userData.scrollBoxMeta:getContent()
+        if #content == 0 then return end
+
+        for i, elem in ipairs(content) do
+            if elem.name == selected then
+                selectedIndex = i
+                break
+            end
+        end
+
+        if not selectedIndex then selectedIndex = 0 end
+
+        local nextIndex = selectedIndex + step
+        if nextIndex > #content then return end
+        if nextIndex < 1 then return end
+
+        pcall(function()
+            local nextSelected = content[nextIndex]
+            if nextSelected and nextSelected.name then
+                self:selectQuest(nextSelected.name)
+
+                local scrollPos = sBoxMeta:getScrollPosition()
+                local scrollHeight = sBoxMeta.params.size.y
+                local elemHeight = (self.params.fontSize or 18)
+                local height = (nextIndex - 1) * elemHeight
+                if scrollPos > height then
+                    sBoxMeta:setScrollPosition(math.max(0, height))
+                elseif scrollPos + scrollHeight < (height + 2 * elemHeight) then
+                    sBoxMeta:setScrollPosition(height - scrollHeight + 2 * elemHeight)
+                end
+                self:update()
+            end
+        end)
+    end
+
+    meta:selectNextPreviousQuestInList(1)
+    meta:update()
+
+    meta.scrollQuestInfo = function (self, value)
+        local qInfoScrollBox = self:getQuestScrollBox()
+        if not qInfoScrollBox then return end
+
+        ---@type questGuider.ui.scrollBox
+        local sBoxMeta = qInfoScrollBox.userData.scrollBoxMeta
+        if not sBoxMeta then return end
+
+        sBoxMeta:setScrollPosition(sBoxMeta:getScrollPosition() + value * (self.params.fontSize or 18) * 3)
+    end
+
+    meta.trackObjects = function (self)
+        local qInfoScrollBox = self:getQuestScrollBox()
+        if not qInfoScrollBox then return end
+
+        ---@type questGuider.ui.questBoxMeta
+        local qBoxMeta = qInfoScrollBox.userData.questBoxMeta
+        if not qBoxMeta or not qBoxMeta.trackObjectsFunc then return end
+
+        qBoxMeta.trackObjectsFunc()
+    end
+
+    meta.untrackObjects = function (self)
+        local qInfoScrollBox = self:getQuestScrollBox()
+        if not qInfoScrollBox then return end
+
+        ---@type questGuider.ui.questBoxMeta
+        local qBoxMeta = qInfoScrollBox.userData.questBoxMeta
+        if not qBoxMeta or not qBoxMeta.untrackObjectsFunc then return end
+
+        qBoxMeta.untrackObjectsFunc()
+    end
+
+    meta.toggleTrackObjects = function (self)
+        local qInfoScrollBox = self:getQuestScrollBox()
+        if not qInfoScrollBox then return end
+
+        ---@type questGuider.ui.questBoxMeta
+        local qBoxMeta = qInfoScrollBox.userData.questBoxMeta
+        if not qBoxMeta or not qBoxMeta.toggleTrackObjectsFunc then return end
+
+        qBoxMeta.toggleTrackObjectsFunc()
+    end
+
+    meta.toggleTopTopics = function (self)
+        local qInfoScrollBox = self:getQuestScrollBox()
+        if not qInfoScrollBox then return end
+
+        ---@type questGuider.ui.questBoxMeta
+        local qBoxMeta = qInfoScrollBox.userData.questBoxMeta
+        if not qBoxMeta or not qBoxMeta.toggleTopTopicsFunc then return end
+
+        qBoxMeta.toggleTopTopicsFunc()
+    end
+
+
     return meta
 end
 

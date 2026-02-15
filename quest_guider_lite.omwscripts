@@ -1,3 +1,6 @@
+MENU: scripts/quest_guider_lite/input/bindingRenderer.lua
+PLAYER: scripts/quest_guider_lite/input/keyBindingInterface.lua
+
 GLOBAL: scripts/quest_guider_lite/main.lua
 PLAYER: scripts/quest_guider_lite/player.lua
 MENU: scripts/quest_guider_lite/ui/renderers/checkBoxes.lua

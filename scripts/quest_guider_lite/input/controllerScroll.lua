@@ -8,11 +8,21 @@ this.timer = nil
 
 
 this.callback = nil
+this.triggerCallback = nil
 
 
 local function callback()
-    local rAxisY = input.getAxisValue(input.CONTROLLER_AXIS.RightY)
-    if this.callback then this.callback(rAxisY) end
+    if this.callback then
+        local rAxisY = input.getAxisValue(input.CONTROLLER_AXIS.RightY)
+        this.callback(rAxisY)
+    end
+
+    if this.triggerCallback then
+        local rTrigger = input.getAxisValue(input.CONTROLLER_AXIS.TriggerRight)
+        local lTrigger = input.getAxisValue(input.CONTROLLER_AXIS.TriggerLeft)
+        this.triggerCallback(lTrigger, rTrigger)
+    end
+
     this.timer = realTimer.newTimer(0.2, callback)
 end
 

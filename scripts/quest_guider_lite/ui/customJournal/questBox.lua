@@ -38,6 +38,11 @@ questBoxMeta.__index = questBoxMeta
 ---@type table<string, {diaId : string, index : integer, contentIndex : integer}>
 questBoxMeta.dialogueInfo = {}
 
+questBoxMeta.trackObjectsFunc = nil
+questBoxMeta.untrackObjectsFunc = nil
+questBoxMeta.toggleTrackObjectsFunc = nil
+questBoxMeta.toggleTopTopicsFunc = nil
+
 function questBoxMeta.getScrollBox(self)
     return self:getLayout()
 end
@@ -61,12 +66,9 @@ end
 
 function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     self:getButtonFlex().content = ui.content{}
-    self:getButtonFlex().content:add(button{
-        text = l10n("trackObjects"),
-        textSize = self.params.fontSize * 0.8,
-        visible = tracking.initialized and not self.params.isQuestList,
-        parentScrollBoxUserData = self:getScrollBox().userData,
-        event = function (layout)
+
+    if tracking.initialized and not self.params.isQuestList then
+        self.trackObjectsFunc = function ()
             self:addTrackButtons(true)
 
             for _, info in pairs(self.questInfo) do
@@ -76,16 +78,64 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             async:newUnsavableSimulationTimer(0.1, function ()
                 tracking.updateTemporaryMarkers()
             end)
-        end,
+        end
+    else
+        self.trackObjectsFunc = nil
+    end
+
+    self:getButtonFlex().content:add(button{
+        text = l10n("trackObjects"),
+        textSize = self.params.fontSize * 0.8,
+        visible = tracking.initialized and not self.params.isQuestList,
+        parentScrollBoxUserData = self:getScrollBox().userData,
+        event = self.trackObjectsFunc,
         updateFunc = function ()
             self.params.updateFunc()
         end
     })
 
+
     local hasTracked = showRemoveBtn
     for _, info in pairs(self.dialogueInfo) do
         hasTracked = hasTracked or tracking.isDialogueHasTracked{diaId = info.diaId}
         if hasTracked then break end
+    end
+
+    if hasTracked then
+        self.untrackObjectsFunc = function ()
+            for _, info in pairs(self.questInfo) do
+                tracking.removeMarker{
+                    questId = info.diaId,
+                    removeLinked = true
+                }
+                tracking.updateMarkers()
+                break
+            end
+            tracking.updateTemporaryMarkers()
+
+            self:addTrackButtons()
+            playerRef:sendEvent("QGL:updateQuestMenu", {})
+        end
+    else
+        self.untrackObjectsFunc = nil
+    end
+
+    self.toggleTrackObjectsFunc = function ()
+        local hasTracked = false
+            for _, info in pairs(self.dialogueInfo) do
+            hasTracked = hasTracked or tracking.isDialogueHasTracked{diaId = info.diaId}
+            if hasTracked then break end
+        end
+
+        if hasTracked then
+            if self.untrackObjectsFunc then
+                self.untrackObjectsFunc()
+            end
+        else
+            if self.trackObjectsFunc then
+                self.trackObjectsFunc()
+            end
+        end
     end
 
     if hasTracked then
@@ -95,20 +145,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             textSize = self.params.fontSize * 0.8,
             visible = tracking.initialized and not self.params.isQuestList,
             parentScrollBoxUserData = self:getScrollBox().userData,
-            event = function (layout)
-                for _, info in pairs(self.questInfo) do
-                    tracking.removeMarker{
-                        questId = info.diaId,
-                        removeLinked = true
-                    }
-                    tracking.updateMarkers()
-                    break
-                end
-                tracking.updateTemporaryMarkers()
-
-                self:addTrackButtons()
-                playerRef:sendEvent("QGL:updateQuestMenu", {})
-            end,
+            event = self.untrackObjectsFunc,
             updateFunc = function ()
                 self.params.updateFunc()
             end
@@ -246,6 +283,23 @@ function questBoxMeta._fillJournal(self, content, params)
             return withTopics
         end
 
+        local function toggleTopics()
+            changeEntryBlockText(true)
+            local sb = self:getScrollBoxMeta()
+            sb:calcContentHeight()
+            sb:updateContent()
+        end
+
+        if not self.toggleTopTopicsFunc then
+            self.toggleTopTopicsFunc = function ()
+                if not (tracking.initialized and not self.params.isQuestList and next(topicData)
+                        and config.data.journal.maxTopicEntriesInJournal > 0) then return end
+
+                toggleTopics()
+                self:update()
+            end
+         end
+
 
         element = {
             type = ui.TYPE.Flex,
@@ -303,10 +357,7 @@ function questBoxMeta._fillJournal(self, content, params)
                             anchor = util.vector2(1, 0.5),
                             parentScrollBoxUserData = self:getScrollBox().userData,
                             event = function (layout)
-                                changeEntryBlockText(true)
-                                local sb = self:getScrollBoxMeta()
-                                sb:calcContentHeight()
-                                sb:updateContent()
+                                toggleTopics()
                             end,
                             updateFunc = function ()
                                 self.params.updateFunc()

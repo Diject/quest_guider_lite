@@ -45,7 +45,7 @@ this.default = {
                 markers = true,
             }
         },
-        toggleVisibilityKey = "P",
+        toggleVisibilityKey = "P", -- deprecated
         toggleVisibilityByJournalKey = false,
     },
     journal = {
@@ -86,6 +86,19 @@ this.default = {
         objectColor = commonData.objectColor,
         scrollArrowSize = 16,
         headerBackgroundAlpha = 50,
+    },
+    input = {
+        gamepadJournalScroll = true,
+        keys = {
+            toggleMarkersVisibility = nil, -- global
+            nextQuest = "C_RightShoulder",
+            previousQuest = "C_LeftShoulder",
+            trackObjects = nil,
+            untrackObjects = nil,
+            toggleTrackObjects = "C_X",
+            toggleTopTopics = "C_Y",
+        },
+        initialized = false,
     },
 }
 

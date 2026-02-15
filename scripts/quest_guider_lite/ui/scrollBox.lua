@@ -23,6 +23,8 @@ local whiteTexture = ui.texture { path = "white" }
 local scrollBoxMeta = {}
 scrollBoxMeta.__index = scrollBoxMeta
 
+scrollBoxMeta._ignoreEvents = false
+
 scrollBoxMeta.getMainFlex = function (self)
     return self:getLayout().content[1]
 end
@@ -196,7 +198,9 @@ scrollBoxMeta.updateContent = function (self, force)
             if endPos >= height then
                 mainFlex.content:add(elem)
                 if elem.events and elem.events.focusLoss then
+                    self._ignoreEvents = true
                     elem.events.focusLoss(nil, elem)
+                    self._ignoreEvents = false
                 end
                 bottomFreeHeight = h
             else
@@ -237,6 +241,7 @@ scrollBoxMeta.mouseRelease = function (self, e)
 end
 
 scrollBoxMeta.focusLoss = function (self, e)
+    if self._ignoreEvents then return end
     local layout = self:getLayout()
     layout.userData.lastMousePos = nil
     layout.userData.inFocus = false
@@ -435,7 +440,6 @@ return function(params)
             inFocus = false,
             onMouseWheel = function (vertical)
                 if not contentData.userData.inFocus then return end
-
                 if vertical > 0 then
                     meta:scrollUp(config.data.journal.mouseScrollAmount)
                 elseif vertical < 0 then
