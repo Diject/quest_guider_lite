@@ -27,6 +27,8 @@ local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local dateLib = require("scripts.quest_guider_lite.utils.date")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 
+local menuHandler = require("scripts.quest_guider_lite.menuHandler")
+
 local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
 local advWMapIntegration = require("scripts.quest_guider_lite.map.advWMapIntegration")
 
@@ -44,9 +46,6 @@ local messageBox = require("scripts.quest_guider_lite.ui.messageBox")
 
 local l10n = core.l10n(commonData.l10nKey)
 
-
----@type table<string, questGuider.ui.customJournal|questGuider.ui.topicMenuMeta|questGuider.ui.trackingMenuMeta>
-local activeMenus = {}
 
 local questBoxUpdateQueue = {}
 local questBoxUpdateTimer = nil
@@ -138,11 +137,7 @@ end
 
 
 local function onMouseWheel(vertical)
-    for _, menu in pairs(activeMenus) do
-        if menu.onMouseWheel then
-            menu:onMouseWheel(vertical)
-        end
-    end
+    menuHandler.onMouseWheelCallback(vertical)
 end
 
 
@@ -157,11 +152,7 @@ end
 
 
 local function onMouseButtonRelease(buttonId)
-    for _, menu in pairs(activeMenus) do
-        if menu.onMouseClick then
-            menu:onMouseClick(buttonId)
-        end
-    end
+    menuHandler.onMouseReleaseCallback(buttonId)
 end
 
 
@@ -182,9 +173,9 @@ end
 ---@param params questGuider.main.fillQuestBoxQuestInfo.return
 local function fillQuestBoxQuestInfo(params)
     local func = function ()
-        if not activeMenus[params.menuId] then return end
+        if not menuHandler.getMenu(params.menuId) then return end
         ---@class questGuider.ui.questBoxMeta
-        local questBox = activeMenus[params.menuId]:getQuestScrollBox().userData.questBoxMeta
+        local questBox = menuHandler.getMenu(params.menuId):getQuestScrollBox().userData.questBoxMeta
 
         questBox.questInfo = params.data
         questBox:addTrackButtons()
@@ -211,7 +202,7 @@ local function fillQuestBoxQuestInfo(params)
                         scrollBox:updateContent()
                     end,
                     updateFunc = function ()
-                        activeMenus[params.menuId]:update()
+                        menuHandler.getMenu(params.menuId):update()
                     end,
                     thisElementInContent = function ()
                         return scrollBox:getContent()[contentIndex].content[#element.content]
@@ -225,7 +216,7 @@ local function fillQuestBoxQuestInfo(params)
         scrollBox:calcContentHeight()
         scrollBox:updateContent()
 
-        activeMenus[params.menuId]:update()
+        menuHandler.getMenu(params.menuId):update()
     end
 
     -- For safety, the menu is updated once per frame, since I had issues with updating in other places
@@ -237,76 +228,42 @@ end
 
 
 local function toggleMenu()
-    if activeMenus[commonData.journalMenuId] then
-        activeMenus[commonData.journalMenuId].menu:destroy()
-        activeMenus[commonData.journalMenuId] = nil
-        if not next(activeMenus) then
-            I.UI.removeMode("Journal")
-            controllerScrollTimer.stop()
-        end
+    if menuHandler.getMenu(commonData.journalMenuId) then
+        menuHandler.destroyMenu(commonData.journalMenuId)
     else
-        I.UI.setMode("Journal", { windows = {} })
-        activeMenus[commonData.journalMenuId] = createQuestMenu{
+        menuHandler.activateMenuMode()
+
+        menuHandler.registerMenu(commonData.journalMenuId, createQuestMenu{
             fontSize = config.data.ui.fontSize,
             sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
             relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
             createTopicMenuFunc = function ()
-                if activeMenus[commonData.topicsMenuId] then
-                    activeMenus[commonData.topicsMenuId].menu:destroy()
-                    activeMenus[commonData.topicsMenuId] = nil
-                end
+                menuHandler.destroyMenu(commonData.topicsMenuId)
 
-                activeMenus[commonData.topicsMenuId] = createTopicMenu{
+                menuHandler.registerMenu(commonData.topicsMenuId, createTopicMenu{
                     fontSize = config.data.ui.fontSize,
                     sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
                     relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
-                    onClose = function ()
-                        activeMenus[commonData.topicsMenuId] = nil
-                        if not next(activeMenus) then
-                            I.UI.removeMode("Journal")
-                            controllerScrollTimer.stop()
-                        end
-                    end
-                }
+                })
             end,
             createTrackingMenuFunc = function ()
-                if activeMenus[commonData.trackingMenuId] then
-                    activeMenus[commonData.trackingMenuId].menu:destroy()
-                    activeMenus[commonData.trackingMenuId] = nil
-                end
+                menuHandler.destroyMenu(commonData.trackingMenuId)
 
-                activeMenus[commonData.trackingMenuId] = createTrackingMenu{
+                menuHandler.registerMenu(commonData.trackingMenuId, createTrackingMenu{
                     fontSize = config.data.ui.fontSize,
                     sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
                     relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
-                    onClose = function ()
-                        activeMenus[commonData.trackingMenuId] = nil
-                        if not next(activeMenus) then
-                            I.UI.removeMode("Journal")
-                            controllerScrollTimer.stop()
-                        end
-                    end
-                }
+                })
             end,
-            onClose = function ()
-                activeMenus[commonData.journalMenuId] = nil
-                if not next(activeMenus) then
-                    I.UI.removeMode("Journal")
-                    controllerScrollTimer.stop()
-                end
-            end
-        }
+        })
     end
 end
 
 
 input.registerTriggerHandler(commonData.journalMenuTriggerId, async:callback(function()
     if input.isCtrlPressed() and input.isShiftPressed() then
-        if activeMenus[commonData.allQuestsMenuId] then
-            activeMenus[commonData.allQuestsMenuId].menu:destroy()
-            activeMenus[commonData.allQuestsMenuId] = nil
-        end
-        I.UI.setMode("Journal", { windows = {} })
+        menuHandler.destroyMenu(commonData.allQuestsMenuId)
+        menuHandler.activateMenuMode()
 
         local dialogues = {}
         for qName, dt in pairs(playerQuests.questData) do
@@ -315,7 +272,7 @@ input.registerTriggerHandler(commonData.journalMenuTriggerId, async:callback(fun
             end
         end
 
-        activeMenus[commonData.allQuestsMenuId] = createQuestMenu{
+        menuHandler.registerMenu(commonData.allQuestsMenuId, createQuestMenu{
             fontSize = config.data.ui.fontSize,
             sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
             relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
@@ -324,18 +281,11 @@ input.registerTriggerHandler(commonData.journalMenuTriggerId, async:callback(fun
             questList = dialogues,
             isQuestList = true,
             showReqsForAll = true,
-            onClose = function ()
-                activeMenus[commonData.allQuestsMenuId] = nil
-                if not next(activeMenus) then
-                    I.UI.removeMode("Journal")
-                    controllerScrollTimer.stop()
-                end
-            end
-        }
+        })
     elseif input.isShiftPressed() and config.data.tracking.toggleVisibilityByJournalKey then
         tracking.setMarkersVisibility{toggle = true, includeQuestGivers = true}
-        if activeMenus[commonData.journalMenuId] then
-            activeMenus[commonData.journalMenuId]:updateMarkersDisabledMessage()
+        if menuHandler.getMenu(commonData.journalMenuId) then
+            menuHandler.getMenu(commonData.journalMenuId):updateMarkersDisabledMessage()
         end
     else
         toggleMenu()
@@ -346,14 +296,7 @@ if config.data.journal.overrideJournal then
     I.UI.registerWindow("Journal",
         function() toggleMenu() end,
         function ()
-            if activeMenus[commonData.journalMenuId] then
-                local menu = activeMenus[commonData.journalMenuId].menu
-                if activeMenus[commonData.journalMenuId].params.onClose then
-                    activeMenus[commonData.journalMenuId].params.onClose()
-                end
-                menu:destroy()
-                activeMenus[commonData.journalMenuId] = nil
-            end
+            menuHandler.destroyMenu(commonData.journalMenuId)
         end)
 end
 
@@ -362,22 +305,15 @@ local function markerClick(userData)
     if not userData then return end
 
     if userData.type == "tracking" and userData.questName then ---@diagnostic disable-line: need-check-nil
-        if not activeMenus[commonData.journalMenuId] then
-            I.UI.setMode("Journal", { windows = {} })
-            activeMenus[commonData.journalMenuId] = createQuestMenu{
+        if not menuHandler.getMenu(commonData.journalMenuId) then
+            menuHandler.activateMenuMode()
+            menuHandler.registerMenu(commonData.journalMenuId, createQuestMenu{
                 fontSize = config.data.ui.fontSize,
                 sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
                 relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
-                onClose = function ()
-                    activeMenus[commonData.journalMenuId] = nil
-                    if not next(activeMenus) then
-                        I.UI.removeMode("Journal")
-                        controllerScrollTimer.stop()
-                    end
-                end
-            }
+            })
         end
-        activeMenus[commonData.journalMenuId]:selectQuest(userData.questName) ---@diagnostic disable-line: need-check-nil
+        menuHandler.getMenu(commonData.journalMenuId):selectQuest(userData.questName) ---@diagnostic disable-line: need-check-nil
     end
 end
 
@@ -388,12 +324,9 @@ local function giverMarkerClick(userData)
     end
 
     local objName = userData.objName or ""
-    if activeMenus[objName] then
-        activeMenus[objName].menu:destroy()
-        activeMenus[objName] = nil
-    end
+    menuHandler.destroyMenu(objName)
 
-    activeMenus[objName] = createQuestMenu{
+    menuHandler.registerMenu(objName, createQuestMenu{
         fontSize = config.data.ui.fontSize,
         sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
         relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
@@ -403,31 +336,21 @@ local function giverMarkerClick(userData)
         showReqsForAll = true,
         showOnlyFirst = true,
         hideStageText = true,
-        onClose = function ()
-            activeMenus[objName] = nil
-            if not next(activeMenus) then
-                I.UI.removeMode("Journal")
-                controllerScrollTimer.stop()
-            end
-        end
-    }
+    })
 end
 
 
 input.registerTriggerHandler(commonData.toggleMarkersTriggerId, async:callback(function()
     tracking.setMarkersVisibility{toggle = true, includeQuestGivers = true}
-    if activeMenus[commonData.journalMenuId] then
-        activeMenus[commonData.journalMenuId]:updateMarkersDisabledMessage()
+    if menuHandler.getMenu(commonData.journalMenuId) then
+        menuHandler.getMenu(commonData.journalMenuId):updateMarkersDisabledMessage()
     end
 end))
 
 
 local function onKeyRelease(key)
     if key.code == input.KEY.Escape then
-        for id, menuHandler in pairs(activeMenus) do
-            menuHandler.menu:destroy()
-            activeMenus[id] = nil
-        end
+        menuHandler.destroyAllMenus()
     end
 end
 
@@ -440,6 +363,15 @@ local function handleTracking()
     if updateMarkers then
         tracking.updateMarkers()
     end
+end
+
+
+menuHandler.onMenuModeActivated = function ()
+
+end
+
+menuHandler.onMenuModeDeactivated = function ()
+
 end
 
 
@@ -597,11 +529,12 @@ return {
         ["QGL:fillQuestBoxQuestInfo"] = fillQuestBoxQuestInfo,
 
         ["QGL:updateQuestMenu"] = function (data)
-            if not activeMenus[commonData.journalMenuId] then return end
+            local menu = menuHandler.getMenu(commonData.journalMenuId)
+            if not menu then return end
 
-            activeMenus[commonData.journalMenuId]:updateNextStageBlocks()
-            activeMenus[commonData.journalMenuId]:updateQuestListTrackedColors()
-            activeMenus[commonData.journalMenuId]:update()
+            menu:updateNextStageBlocks()
+            menu:updateQuestListTrackedColors()
+            menu:update()
         end,
 
         ["QGL:registerActorDeath"] = function (data)
@@ -662,7 +595,7 @@ return {
 
             if data.menuId then
                 ---@type questGuider.ui.trackingMenuMeta
-                local menu = activeMenus[data.menuId]
+                local menu = menuHandler.getMenu(data.menuId)
                 if not menu then return end
 
                 menu.positions = data.positions
@@ -680,20 +613,9 @@ return {
         end,
 
         ["QGL:showSimpleMap"] = function (data)
-            if activeMenus[commonData.simpleMapMenuId] then
-                activeMenus[commonData.simpleMapMenuId].menu:destroy()
-                activeMenus[commonData.simpleMapMenuId] = nil
-            end
+            menuHandler.destroyMenu(commonData.simpleMapMenuId)
 
-            local menu = simpleMap.new{
-                onClose = function ()
-                    activeMenus[commonData.simpleMapMenuId] = nil
-                    if not next(activeMenus) then
-                        I.UI.removeMode("Journal")
-                        controllerScrollTimer.stop()
-                    end
-                end
-            }
+            local menu = simpleMap.new{}
 
             if not menu then return end
 
@@ -703,20 +625,17 @@ return {
                 end
             end
 
-            activeMenus[commonData.simpleMapMenuId] = menu
+            menuHandler.registerMenu(commonData.simpleMapMenuId, menu)
         end,
 
         ["QGL:removeAllTrackedMessageBox"] = function ()
-            if activeMenus[commonData.messageBoxMenuId] then
-                activeMenus[commonData.messageBoxMenuId].menu:destroy()
-                activeMenus[commonData.messageBoxMenuId] = nil
-            end
+            menuHandler.destroyMenu(commonData.messageBoxMenuId)
 
-            activeMenus[commonData.messageBoxMenuId] = messageBox.newSimple{
+            menuHandler.registerMenu(commonData.messageBoxMenuId, messageBox.newSimple{
                 message = l10n("removeTrackingFromListedMessageBox"),
                 relativeSize = util.vector2(0.25, 0.2),
                 yesCallback = function ()
-                    local trackingMenuMeta = activeMenus[commonData.trackingMenuId]
+                    local trackingMenuMeta = menuHandler.getMenu(commonData.trackingMenuId)
                     if not trackingMenuMeta then return end
                     trackingMenuMeta:removeListed()
                     trackingMenuMeta:fillTrackingListContent()
@@ -724,22 +643,19 @@ return {
                     trackingMenuMeta:resetListSelection()
                     trackingMenuMeta:update()
                 end,
-                onClose = function ()
-                    activeMenus[commonData.messageBoxMenuId] = nil
-                end
-            }
+            })
         end,
 
         ["QGL:journalMenuSelectQuest"] = function (data)
             if not data or not data.qName then return end
-            local journalMenu = activeMenus[commonData.journalMenuId]
+            local journalMenu = menuHandler.getMenu(commonData.journalMenuId)
             if not journalMenu then return end
 
             journalMenu:selectQuest(data.qName)
         end,
 
         ["QGL:journalMenuUpdateTrackedButtonVisibility"] = function ()
-            local journalMenu = activeMenus[commonData.journalMenuId]
+            local journalMenu = menuHandler.getMenu(commonData.journalMenuId)
             if not journalMenu then return end
 
             if journalMenu:updateTrackedButtonVisibility() then

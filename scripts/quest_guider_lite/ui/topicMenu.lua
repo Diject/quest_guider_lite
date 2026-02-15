@@ -13,6 +13,7 @@ local commonData = require("scripts.quest_guider_lite.common")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
+local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
@@ -655,6 +656,13 @@ local function create(params)
 
     meta.params = params
 
+    function meta.close()
+        if params.onClose then params.onClose() end
+        if not meta.menu or not meta.menu.layout then return end
+        meta.menu:destroy()
+        menuHandler.unregisterMenu(params.menuId)
+    end
+
     meta.textFilter = ""
 
     meta.menuHistory = {}
@@ -757,8 +765,7 @@ local function create(params)
                 userData = {},
                 events = {
                     mouseRelease = async:callback(function(_, layout)
-                        if params.onClose then params.onClose() end
-                        meta.menu:destroy()
+                        meta:close()
                     end),
                 }
             },

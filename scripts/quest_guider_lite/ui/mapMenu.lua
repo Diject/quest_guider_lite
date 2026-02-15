@@ -9,6 +9,7 @@ local config = require("scripts.quest_guider_lite.configLib")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 
 local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
+local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
 local button = require("scripts.quest_guider_lite.ui.button")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -148,9 +149,10 @@ function this.new(params)
     end
 
     function meta:close()
-        if not self.menu then return end
         if params.onClose then params.onClose() end
+        if not self.menu or not self.menu.layout then return end
         self.menu:destroy()
+        menuHandler.unregisterMenu(params.menuId)
     end
 
     local headerSize = util.vector2(params.size.x, params.fontSize * 1.3)
@@ -222,8 +224,7 @@ function this.new(params)
                 userData = {},
                 events = {
                     mouseRelease = async:callback(function(_, layout)
-                        if params.onClose then params.onClose() end
-                        meta.menu:destroy()
+                        meta:close()
                     end),
                 }
             }

@@ -5,6 +5,9 @@ local core = require("openmw.core")
 
 local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
+local coommonData = require("scripts.quest_guider_lite.common")
+
+local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
 local config = require("scripts.quest_guider_lite.configLib")
 
@@ -18,6 +21,7 @@ local this = {}
 
 
 ---@class UI.messageBox.newSimple.params
+---@field menuId string?
 ---@field fontSize number?
 ---@field relativeSize {x : number, y : number}?
 ---@field size {x : number, y : number}?
@@ -47,6 +51,8 @@ function this.newSimple(params)
     end
     params.message = params.message or ""
 
+    params.menuId = params.menuId or coommonData.messageBoxMenuId
+
     ---@class UI.messageBox.simple.meta
     local meta = setmetatable({}, {})
 
@@ -57,8 +63,9 @@ function this.newSimple(params)
 
     function meta:close()
         if params.onClose then params.onClose() end
-        if not self.menu then return end
+        if not self.menu or not self.menu.layout then return end
         self.menu:destroy()
+        menuHandler.unregisterMenu(params.menuId)
     end
 
     local headerSize = util.vector2(params.size.x, params.fontSize)
