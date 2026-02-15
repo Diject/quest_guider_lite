@@ -1030,7 +1030,8 @@ function this.trackQuest(questId, index)
             index = index,
             finished = isFinished,
             shouldUpdate = shouldUpdate,
-            params = {findCompleted = false, findInLinked = true}
+            params = {findCompleted = false, findInLinked = true},
+            player = playerRef.object,
         })
     end
 end
@@ -1045,6 +1046,7 @@ function this.trackObject(params)
         diaId = params.diaId,
         objectId = params.objectId,
         index = params.index,
+        player = playerRef.object,
     })
 end
 
@@ -1088,6 +1090,7 @@ function this.addMarkersForInteriorCell(cell)
     core.sendGlobalEvent("QGL:addMarkersForInteriorCell", {
         cellId = cell.id,
         markerByObjectId = this.markerByObjectId,
+        player = playerRef.object,
     })
 end
 

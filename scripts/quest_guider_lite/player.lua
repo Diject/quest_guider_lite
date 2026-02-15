@@ -552,6 +552,7 @@ return {
                 record = recordId,
                 hudMarkerId = hudMarkerId,
                 inputData = data,
+                player = self.object,
             })
         end,
 

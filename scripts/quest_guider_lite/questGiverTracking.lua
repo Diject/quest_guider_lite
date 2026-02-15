@@ -29,8 +29,14 @@ this.trackedQuestGivers = {}
 this.scaledScreenSize = {x = 1920, y = 1080}
 
 
+local function sendPlayerEvent(event, data)
+    for _, pl in pairs(world.players) do
+        pl:sendEvent(event, data)
+    end
+end
 
-function this.registerTrackedQuestGiver(inputData, markerRecordId, hudMarkerId)
+
+function this.registerTrackedQuestGiver(inputData, markerRecordId, hudMarkerId, player)
     local objectRecordId = inputData.objectRecordId
     if not this.trackedQuestGivers[objectRecordId] then
         this.trackedQuestGivers[objectRecordId] = {refs = {}}
@@ -45,10 +51,10 @@ function this.registerTrackedQuestGiver(inputData, markerRecordId, hudMarkerId)
         local oldMarkerId = this.trackedQuestGivers[objectRecordId].markerId
         local oldHudMarkerId = this.trackedQuestGivers[objectRecordId].hudMarkerId
         if oldMarkerId and oldMarkerId ~= markerRecordId then
-            world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = oldMarkerId})
+            player:sendEvent("QGL:removeProximityRecord", {recordId = oldMarkerId})
         end
         if oldHudMarkerId and oldHudMarkerId ~= hudMarkerId then
-            world.players[1]:sendEvent("QGL:removeHUDMarker", {id = oldHudMarkerId})
+            player:sendEvent("QGL:removeHUDMarker", {id = oldHudMarkerId})
         end
 
         this.trackedQuestGivers[objectRecordId].markerId = markerRecordId
@@ -164,7 +170,7 @@ function this.createQuestGiverMarker(ref)
     end
     this.trackedQuestGivers[ref.recordId].refs[ref.id] = {ref = ref}
 
-    world.players[1]:sendEvent("QGL:addMarkerForQuestGivers", {
+    sendPlayerEvent("QGL:addMarkerForQuestGivers", {
         type = "object",
         questNames = questNames,
         recordData = recordData,
@@ -178,8 +184,8 @@ end
 function this.updateQuestGiverMarkers()
 
     for objId, markerData in pairs(this.trackedQuestGivers) do
-        world.players[1]:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
-        world.players[1]:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
+        sendPlayerEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
+        sendPlayerEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
         markerData.markerId = nil
         markerData.hudMarkerId = nil
 
@@ -188,8 +194,8 @@ function this.updateQuestGiverMarkers()
             if refDt.ref:isValid() then
                 found = true
                 if refDt.hudMarkerId or refDt.markerId then
-                    world.players[1]:sendEvent("QGL:updateHUDMarkerVisibility", {id = refDt.hudMarkerId})
-                    world.players[1]:sendEvent("QGL:updateProximityMarkerVisibility", {recordId = refDt.markerId})
+                    sendPlayerEvent("QGL:updateHUDMarkerVisibility", {id = refDt.hudMarkerId})
+                    sendPlayerEvent("QGL:updateProximityMarkerVisibility", {recordId = refDt.markerId})
                 else
                     this.createQuestGiverMarker(refDt.ref)
                 end
@@ -310,7 +316,7 @@ function this.createQuestGiverMarkerForDoor(ref)
     end
     this.trackedQuestGivers[ref.recordId].refs[ref.id] = {ref = ref}
 
-    world.players[1]:sendEvent("QGL:addMarkerForQuestGivers", {
+    sendPlayerEvent("QGL:addMarkerForQuestGivers", {
         type = "door",
         objectRecordId = ref.recordId,
         refId = ref.id,

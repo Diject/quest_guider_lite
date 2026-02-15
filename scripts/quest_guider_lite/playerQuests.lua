@@ -410,8 +410,8 @@ end
 
 ---@param diaId string
 ---@return integer|nil
-function this.getCurrentIndex(diaId)
-    local qData = playerFunc.quests(playerRef)[diaId]
+function this.getCurrentIndex(diaId, player)
+    local qData = playerFunc.quests(player or playerRef)[diaId]
     if not qData then return end
     return qData.stage
 end

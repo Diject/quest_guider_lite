@@ -65,7 +65,7 @@ local function onObjectActive(ref)
         end
         if types.Door.objectIsInstance(ref) and types.Door.isTeleport(ref) then
             if ref.cell.isExterior then
-                world.players[1]:sendEvent("QGL:createMarkersForDoor", ref)
+                sendPlayerEvent("QGL:createMarkersForDoor", ref)
             end
             if config.data.tracking.questGivers then
                 questGivers.createQuestGiverMarkerForDoor(ref)
@@ -155,7 +155,7 @@ local function genMapRegionNames()
 
     processLines(cellNameLines, 8192 * 6, 4096)
 
-    world.players[1]:sendEvent("QGL:updateCityInfo", cellNames)
+    sendPlayerEvent("QGL:updateCityInfo", cellNames)
 end
 
 genMapRegionNames()
@@ -168,7 +168,7 @@ local function objectInactive(ref)
 end
 
 
----@param params {diaId : string, diaIndex : number|string, objectId : string?, priority : number?}
+---@param params {diaId : string, diaIndex : number|string, objectId : string?, priority : number?, player : any}
 local function addMarkersForQuest(params)
 
     local questData = questLib.getQuestData(params.diaId)
@@ -201,7 +201,7 @@ local function addMarkersForQuest(params)
                         reqData = requirement,
                         priority = params.priority,
                     }
-                    world.players[1]:sendEvent("QGL:addMarker", eventParams)
+                    params.player:sendEvent("QGL:addMarker", eventParams)
 
                     objects[objId] = posData.name
                 end
@@ -217,8 +217,9 @@ local function addMarkersForQuest(params)
 end
 
 
----@param params {menuId : string, useCurrentIndex : boolean?, data: table<string, {diaId : string, index : integer, contentIndex : integer}>}
+---@param params {menuId : string, useCurrentIndex : boolean?, data: table<string, {diaId : string, index : integer, contentIndex : integer}>, player : any}
 local function fillQuestBoxQuestInfo(params)
+    local player = params.player or world.players[1]
     ---@type table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock>
     local out = {}
 
@@ -312,7 +313,7 @@ local function fillQuestBoxQuestInfo(params)
 
         if linkedIndexData then
             for dId, dt in pairs(linkedIndexData) do
-                local currentIndex = playerQuests.getCurrentIndex(dId)
+                local currentIndex = playerQuests.getCurrentIndex(dId, player)
                 if currentIndex and currentIndex >= dt.index then goto continue end
 
                 local linkedQuestData = questLib.getQuestData(dId)
@@ -365,7 +366,7 @@ local function fillQuestBoxQuestInfo(params)
     end
 
     for _, dt in pairs(objectPositions) do
-        cellLib.fillDistanceToPlayer(dt.positions, world.players[1])
+        cellLib.fillDistanceToPlayer(dt.positions, player)
 
         table.sort(dt.positions, function (a, b)
             return a.distanceToPlayer < b.distanceToPlayer
@@ -373,12 +374,12 @@ local function fillQuestBoxQuestInfo(params)
     end
 
     if next(out) then
-        world.players[1]:sendEvent("QGL:fillQuestBoxQuestInfo", {data = out, menuId = params.menuId})
+        player:sendEvent("QGL:fillQuestBoxQuestInfo", {data = out, menuId = params.menuId})
     end
 end
 
 
-local function showTrackingMessage(objects)
+local function showTrackingMessage(player, objects)
     if tableLib.size(objects) > 0 then
         local names = {}
         for id, name in pairs(objects) do
@@ -388,16 +389,16 @@ local function showTrackingMessage(objects)
         end
 
         if #names > 0 then
-                world.players[1]:sendEvent("QGL:showTrackingMessage", {message = stringLib.getValueEnumString(names, 3, l10n("startedTracking").." %s.")})
+                player:sendEvent("QGL:showTrackingMessage", {message = stringLib.getValueEnumString(names, 3, l10n("startedTracking").." %s.")})
         end
 
-        world.players[1]:sendEvent("QGL:updateMarkers", {})
+        player:sendEvent("QGL:updateMarkers", {})
     end
 end
 
 
-local function updateQuestMenu()
-    world.players[1]:sendEvent("QGL:updateQuestMenu", {})
+local function updateQuestMenu(player)
+    player:sendEvent("QGL:updateQuestMenu", {})
 end
 
 
@@ -444,13 +445,14 @@ return {
             dataHandler.load(data)
         end,
         ["QGL:trackQuest"] = function (data)
+            local player = data.player or world.players[1]
             local questNextIndexes, linkedIndexData = questLib.getNextIndexes(data.questId, data.questId, data.index, data.params)
 
             local objects = {}
 
             if questNextIndexes and not data.finished then
                 for _, indexStr in pairs(questNextIndexes) do
-                    local objs = addMarkersForQuest{diaId = data.questId, diaIndex = indexStr}
+                    local objs = addMarkersForQuest{diaId = data.questId, diaIndex = indexStr, player = player}
                     tableLib.copy(objs, objects)
                 end
                 data.shouldUpdate = true
@@ -463,10 +465,10 @@ return {
                         if #indexes <= 1 then goto continue end
                     end
 
-                    local currentIndex = playerQuests.getCurrentIndex(qId)
+                    local currentIndex = playerQuests.getCurrentIndex(qId, player)
                     if currentIndex and currentIndex >= dt.index then goto continue end
 
-                    local objs = addMarkersForQuest{diaId = qId, diaIndex = dt.index, priority = -100}
+                    local objs = addMarkersForQuest{diaId = qId, diaIndex = dt.index, priority = -100, player = player}
                     tableLib.copy(objs, objects)
 
                     ::continue::
@@ -475,30 +477,20 @@ return {
             end
 
             if next(objects) then
-                showTrackingMessage(objects)
+                showTrackingMessage(player, objects)
             end
-            updateQuestMenu()
+            updateQuestMenu(player)
         end,
 
         ["QGL:trackObject"] = function (data)
-            local objects = addMarkersForQuest{diaId = data.diaId, diaIndex = data.index, objectId = data.objectId}
-            showTrackingMessage(objects)
-            updateQuestMenu()
-        end,
-
-        ["QGL:drawQuestBlockInJournalMenu"] = function (data)
-            local questId = data.questId
-
-            local out = {}
-
-            out.questId = data.questId
-            out.questData = questLib.getQuestData(questId)
-            if not out.questData then return end
-
-            world.players[1]:sendEvent("QGL:drawQuestBlockInJournalMenu", out)
+            local player = data.player or world.players[1]
+            local objects = addMarkersForQuest{diaId = data.diaId, diaIndex = data.index, objectId = data.objectId, player = player}
+            showTrackingMessage(player, objects)
+            updateQuestMenu(player)
         end,
 
         ["QGL:getPositionsForTrackingMenu"] = function (data)
+            local player = data.player or world.players[1]
             local objIds = data.objectIds
 
             local positionsByObjectId = {}
@@ -506,7 +498,7 @@ return {
                 local positions = questLib.getPositions(id, {findLinks = true, includeLinks = true})
                 if not positions then goto continue end
 
-                cellLib.fillDistanceToPlayer(positions, world.players[1])
+                cellLib.fillDistanceToPlayer(positions, player)
 
                 table.sort(positions, function (a, b)
                     return a.distanceToPlayer < b.distanceToPlayer
@@ -519,13 +511,14 @@ return {
 
             local out = {positions = positionsByObjectId, menuId = data.menuId, advWMapMode = data.advWMapMode}
 
-            world.players[1]:sendEvent("QGL:getPositionsForTrackingMenu", out)
+            player:sendEvent("QGL:getPositionsForTrackingMenu", out)
         end,
 
         ["QGL:questGiverMarkerCallback"] = function (data)
+            local player = data.player or world.players[1]
             local recordId = data.record
             local hudMarkerId = data.hudMarkerId
-            questGivers.registerTrackedQuestGiver(data.inputData, recordId, hudMarkerId)
+            questGivers.registerTrackedQuestGiver(data.inputData, recordId, hudMarkerId, player)
         end,
 
         ["QGL:updateQuestGiverMarkers"] = function ()
@@ -533,7 +526,8 @@ return {
         end,
 
         ["QGL:addMarkersForInteriorCell"] = function (data)
-            trackingGlobal.addMarkersForInteriorCell(data.cellId, data.markerByObjectId)
+            local player = data.player or world.players[1]
+            trackingGlobal.addMarkersForInteriorCell(data.cellId, data.markerByObjectId, player)
         end,
 
         ["QGL:fillQuestBoxQuestInfo"] = function (data)
@@ -542,7 +536,7 @@ return {
 
         ["QGL:registerActorDeath"] = function (data)
             killCounter.registerKill(data.object)
-            world.players[1]:sendEvent("QGL:registerActorDeath", data)
+            sendPlayerEvent("QGL:registerActorDeath", data)
         end,
 
         ["QGL:updateKillCounter"] = function (data)

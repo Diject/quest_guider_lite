@@ -1488,6 +1488,7 @@ function this.createMenu(params)
     core.sendGlobalEvent("QGL:getPositionsForTrackingMenu", {
         objectIds = objectIds,
         menuId = meta.params.menuId,
+        player = playerRef.object,
     })
 
     return meta

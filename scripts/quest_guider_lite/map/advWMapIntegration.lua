@@ -3,6 +3,7 @@ local ui = require("openmw.ui")
 local util = require("openmw.util")
 local core = require("openmw.core")
 local types = require("openmw.types")
+local playerRef = require("openmw.self")
 
 local config = require("scripts.quest_guider_lite.config")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
@@ -495,6 +496,7 @@ function this.init()
             core.sendGlobalEvent("QGL:getPositionsForTrackingMenu", {
                 objectIds = objectIds,
                 advWMapMode = true,
+                player = playerRef.object,
             })
 
             content:add{

@@ -22,7 +22,7 @@ local this = {}
 
 ---@param cellId string
 ---@param markerByObjectId table<string, questGuider.tracking.objectRecord>
-function this.addMarkersForInteriorCell(cellId, markerByObjectId)
+function this.addMarkersForInteriorCell(cellId, markerByObjectId, player)
     if not cellId or not markerByObjectId then return end
 
     local cell = world.getCellById(cellId)
@@ -155,7 +155,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
         end
 
         for _, data in pairs(newMarkerData) do
-            world.players[1]:sendEvent("QGL:addMarkerForInteriorCellTracking", data)
+            player:sendEvent("QGL:addMarkerForInteriorCellTracking", data)
         end
 
         ::continue::

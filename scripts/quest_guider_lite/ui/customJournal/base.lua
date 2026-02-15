@@ -1,3 +1,4 @@
+local playerRef = require("openmw.self")
 local async = require('openmw.async')
 local ui = require('openmw.ui')
 local util = require('openmw.util')
@@ -173,6 +174,7 @@ journalMeta.selectQuest = function (self, qName)
         data = questBoxMeta.dialogueInfo,
         menuId = self.params.menuId,
         useCurrentIndex = self.params.isQuestList,
+        player = playerRef.object,
     })
 end
 
