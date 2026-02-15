@@ -8,6 +8,7 @@ local common = require("scripts.quest_guider_lite.common")
 
 local cellLib = require("scripts.quest_guider_lite.cell")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
+local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
 
 local l10n = require('openmw.core').l10n(common.l10nKey)
 
@@ -33,7 +34,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId)
     for _, doorRef in pairs(cell:getAll(types.Door)) do
         if types.Door.isTeleport(doorRef) and doorRef.enabled then
             ---@diagnostic disable-next-line: missing-fields
-            local reachableCells, hasExit = cellLib.findReachableCellsByNode({cell = types.Door.destCell(doorRef)}, {[cell.id] = {cell = cell, depth = 0}})
+            local reachableCells, hasExit = cellLib.findReachableCellsByNode({cell = protectedDoor.destCell(doorRef)}, {[cell.id] = {cell = cell, depth = 0}})
             reachableCells[cell.id] = nil
 
             doors[doorRef] = {cells = reachableCells, hasExit = hasExit, ref = doorRef}

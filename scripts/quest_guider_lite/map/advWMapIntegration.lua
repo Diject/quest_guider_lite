@@ -13,6 +13,7 @@ local dataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler
 local questBase = require("scripts.quest_guider_lite.questBase")
 local commonInfo = require("scripts.quest_guider_lite.common")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
+local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
 
 local trackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu")
 
@@ -572,7 +573,7 @@ function this.createDoorGiversMarker(doorRef, qNames)
     }
     if not markerId then return end
 
-    local hash = doorHash(doorRef, types.Door.destCell(doorRef).id)
+    local hash = doorHash(doorRef, protectedDoor.destCell(doorRef).id)
     this.doorGiversMarkers[hash] = {qNames = qNames, mId = markerId}
 end
 

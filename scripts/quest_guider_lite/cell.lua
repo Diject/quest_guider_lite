@@ -4,6 +4,7 @@ local util = require("openmw.util")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local utils = require("scripts.quest_guider_lite.utils.common")
 local tes3 = require("scripts.quest_guider_lite.core.tes3")
+local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
 
 local maxDepth = 20
 
@@ -31,8 +32,8 @@ function this.findExitPos(cell, path, checked, cellPath)
         local destCell
         local destPos
         pcall(function ()
-            destCell = types.Door.destCell(door)
-            destPos = types.Door.destPosition(door)
+            destCell = protectedDoor.destCell(door)
+            destPos = protectedDoor.destPosition(door)
         end)
 
         if not destCell or not destPos then goto continue end
@@ -89,8 +90,8 @@ function this.findReachableCellsByNode(node, cells, depth, mDepth)
     for _, door in pairs(node.cell:getAll(types.Door)) do
         if not types.Door.isTeleport(door) or not door.enabled then goto continue end
 
-        local destCell = types.Door.destCell(door)
-        local destPos = types.Door.destPosition(door)
+        local destCell = protectedDoor.destCell(door)
+        local destPos = protectedDoor.destPosition(door)
 
         if not destCell or not destPos then goto continue end
 
@@ -143,8 +144,8 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells, dep
     for _, door in pairs(cell:getAll(types.Door)) do
         if not types.Door.isTeleport(door) or not door.enabled then goto continue end
 
-        local destCell = types.Door.destCell(door)
-        local destPos = types.Door.destPosition(door)
+        local destCell = protectedDoor.destCell(door)
+        local destPos = protectedDoor.destPosition(door)
 
         if not destCell or not destPos then goto continue end
 
@@ -261,8 +262,8 @@ function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked, 
     for _, door in pairs(cell:getAll(types.Door)) do
         if not types.Door.isTeleport(door) or not door.enabled then goto continue end
 
-        local destCell = types.Door.destCell(door)
-        local destPos = types.Door.destPosition(door)
+        local destCell = protectedDoor.destCell(door)
+        local destPos = protectedDoor.destPosition(door)
         if not destCell or not destPos then goto continue end
 
         this.getInteriorCellApproxDistancesToPos(destCell, destPos, distance + (pos - door.position):length(), checked, tableLib.copy(namePath))

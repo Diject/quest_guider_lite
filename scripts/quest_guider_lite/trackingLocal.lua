@@ -11,6 +11,7 @@ local itemLib = require("scripts.quest_guider_lite.types.item")
 local colors = require("scripts.quest_guider_lite.types.gradient")
 local common = require("scripts.quest_guider_lite.common")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
+local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
 
 local storage = require("scripts.quest_guider_lite.storage.localStorage")
 
@@ -1172,7 +1173,7 @@ function this.createMarkersForExteriorDoor(ref)
     if not types.Door.objectIsInstance(ref) or not types.Door.isTeleport(ref) then
         return
     end
-    local destCell = types.Door.destCell(ref)
+    local destCell = protectedDoor.destCell(ref)
     if not destCell or destCell.isExterior then return end
 
     exteriorDoors[ref.id] = ref

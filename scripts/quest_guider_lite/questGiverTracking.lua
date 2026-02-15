@@ -3,6 +3,7 @@ local world = require('openmw.world')
 local util = require("openmw.util")
 
 local tes3 = require("scripts.quest_guider_lite.core.tes3")
+local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
 
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
@@ -207,7 +208,7 @@ end
 function this.createQuestGiverMarkerForDoor(ref)
     if not types.Door.isTeleport(ref) or not ref.enabled then return end
 
-    local destCell = types.Door.destCell(ref)
+    local destCell = protectedDoor.destCell(ref)
     if not destCell then return end
 
     local destCellData = tes3.getCellData(destCell)
