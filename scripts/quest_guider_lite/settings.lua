@@ -160,9 +160,12 @@ local res, err = pcall(function()
 
     local inputModSettings = storage.playerSection(commonData.configInputSectionName)
 
+    local initialized = inputModSettings:get("input.initialized")
+    if initialized then return end
+
     local mainModSettings = storage.playerSection(commonData.configJournalSectionName)
     local journalMenuKey = mainModSettings:get("journal.menuKey")
-    print(journalMenuKey)
+
     if journalMenuKey ~= nil then
         local journalMenuKeyBind = bindingSection:get(journalMenuKey)
         if journalMenuKeyBind and journalMenuKeyBind.key == commonData.journalMenuTriggerId then
@@ -183,8 +186,6 @@ local res, err = pcall(function()
         end
     end
 
-    local initialized = inputModSettings:get("input.initialized")
-    if  initialized then return end
 
     I.DijectKeyBindings.registerKey(commonData.nextQuestTriggerId, config.default.input.keys.nextQuest)
     I.DijectKeyBindings.registerKey(commonData.previousQuestTriggerId, config.default.input.keys.previousQuest)
