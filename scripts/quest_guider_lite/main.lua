@@ -61,14 +61,18 @@ local function onObjectActive(ref)
 
     async:newUnsavableSimulationTimer(0.2, function ()
         if (ref.type == types.NPC or ref.type == types.Creature) and config.data.tracking.questGivers then
-            questGivers.createQuestGiverMarker(ref)
+            for _, pl in pairs(world.players) do
+                questGivers.createQuestGiverMarker(ref, pl)
+            end
         end
         if types.Door.objectIsInstance(ref) and types.Door.isTeleport(ref) then
             if ref.cell.isExterior then
                 sendPlayerEvent("QGL:createMarkersForDoor", ref)
             end
             if config.data.tracking.questGivers then
-                questGivers.createQuestGiverMarkerForDoor(ref)
+                for _, pl in pairs(world.players) do
+                    questGivers.createQuestGiverMarkerForDoor(ref, pl)
+                end
             end
         end
     end)

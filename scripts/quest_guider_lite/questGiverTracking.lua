@@ -23,33 +23,32 @@ local l10n = require('openmw.core').l10n(commonInfo.l10nKey)
 local this = {}
 
 
----@type table<string, {type : string, markerId : string?, hudMarkerId : string?, refs : table<string, {ref : any, markerId : string?, hudMarkerId : string?}>?}>
+---@type table<string, {type : string, player : any, markerId : string?, hudMarkerId : string?, refs : table<string, {ref : any, markerId : string?, hudMarkerId : string?}>?}>
 this.trackedQuestGivers = {}
 
 this.scaledScreenSize = {x = 1920, y = 1080}
 
 
-local function sendPlayerEvent(event, data)
-    for _, pl in pairs(world.players) do
-        pl:sendEvent(event, data)
-    end
+
+local function getTrackedId(player, objRecordId)
+    return string.format("%s_%s", player.id, objRecordId)
 end
 
 
 function this.registerTrackedQuestGiver(inputData, markerRecordId, hudMarkerId, player)
-    local objectRecordId = inputData.objectRecordId
-    if not this.trackedQuestGivers[objectRecordId] then
-        this.trackedQuestGivers[objectRecordId] = {refs = {}}
+    local id = getTrackedId(player, inputData.objectRecordId)
+    if not this.trackedQuestGivers[id] then
+        this.trackedQuestGivers[id] = {refs = {}, player = player}
     end
     if inputData.type == "door" then
-        local refDt = this.trackedQuestGivers[objectRecordId].refs[inputData.refId]
+        local refDt = this.trackedQuestGivers[id].refs[inputData.refId]
         if not refDt then return end
 
         refDt.markerId = markerRecordId
         refDt.hudMarkerId = hudMarkerId
     else
-        local oldMarkerId = this.trackedQuestGivers[objectRecordId].markerId
-        local oldHudMarkerId = this.trackedQuestGivers[objectRecordId].hudMarkerId
+        local oldMarkerId = this.trackedQuestGivers[id].markerId
+        local oldHudMarkerId = this.trackedQuestGivers[id].hudMarkerId
         if oldMarkerId and oldMarkerId ~= markerRecordId then
             player:sendEvent("QGL:removeProximityRecord", {recordId = oldMarkerId})
         end
@@ -57,21 +56,22 @@ function this.registerTrackedQuestGiver(inputData, markerRecordId, hudMarkerId, 
             player:sendEvent("QGL:removeHUDMarker", {id = oldHudMarkerId})
         end
 
-        this.trackedQuestGivers[objectRecordId].markerId = markerRecordId
-        this.trackedQuestGivers[objectRecordId].hudMarkerId = hudMarkerId
+        this.trackedQuestGivers[id].markerId = markerRecordId
+        this.trackedQuestGivers[id].hudMarkerId = hudMarkerId
     end
 end
 
 
-function this.createQuestGiverMarker(ref)
+function this.createQuestGiverMarker(ref, player)
     if not ref.enabled then return end
 
     local recordId = ref.recordId
+    local trackedId = getTrackedId(player, recordId)
 
     do
-        local dt = this.trackedQuestGivers[recordId]
+        local dt = this.trackedQuestGivers[trackedId]
         if dt and (dt.hudMarkerId or dt.markerId) then
-            this.trackedQuestGivers[recordId].refs[ref.id] = {ref = ref}
+            this.trackedQuestGivers[trackedId].refs[ref.id] = {ref = ref}
             return
         end
     end
@@ -84,13 +84,13 @@ function this.createQuestGiverMarker(ref)
 
     for _, diaId in pairs(objectData.starts) do
         local diaIdLower = diaId:lower()
-        if (playerQuests.getCurrentIndex(diaIdLower) or 0) > 0 then goto continue end
+        if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
 
         local questData = questLib.getQuestData(diaIdLower)
         if not questData or not questData.name then goto continue end
 
         for _, linkId in pairs(questData.links or {}) do
-            if (playerQuests.getCurrentIndex(linkId) or 0) > 0 then goto continue end
+            if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then goto continue end
         end
 
         local firstIndexStr = questLib.getFirstIndex(questData)
@@ -165,12 +165,12 @@ function this.createQuestGiverMarker(ref)
         temporary = true,
     }
 
-    if not this.trackedQuestGivers[ref.recordId] then
-        this.trackedQuestGivers[ref.recordId] = {refs = {}}
+    if not this.trackedQuestGivers[trackedId] then
+        this.trackedQuestGivers[trackedId] = {refs = {}, player = player}
     end
-    this.trackedQuestGivers[ref.recordId].refs[ref.id] = {ref = ref}
+    this.trackedQuestGivers[trackedId].refs[ref.id] = {ref = ref}
 
-    sendPlayerEvent("QGL:addMarkerForQuestGivers", {
+    player:sendEvent("QGL:addMarkerForQuestGivers", {
         type = "object",
         questNames = questNames,
         recordData = recordData,
@@ -183,9 +183,9 @@ end
 
 function this.updateQuestGiverMarkers()
 
-    for objId, markerData in pairs(this.trackedQuestGivers) do
-        sendPlayerEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
-        sendPlayerEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
+    for trId, markerData in pairs(this.trackedQuestGivers) do
+        markerData.player:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
+        markerData.player:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
         markerData.markerId = nil
         markerData.hudMarkerId = nil
 
@@ -194,10 +194,10 @@ function this.updateQuestGiverMarkers()
             if refDt.ref:isValid() then
                 found = true
                 if refDt.hudMarkerId or refDt.markerId then
-                    sendPlayerEvent("QGL:updateHUDMarkerVisibility", {id = refDt.hudMarkerId})
-                    sendPlayerEvent("QGL:updateProximityMarkerVisibility", {recordId = refDt.markerId})
+                    markerData.player:sendEvent("QGL:updateHUDMarkerVisibility", {id = refDt.hudMarkerId})
+                    markerData.player:sendEvent("QGL:updateProximityMarkerVisibility", {recordId = refDt.markerId})
                 else
-                    this.createQuestGiverMarker(refDt.ref)
+                    this.createQuestGiverMarker(refDt.ref, markerData.player)
                 end
             else
                 markerData.refs[refId] = nil
@@ -205,13 +205,13 @@ function this.updateQuestGiverMarkers()
         end
 
         if not found then
-            this.trackedQuestGivers[objId] = nil
+            this.trackedQuestGivers[trId] = nil
         end
     end
 end
 
 
-function this.createQuestGiverMarkerForDoor(ref)
+function this.createQuestGiverMarkerForDoor(ref, player)
     if not types.Door.isTeleport(ref) or not ref.enabled then return end
 
     local destCell = protectedDoor.destCell(ref)
@@ -251,13 +251,13 @@ function this.createQuestGiverMarkerForDoor(ref)
         local giverRef = giverData.ref
         for _, diaId in pairs(objectData.starts) do
             local diaIdLower = diaId:lower()
-            if (playerQuests.getCurrentIndex(diaIdLower) or 0) > 0 then goto continue end
+            if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
 
             local questData = questLib.getQuestData(diaIdLower)
             if not questData or not questData.name then goto continue end
 
             for _, linkId in pairs(questData.links or {}) do
-                if (playerQuests.getCurrentIndex(linkId) or 0) > 0 then goto continue end
+                if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then goto continue end
             end
 
             local firstIndexStr = questLib.getFirstIndex(questData)
@@ -266,7 +266,7 @@ function this.createQuestGiverMarkerForDoor(ref)
                 goto continue
             end
 
-            local currentIndex = playerQuests.getCurrentIndex(diaId)
+            local currentIndex = playerQuests.getCurrentIndex(diaIdLower, player)
             if not currentIndex or currentIndex > 0 then
                 goto continue
             end
@@ -311,12 +311,13 @@ function this.createQuestGiverMarkerForDoor(ref)
         shortTerm = true,
     }
 
-    if not this.trackedQuestGivers[ref.recordId] then
-        this.trackedQuestGivers[ref.recordId] = {refs = {}}
+    local trackedId = getTrackedId(player, ref.recordId)
+    if not this.trackedQuestGivers[trackedId] then
+        this.trackedQuestGivers[trackedId] = {refs = {}, player = player}
     end
-    this.trackedQuestGivers[ref.recordId].refs[ref.id] = {ref = ref}
+    this.trackedQuestGivers[trackedId].refs[ref.id] = {ref = ref}
 
-    sendPlayerEvent("QGL:addMarkerForQuestGivers", {
+    player:sendEvent("QGL:addMarkerForQuestGivers", {
         type = "door",
         objectRecordId = ref.recordId,
         refId = ref.id,

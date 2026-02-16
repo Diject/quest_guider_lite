@@ -65,9 +65,9 @@ local attributeFuncs = {
 
 ---@type table<string, fun(req:questDataGenerator.requirementData, obj:any, mobile:any, ref:tes3reference):boolean?>
 local dataFuncs = {
-    [reqTypes.requirementType.Journal] = function (req)
+    [reqTypes.requirementType.Journal] = function (req, _, player)
         if not req.variable then return end
-        local qData = playerFunc.quests(playerRef)[req.variable]
+        local qData = playerFunc.quests(player or playerRef)[req.variable]
         local plIndex = qData and qData.stage or 0
         return operator.check(plIndex, req.value, req.operator)
     end,
@@ -83,8 +83,8 @@ local dataFuncs = {
         return res
     end,
 
-    [reqTypes.requirementType.CustomPCFaction] = function (req)
-        local ref = world and world.players[1] or playerRef
+    [reqTypes.requirementType.CustomPCFaction] = function (req, _, player)
+        local ref = player or playerRef
         local factions = types.NPC.getFactions(ref)
         if not factions then return end
         local res = false
@@ -101,9 +101,9 @@ local dataFuncs = {
         return operator.check(rank, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.CustomPCRank] = function (req)
+    [reqTypes.requirementType.CustomPCRank] = function (req, _, player)
         if not req.variable then return end
-        local rank = types.NPC.getFactionRank(world and world.players[1] or playerRef, req.variable)
+        local rank = types.NPC.getFactionRank(player or playerRef, req.variable)
         return operator.check(rank, req.value, req.operator)
     end,
 
@@ -183,7 +183,7 @@ local dataFuncs = {
         return not operator.check(req.variable, ref.recordId, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerExpelledFromNPCFaction] = function (req, ref)
+    [reqTypes.requirementType.PlayerExpelledFromNPCFaction] = function (req, ref, player)
         if not req.value or not ref then return end
 
         local factions = types.NPC.getFactions(ref)
@@ -191,31 +191,31 @@ local dataFuncs = {
         local res = 0
 
         for _, faction in pairs(factions) do
-            res = types.NPC.isExpelled(playerRef, faction) and 1 or 0
+            res = types.NPC.isExpelled(player or playerRef, faction) and 1 or 0
             if res == 1 then break end
         end
 
         return operator.check(res, ref.value, req.operator)
     end,
 
-    [reqTypes.requirementType.NPCSameFactionAsPlayer] = function (req, ref)
+    [reqTypes.requirementType.NPCSameFactionAsPlayer] = function (req, ref, player)
         if not req.value or not ref then return end
 
         local factions = types.NPC.getFactions(ref)
         if not factions then return false end
         local res = 0
         for _, faction in pairs(factions) do
-            res = types.NPC.getFactionRank(playerRef, faction) and 1 or 0
+            res = types.NPC.getFactionRank(player or playerRef, faction) and 1 or 0
             if res == 1 then break end
         end
 
         return operator.check(res, ref.value, req.operator)
     end,
 
-    [reqTypes.requirementType.ValueFLTV] = function (req, ref)
+    [reqTypes.requirementType.ValueFLTV] = function (req, ref, player)
         if not req.variable or not req.value or not ref or not world then return end
 
-        local script = world.mwscript.getLocalScript(ref, playerRef)
+        local script = world.mwscript.getLocalScript(ref, player or playerRef)
         if not script then return  end
 
         local value
@@ -257,10 +257,10 @@ local dataFuncs = {
         return string.sub(ref.cell.name, 1, #req.value):lower() == req.value and true or false
     end,
 
-    [reqTypes.requirementType.CustomPCCell] = function (req)
+    [reqTypes.requirementType.CustomPCCell] = function (req, _, player)
         if not req.value or not req.variable then return end
 
-        local val = string.sub(playerRef.cell.name, 1, #req.variable):lower() == req.variable and 1 or 0
+        local val = string.sub((player or playerRef).cell.name, 1, #req.variable):lower() == req.variable and 1 or 0
 
         return operator.check(val, req.value, req.operator)
     end,
@@ -302,18 +302,18 @@ local dataFuncs = {
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerHealthPercent] = function (req)
+    [reqTypes.requirementType.PlayerHealthPercent] = function (req, _, player)
         if not req.value then return end
 
-        local health = types.Actor.stats.dynamic.health(playerRef)
+        local health = types.Actor.stats.dynamic.health(player or playerRef)
         local val = health.current / health.base * 100
 
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerIsVampire] = function (req)
+    [reqTypes.requirementType.PlayerIsVampire] = function (req, _, player)
         if not req.value or not world then return end
-        local globals = world.mwscript.getGlobalVariables(playerRef)
+        local globals = world.mwscript.getGlobalVariables(player or playerRef)
         if not globals then return end
 
         local value = 0
@@ -327,28 +327,28 @@ local dataFuncs = {
         return operator.check(value, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerCrimeLevel] = function (req)
+    [reqTypes.requirementType.PlayerCrimeLevel] = function (req, _, player)
         if not req.value then return end
-        return operator.check(types.Player.getCrimeLevel(playerRef), req.value, req.operator)
+        return operator.check(types.Player.getCrimeLevel(player or playerRef), req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.NPCSameGenderAsPlayer] = function (req, ref)
+    [reqTypes.requirementType.NPCSameGenderAsPlayer] = function (req, ref, player)
         if not req.value or not ref then return end
         if not types.NPC.objectIsInstance(ref) then return end
 
         local record = types.NPC.record(ref)
         if not record then return end
-        local playerRecord = types.NPC.record(playerRef)
+        local playerRecord = types.NPC.record(player or playerRef)
 
         local val = record.isMale == playerRecord.isMale and 1 or 0
 
         return operator.check(val, ref.value, req.operator)
     end,
 
-    [reqTypes.requirementType.CustomSkill] = function (req, ref)
+    [reqTypes.requirementType.CustomSkill] = function (req, ref, player)
         if not req.value or not req.skill then return end
         if req.object == "player" then
-            ref = playerRef
+            ref = player or playerRef
         end
         if not types.NPC.objectIsInstance(ref) then return end
 
@@ -358,10 +358,10 @@ local dataFuncs = {
         return operator.check(skillFunc(ref).modified, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.CustomAttribute] = function (req, ref)
+    [reqTypes.requirementType.CustomAttribute] = function (req, ref, player)
         if not req.value or not req.attribute then return end
         if req.object == "player" then
-            ref = playerRef
+            ref = player or playerRef
         end
 
         local attrFunc = attributeFuncs[req.attribute]
@@ -370,66 +370,66 @@ local dataFuncs = {
         return operator.check(attrFunc(ref).modified, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerClothingModifier] = function (req)
+    [reqTypes.requirementType.PlayerClothingModifier] = function (req, _, player)
         if not req.value then return end
 
         local val = 0
-        for slot, item in pairs(types.Actor.getEquipment(playerRef)) do
+        for slot, item in pairs(types.Actor.getEquipment(player or playerRef)) do
             val = val + (item.type.record(item.recordId).value or 0)
         end
 
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.NPCSameRaceAsPlayer] = function (req, ref)
+    [reqTypes.requirementType.NPCSameRaceAsPlayer] = function (req, ref, player)
         if not req.value or not ref then return end
         if not types.NPC.objectIsInstance(ref) then return end
 
         local record = types.NPC.record(ref)
         if not record then return end
-        local playerRecord = types.NPC.record(playerRef)
+        local playerRecord = types.NPC.record(player or playerRef)
 
         local val = record.race == playerRecord.race and 1 or 0
 
         return operator.check(val, ref.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerGender] = function (req)
+    [reqTypes.requirementType.PlayerGender] = function (req, _, player)
         if not req.value then return end
 
-        local playerRecord = types.NPC.record(playerRef)
+        local playerRecord = types.NPC.record(player or playerRef)
         local val = playerRecord.isMale and 0 or 1
 
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerLevel] = function (req)
+    [reqTypes.requirementType.PlayerLevel] = function (req, _, player)
         if not req.value then return end
-        return operator.check(types.Actor.stats.level(playerRef).current, req.value, req.operator)
+        return operator.check(types.Actor.stats.level(player or playerRef).current, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.Weather] = function (req, ref)
+    [reqTypes.requirementType.Weather] = function (req, ref, player)
         if not req.value or not tes3 then return end
 
-        local weatherId = tes3.weather[core.weather.getCurrent((ref or playerRef).cell).recordId]
+        local weatherId = tes3.weather[core.weather.getCurrent((ref or player or playerRef).cell).recordId]
         if not weatherId then return end
 
         return operator.check(weatherId, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.NPCReputation] = function (req, ref)
+    [reqTypes.requirementType.NPCReputation] = function (req, ref, player)
         if not req.value or not req.object or not req then return end
 
         if ref.recordId ~= req.object then return false end
-        local val = types.NPC.getDisposition(ref, playerRef)
+        local val = types.NPC.getDisposition(ref, player or playerRef)
 
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerHealth] = function (req)
+    [reqTypes.requirementType.PlayerHealth] = function (req, _, player)
         if not req.value then return end
 
-        local health = types.Actor.stats.dynamic.health(playerRef)
+        local health = types.Actor.stats.dynamic.health(player or playerRef)
 
         return operator.check(health.current, req.value, req.operator)
     end,
@@ -477,10 +477,10 @@ local dataFuncs = {
         return operator.check(types.Actor.stats.level(ref).current, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.NPCIsWerewolf] = function (req, ref)
+    [reqTypes.requirementType.NPCIsWerewolf] = function (req, ref, player)
         if not req.value or not ref then return end
          if req.object == "player" then
-            ref = playerRef
+            ref = player or playerRef
         end
         if req.object and ref.recordId ~= req.object then return false end
 
@@ -498,11 +498,11 @@ local dataFuncs = {
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerCommonDisease] = function (req)
+    [reqTypes.requirementType.PlayerCommonDisease] = function (req, _, player)
         if not req.value then return end
 
         local val = 0
-        for _, spell in pairs(types.Actor.spells(playerRef)) do
+        for _, spell in pairs(types.Actor.spells(player or playerRef)) do
             val = spell.type == core.magic.SPELL_TYPE.Disease and 1 or 0
             if val == 1 then break end
         end
@@ -510,11 +510,11 @@ local dataFuncs = {
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerBlightDisease] = function (req)
+    [reqTypes.requirementType.PlayerBlightDisease] = function (req, _, player)
         if not req.value then return end
 
         local val = 0
-        for _, spell in pairs(types.Actor.spells(playerRef)) do
+        for _, spell in pairs(types.Actor.spells(player or playerRef)) do
             val = spell.type == core.magic.SPELL_TYPE.Blight and 1 or 0
             if val == 1 then break end
         end
@@ -522,10 +522,10 @@ local dataFuncs = {
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.PlayerCorprus] = function (req)
+    [reqTypes.requirementType.PlayerCorprus] = function (req, _, player)
         if not req.value then return end
 
-        local eff = types.Actor.activeEffects(playerRef):getEffect(core.magic.EFFECT_TYPE.Corprus)
+        local eff = types.Actor.activeEffects(player or playerRef):getEffect(core.magic.EFFECT_TYPE.Corprus)
         local val = eff.magnitude > 0 and 1 or 0
 
         return not operator.check(val, req.value, req.operator)
@@ -542,25 +542,25 @@ local dataFuncs = {
     --     return dialogueInfo:filter(ref.object, ref, 0, dialogue)
     -- end,
 
-    [reqTypes.requirementType.CustomDisposition] = function (req, ref)
+    [reqTypes.requirementType.CustomDisposition] = function (req, ref, player)
         if not req.value or not req then return end
 
         if req.object and ref.recordId ~= req.object then return false end
 
-        local val = types.NPC.getDisposition(ref, playerRef)
+        local val = types.NPC.getDisposition(ref, player or playerRef)
 
         return operator.check(val, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.CustomDialogue] = function (req)
+    [reqTypes.requirementType.CustomDialogue] = function (req, _, player)
         if not req.variable then return end
         if core.API_REVISION < 93 then return operator.check(true, true, req.operator) end
 
         local dialogueId = stringLib.convertDialogueName(req.variable)
-        if playerQuests.getTopicData(dialogueId) then
+        if playerQuests.getTopicData(dialogueId, player) then
             return operator.check(true, true, req.operator)
         else
-            for topicName, data in pairs(playerQuests.getTopicList() or {}) do
+            for topicName, data in pairs(playerQuests.getTopicList(player) or {}) do
                 for _, entry in pairs(data.entries) do
                     local text = stringLib.utf8_lower(entry.text or "")
                     if text:find(dialogueId) then
@@ -580,10 +580,10 @@ this.dataFuncs = dataFuncs
 ---@param req questDataGenerator.requirementData
 ---@param reference tes3reference?
 ---@return boolean?
-function this.check(req, reference)
+function this.check(req, reference, player)
     local func = dataFuncs[req.type]
     if func then
-        local status, res = pcall(func, req, reference)
+        local status, res = pcall(func, req, reference, player)
         if not status then return end
         return res
     end
@@ -600,14 +600,17 @@ end
 
 ---@param block questDataGenerator.requirementData[]
 ---@param params questGuider.requirementChecker.checkForBlock.params
+---@param player any?
 ---@return boolean?
 ---@return questDataGenerator.requirementData[]? ignoredRequirements
-function this.checkBlock(block, params)
+function this.checkBlock(block, params, player)
     if not params then params = {} end
     if not params.ignoredTypes then params.ignoredTypes = {} end
 
     -- don't forget to remove when this requirement type will be supported
     params.ignoredTypes[reqTypes.requirementType.CustomActor] = true
+
+    local pl = player or (world and world.players[1]) or playerRef
 
     local ignoredRequirements = {}
     local res = true
@@ -625,12 +628,12 @@ function this.checkBlock(block, params)
 
         local ref
         if req.object == "player" then
-            ref = world and world.players[1] or playerRef
+            ref = pl
         else
             ref = params.reference
         end
 
-        local r = this.check(req, ref)
+        local r = this.check(req, ref, pl)
         if r == nil and params.threatErrorsAs ~= nil then
             r = params.threatErrorsAs
         end

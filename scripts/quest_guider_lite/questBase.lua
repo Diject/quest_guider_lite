@@ -170,8 +170,10 @@ end
 
 ---@param questId string
 ---@param questIndex integer|string
+---@param ref any?
+---@param player any?
 ---@return boolean?
-function this.checkConditionsForQuest(questId, questIndex, ref)
+function this.checkConditionsForQuest(questId, questIndex, ref, player)
     local questData = dataHandler.getQuestData(questId)
     if not questData then return end
 
@@ -199,7 +201,7 @@ function this.checkConditionsForQuest(questId, questIndex, ref)
             local ret = requirementChecker.checkBlock(reqBlock, {
                 allowedTypes = allowedTypes,
                 threatErrorsAs = true,
-            })
+            }, player)
 
             if ret then
                 return true
@@ -221,7 +223,7 @@ function this.checkConditionsForQuest(questId, questIndex, ref)
                 ignoredTypes = ignoredTypes,
                 threatErrorsAs = true,
                 reference = ref,
-            })
+            }, player)
 
             if ret then return true end
 

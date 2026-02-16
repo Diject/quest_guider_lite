@@ -428,17 +428,17 @@ end
 
 
 ---@return table<string, questGuider.PlayerJournalTopic>
-function this.getTopicList()
+function this.getTopicList(player)
     if core.API_REVISION < 93 then return {} end
 
-    return playerFunc.journal(playerRef).topics
+    return playerFunc.journal(player or playerRef).topics
 end
 
 ---@return questGuider.PlayerJournalTopic?
-function this.getTopicData(topicId)
+function this.getTopicData(topicId, player)
     if core.API_REVISION < 93 then return end
 
-    return playerFunc.journal(playerRef).topics[topicId]
+    return playerFunc.journal(player or playerRef).topics[topicId]
 end
 
 
