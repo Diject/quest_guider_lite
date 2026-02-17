@@ -181,6 +181,7 @@ removeTrackingFromListedMessageBox: "Remove tracking for all listed objects? Thi
 markersDisabled: "Markers are disabled"
 showQuestByTrackingMenuBtn: ">>"
 mapUpdateQuestDataMessage: "To access the map, update the quest data."
+andMorePattern: "and %d more"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."

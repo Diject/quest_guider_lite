@@ -1,6 +1,9 @@
 ---@diagnostic disable: param-type-mismatch
-
+local core = require("openmw.core")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
+local commonData = require("scripts.quest_guider_lite.common")
+
+local l10n = core.l10n(commonData.l10nKey)
 
 local levenshtein = require("scripts.quest_guider_lite.utils.levenshtein")
 
@@ -25,9 +28,9 @@ function this.getValueEnumString(tb, max, framePattern, returnTable, customNumbe
     for _, value in pairs(tb) do
         if count >= max then
             if returnTable then
-                table.insert(str, string.format("and %d more", (customNumber or tableLib.size(tb)) - count))
+                table.insert(str, string.format(l10n("andMorePattern"), (customNumber or tableLib.size(tb)) - count))
             else
-                str = string.format("%s and %d more", str, (customNumber or tableLib.size(tb)) - count)
+                str = string.format("%s "..(l10n("andMorePattern")), str, (customNumber or tableLib.size(tb)) - count)
             end
             break
         end
