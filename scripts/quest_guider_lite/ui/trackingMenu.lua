@@ -1420,7 +1420,7 @@ function this.createContent(params)
 
     local mainLayout = not params.listMode and {
         type = ui.TYPE.Flex,
-        layer = "Windows",
+        layer = commonData.trackingMenuLayer,
         props = {
             autoSize = true,
             horizontal = false,

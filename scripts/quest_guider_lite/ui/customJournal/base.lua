@@ -114,6 +114,10 @@ journalMeta.clearQuestInfo = function (self)
 end
 
 journalMeta.selectQuest = function (self, qName)
+    if not self.params.isQuestList then
+        localStorage.data.lastSelectedQuest = qName
+    end
+
     if qName == nil then
         self:resetQuestListSelection()
         self:clearQuestInfo()
@@ -580,8 +584,8 @@ local function create(params)
 
             mouseRelease = async:callback(function(_, layout)
                 local relativePos = meta.menu.layout.props.relativePosition
-                config.setValue("journal.position.x", relativePos.x * 100)
-                config.setValue("journal.position.y", relativePos.y * 100)
+                config.setValue("journal.position.x", math.floor(relativePos.x * 10000) / 100)
+                config.setValue("journal.position.y", math.floor(relativePos.y * 10000) / 100)
                 layout.userData.lastMousePos = nil
 
                 meta:getQuestMain().content[2] = layout.userData.contentBackup
@@ -735,6 +739,10 @@ local function create(params)
                         events = {
                             textChanged = async:callback(function(text, layout)
                                 meta.textFilter = text
+                                searchBar.content[1].content[1].props.text = meta.textFilter
+                                if not params.isQuestList then
+                                    localStorage.data.journalSearchText = meta.textFilter
+                                end
                             end),
                             keyRelease = async:callback(function(e, layout)
                                 if e.code == input.KEY.Enter then
@@ -785,6 +793,11 @@ local function create(params)
             },
         }
     }
+
+    if not params.isQuestList then
+        meta.textFilter = localStorage.data.journalSearchText or ""
+        searchBar.content[1].content[1].props.text = meta.textFilter
+    end
 
     local checkBoxes = {
         type = ui.TYPE.Flex,
@@ -873,7 +886,7 @@ local function create(params)
 
     local mainFlex = {
         type = ui.TYPE.Flex,
-        layer = "Windows",
+        layer = commonData.mainMenuLayer,
         props = {
             autoSize = true,
             horizontal = false,
@@ -914,7 +927,7 @@ local function create(params)
         onMouseWheelCallback(layout.content, vertical)
     end
 
-    meta.selectNextPreviousQuestInList = function (self, step)
+    meta.selectNextPreviousInList = function (self, step)
         local questList = self:getQuestList()
         local selected = self:getQuestListSelectedFladValue()
 
@@ -955,10 +968,7 @@ local function create(params)
         end)
     end
 
-    meta:selectNextPreviousQuestInList(1)
-    meta:update()
-
-    meta.scrollQuestInfo = function (self, value)
+    meta.scrollInfo = function (self, value)
         local qInfoScrollBox = self:getQuestScrollBox()
         if not qInfoScrollBox then return end
 
@@ -1011,6 +1021,18 @@ local function create(params)
         if not qBoxMeta or not qBoxMeta.toggleTopTopicsFunc then return end
 
         qBoxMeta.toggleTopTopicsFunc()
+    end
+
+
+    if not params.isQuestList then
+        local lastQName = localStorage.data.lastSelectedQuest
+        local qDt = playerQuests.getQuestDataByName(lastQName)
+        if lastQName and (qDt and not qDt.isFinished or meta.textFilter ~= "") then
+            meta:selectQuest(lastQName)
+        else
+            meta:selectNextPreviousInList(1)
+        end
+        meta:update()
     end
 
 

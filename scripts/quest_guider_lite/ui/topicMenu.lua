@@ -76,7 +76,7 @@ topicMenuMeta.setTopicListSelectedFlad = function (self, value)
     self:getTopicList().userData.selected = value
 end
 
-topicMenuMeta.getQuestListSelectedFladValue = function (self)
+topicMenuMeta.getTopicListSelectedFladValue = function (self)
     return self:getTopicList().userData.selected
 end
 
@@ -125,6 +125,8 @@ end
 
 topicMenuMeta.selectTopic = function (self, topicId)
     local params = self.params
+
+    localStorage.data.lastSelectedTopic = topicId
 
     local topic = topicId and playerQuests.getTopicData(topicId)
     if topic == nil then
@@ -704,8 +706,8 @@ local function create(params)
 
             mouseRelease = async:callback(function(_, layout)
                 local relativePos = meta.menu.layout.props.relativePosition
-                config.setValue("journal.topic.position.x", relativePos.x * 100)
-                config.setValue("journal.topic.position.y", relativePos.y * 100)
+                config.setValue("journal.topic.position.x", math.max(0, math.min(100, relativePos.x * 100)))
+                config.setValue("journal.topic.position.y", math.max(0, math.min(100, relativePos.y * 100)))
                 layout.userData.lastMousePos = nil
 
                 meta:getTopicMain().content[2] = layout.userData.contentBackup
@@ -721,6 +723,8 @@ local function create(params)
                 local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
 
                 props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
+                props.relativePosition.x = math.max(0, math.min(1, props.relativePosition.x))
+                props.relativePosition.y = math.max(0, math.min(1, props.relativePosition.y))
                 meta:update()
 
                 layout.userData.lastMousePos = relativePos
@@ -799,10 +803,12 @@ local function create(params)
                         events = {
                             textChanged = async:callback(function(text, layout)
                                 meta.textFilter = text
+                                searchBar.content[1].content[1].props.text = meta.textFilter
+                                localStorage.data.topicMenuSearchText = meta.textFilter
                             end),
                             keyRelease = async:callback(function(e, layout)
                                 if e.code == input.KEY.Enter then
-                                    local selectedTopic = meta:getQuestListSelectedFladValue()
+                                    local selectedTopic = meta:getTopicListSelectedFladValue()
                                     meta:fillTopicsContent()
                                     meta:selectTopic(selectedTopic)
                                     searchBar.content[1].content[1].props.text = meta.textFilter
@@ -829,7 +835,7 @@ local function create(params)
                 position = util.vector2(topictListSize.x - 2, (params.fontSize + 10) / 2),
                 anchor = util.vector2(1, 0.5),
                 event = function (layout)
-                    local selectedTopic = meta:getQuestListSelectedFladValue()
+                    local selectedTopic = meta:getTopicListSelectedFladValue()
                     meta:fillTopicsContent()
                     meta:selectTopic(selectedTopic)
 
@@ -841,6 +847,9 @@ local function create(params)
             },
         }
     }
+
+    meta.textFilter = localStorage.data.topicMenuSearchText or ""
+    searchBar.content[1].content[1].props.text = meta.textFilter
 
     local nextPrevBlock = {
         type = ui.TYPE.Widget,
@@ -933,7 +942,7 @@ local function create(params)
 
     local mainFlex = {
         type = ui.TYPE.Flex,
-        layer = "Windows",
+        layer = commonData.topicMenuLayer,
         props = {
             autoSize = true,
             horizontal = false,
@@ -985,6 +994,80 @@ local function create(params)
             self:jumpInHistory(1)
         end
     end
+
+
+    meta.selectNextPreviousInList = function (self, step)
+        local topicList = self:getTopicList()
+        local selected = self:getTopicListSelectedFladValue()
+
+        local selectedIndex = nil
+        local sBoxMeta = topicList.userData.scrollBoxMeta
+        local content = topicList.userData.scrollBoxMeta:getContent()
+        if #content == 0 then return end
+
+        for i, elem in ipairs(content) do
+            if elem.name == selected then
+                selectedIndex = i
+                break
+            end
+        end
+
+        if not selectedIndex then selectedIndex = 0 end
+
+        local nextIndex = selectedIndex + step
+        if nextIndex > #content then return end
+        if nextIndex < 1 then return end
+
+        pcall(function()
+            local nextSelected = content[nextIndex]
+            if nextSelected and nextSelected.name then
+                self:selectTopic(nextSelected.name)
+
+                local scrollPos = sBoxMeta:getScrollPosition()
+                local scrollHeight = sBoxMeta.params.size.y
+                local elemHeight = (self.params.fontSize or 18)
+                local height = (nextIndex - 1) * elemHeight
+                if scrollPos > height then
+                    sBoxMeta:setScrollPosition(math.max(0, height))
+                elseif scrollPos + scrollHeight < (height + 2 * elemHeight) then
+                    sBoxMeta:setScrollPosition(height - scrollHeight + 2 * elemHeight)
+                end
+                self:update()
+            end
+        end)
+    end
+
+    meta.scrollInfo = function (self, value)
+        local qInfoScrollBox = self:getTopicScrollBox()
+        if not qInfoScrollBox then return end
+
+        ---@type questGuider.ui.scrollBox
+        local sBoxMeta = qInfoScrollBox.userData.scrollBoxMeta
+        if not sBoxMeta then return end
+
+        sBoxMeta:setScrollPosition(sBoxMeta:getScrollPosition() + value * (self.params.fontSize or 18) * 3)
+    end
+
+
+    meta.loadMoreEntries = function(self)
+        local topicInfoScrollBox = self:getTopicScrollBox()
+        if not topicInfoScrollBox then return end
+
+        local updateTextFunc = topicInfoScrollBox.userData.updateText
+        if not updateTextFunc then return end
+
+        updateTextFunc(nil, true)
+    end
+
+
+    local lastTopicId = localStorage.data.lastSelectedTopic
+    if lastTopicId then
+        meta:selectTopic(lastTopicId)
+    else
+        meta:selectNextPreviousInList(1)
+    end
+    meta:update()
+
 
     return meta
 end

@@ -46,7 +46,7 @@ this.default = {
             }
         },
         toggleVisibilityKey = "P", -- deprecated
-        toggleVisibilityByJournalKey = false,
+        toggleVisibilityByJournalKey = false, -- deprecated
     },
     journal = {
         overrideJournal = false,
@@ -90,6 +90,9 @@ this.default = {
     input = {
         gamepadJournalScroll = true,
         keys = {
+            allQuestsMenu = "LeftShift + LeftCtrl + H", -- global
+            topicMenu = nil, -- global
+            trackingMenu = nil, -- global
             toggleMarkersVisibility = nil, -- global
             nextQuest = "C_RightShoulder",
             previousQuest = "C_LeftShoulder",

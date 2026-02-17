@@ -37,6 +37,14 @@ this.toggleTrackObjectsTriggerId = "QGL:toggleTrackObjects"
 this.trackObjectsTriggerId = "QGL:trackObjects"
 this.untrackObjectsTriggerId = "QGL:untrackObjects"
 this.toggleTopTopicsTriggerId = "QGL:toggleTopTopics"
+this.allQuestsTriggerId = "QGL:allQuestsMenu"
+this.topicMenuTriggerId = "QGL:topicMenu"
+this.trackingMenuTriggerId = "QGL:trackingMenu"
+
+this.messageLayer = "AdvWMap:Message"
+this.mainMenuLayer = "QGL:MainMenu"
+this.topicMenuLayer = "QGL:TopicMenu"
+this.trackingMenuLayer = this.topicMenuLayer
 
 this.defaultColorData = {202/255, 165/255, 96/255}
 this.defaultColor = util.color.rgb(this.defaultColorData[1], this.defaultColorData[2], this.defaultColorData[3])

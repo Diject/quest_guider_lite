@@ -433,7 +433,7 @@ function questBoxMeta:updateColors()
     local mainFlex = scrollBoxElem:getMainFlex()
 
     local header = mainFlex.content[1]
-    if not header then return end
+    if not header or not header.content[1] then return end
 
     header.content[1].props.text = uiUtils.removeColorMarkers(header.content[1].props.text)
     if self.parent.textFilter ~= "" then

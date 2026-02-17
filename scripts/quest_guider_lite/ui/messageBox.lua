@@ -5,7 +5,7 @@ local core = require("openmw.core")
 
 local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
-local coommonData = require("scripts.quest_guider_lite.common")
+local commonData = require("scripts.quest_guider_lite.common")
 
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
@@ -51,7 +51,7 @@ function this.newSimple(params)
     end
     params.message = params.message or ""
 
-    params.menuId = params.menuId or coommonData.messageBoxMenuId
+    params.menuId = params.menuId or commonData.messageBoxMenuId
 
     ---@class UI.messageBox.simple.meta
     local meta = setmetatable({}, {})
@@ -168,7 +168,7 @@ function this.newSimple(params)
 
     local layout = {
         type = ui.TYPE.Widget,
-        layer = "Windows",
+        layer = commonData.messageLayer,
         props = {
             size = params.size,
             relativePosition = params.relativePosition,

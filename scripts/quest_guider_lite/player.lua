@@ -52,6 +52,20 @@ local questBoxUpdateQueue = {}
 local questBoxUpdateTimer = nil
 
 
+if not ui.layers.indexOf(commonData.messageLayer) then
+    ui.layers.insertBefore("DragAndDrop", commonData.messageLayer, { interactive = true })
+end
+if not ui.layers.indexOf(commonData.mainMenuLayer) then
+    ui.layers.insertAfter("Windows", commonData.mainMenuLayer, { interactive = true })
+end
+if not ui.layers.indexOf(commonData.topicMenuLayer) then
+    ui.layers.insertAfter(commonData.mainMenuLayer, commonData.topicMenuLayer, { interactive = true })
+end
+if not ui.layers.indexOf(commonData.trackingMenuLayer) then
+    ui.layers.insertAfter(commonData.topicMenuLayer, commonData.trackingMenuLayer, { interactive = true })
+end
+
+
 core.sendGlobalEvent("QGL:setScaledScreenSize", uiUtils.getScaledScreenSize())
 
 
@@ -158,10 +172,21 @@ local function gamepadJournalScroll(lTr, rTr)
     lTr = lTr < 0.5 and 0 or lTr
     rTr = rTr < 0.5 and 0 or rTr
 
-    local menu = menuHandler.getMenu(commonData.journalMenuId)
-    if not menu then return end
+    if menuHandler.getMenu(commonData.trackingMenuId) then
+        return
+    end
 
-    menu:scrollQuestInfo(rTr - lTr)
+    local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
+    if topicMenu then
+        topicMenu:scrollInfo(rTr - lTr)
+        return
+    end
+
+    local journalMenu = menuHandler.getMenu(commonData.journalMenuId)
+    if journalMenu then
+        journalMenu:scrollInfo(rTr - lTr)
+        return
+    end
 end
 
 controllerScrollTimer.triggerCallback = gamepadJournalScroll
@@ -243,70 +268,105 @@ local function fillQuestBoxQuestInfo(params)
 end
 
 
+local function buildTopicMenu()
+    return createTopicMenu{
+        fontSize = config.data.ui.fontSize,
+        sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
+        relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
+    }
+end
+
+
+local function buildTrackingMenu()
+    return createTrackingMenu{
+        fontSize = config.data.ui.fontSize,
+        sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
+        relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
+    }
+end
+
+
+local function buildMainQuestMenu()
+    return createQuestMenu{
+        fontSize = config.data.ui.fontSize,
+        sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+        relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+        createTopicMenuFunc = function ()
+            menuHandler.destroyMenu(commonData.topicsMenuId)
+
+            menuHandler.registerMenu(commonData.topicsMenuId, buildTopicMenu())
+        end,
+        createTrackingMenuFunc = function ()
+            menuHandler.destroyMenu(commonData.trackingMenuId)
+
+            menuHandler.registerMenu(commonData.trackingMenuId, buildTrackingMenu())
+        end,
+    }
+end
+
+
+local function buildAllQuestsMenu()
+    local dialogues = {}
+    for qName, dt in pairs(playerQuests.questData) do
+        for diaId, _ in pairs(dt.records) do
+            table.insert(dialogues, diaId)
+        end
+    end
+
+    return createQuestMenu{
+        fontSize = config.data.ui.fontSize,
+        sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+        relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+        headerName = l10n("quests"),
+        menuId = commonData.allQuestsMenuId,
+        questList = dialogues,
+        isQuestList = true,
+        showReqsForAll = true,
+    }
+end
+
+
 local function toggleMenu()
     if menuHandler.getMenu(commonData.journalMenuId) then
         menuHandler.destroyMenu(commonData.journalMenuId)
     else
         menuHandler.activateMenuMode()
 
-        menuHandler.registerMenu(commonData.journalMenuId, createQuestMenu{
-            fontSize = config.data.ui.fontSize,
-            sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
-            relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
-            createTopicMenuFunc = function ()
-                menuHandler.destroyMenu(commonData.topicsMenuId)
-
-                menuHandler.registerMenu(commonData.topicsMenuId, createTopicMenu{
-                    fontSize = config.data.ui.fontSize,
-                    sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
-                    relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
-                })
-            end,
-            createTrackingMenuFunc = function ()
-                menuHandler.destroyMenu(commonData.trackingMenuId)
-
-                menuHandler.registerMenu(commonData.trackingMenuId, createTrackingMenu{
-                    fontSize = config.data.ui.fontSize,
-                    sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
-                    relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
-                })
-            end,
-        })
+        menuHandler.registerMenu(commonData.journalMenuId, buildMainQuestMenu())
     end
 end
 
 
-I.DijectKeyBindings.action.register(commonData.journalMenuTriggerId, async:callback(function()
-    if input.isCtrlPressed() and input.isShiftPressed() then
-        menuHandler.destroyMenu(commonData.allQuestsMenuId)
-        menuHandler.activateMenuMode()
+I.DijectKeyBindings.action.register(commonData.journalMenuTriggerId, function()
+    toggleMenu()
+end)
 
-        local dialogues = {}
-        for qName, dt in pairs(playerQuests.questData) do
-            for diaId, _ in pairs(dt.records) do
-                table.insert(dialogues, diaId)
-            end
-        end
 
-        menuHandler.registerMenu(commonData.allQuestsMenuId, createQuestMenu{
-            fontSize = config.data.ui.fontSize,
-            sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
-            relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
-            headerName = l10n("quests"),
-            menuId = commonData.allQuestsMenuId,
-            questList = dialogues,
-            isQuestList = true,
-            showReqsForAll = true,
-        })
-    elseif input.isShiftPressed() and config.data.tracking.toggleVisibilityByJournalKey then
-        tracking.setMarkersVisibility{toggle = true, includeQuestGivers = true}
-        if menuHandler.getMenu(commonData.journalMenuId) then
-            menuHandler.getMenu(commonData.journalMenuId):updateMarkersDisabledMessage()
-        end
+I.DijectKeyBindings.action.register(commonData.allQuestsTriggerId, function()
+    menuHandler.destroyMenu(commonData.allQuestsMenuId)
+    menuHandler.activateMenuMode()
+
+    menuHandler.registerMenu(commonData.allQuestsMenuId, buildAllQuestsMenu())
+end)
+
+
+I.DijectKeyBindings.action.register(commonData.topicMenuTriggerId, function()
+    if menuHandler.getMenu(commonData.topicsMenuId) then
+        menuHandler.destroyMenu(commonData.topicsMenuId)
     else
-        toggleMenu()
+        menuHandler.registerMenu(commonData.topicsMenuId, buildTopicMenu())
     end
-end))
+end)
+
+
+I.DijectKeyBindings.action.register(commonData.trackingMenuTriggerId, function()
+    if menuHandler.getMenu(commonData.trackingMenuId) then
+        menuHandler.destroyMenu(commonData.trackingMenuId)
+    else
+        menuHandler.registerMenu(commonData.trackingMenuId, buildTrackingMenu())
+    end
+end)
+
 
 if config.data.journal.overrideJournal then
     I.UI.registerWindow("Journal",
@@ -356,12 +416,12 @@ local function giverMarkerClick(userData)
 end
 
 
-I.DijectKeyBindings.action.register(commonData.toggleMarkersTriggerId, async:callback(function()
+I.DijectKeyBindings.action.register(commonData.toggleMarkersTriggerId, function()
     tracking.setMarkersVisibility{toggle = true, includeQuestGivers = true}
     if menuHandler.getMenu(commonData.journalMenuId) then
         menuHandler.getMenu(commonData.journalMenuId):updateMarkersDisabledMessage()
     end
-end))
+end)
 
 
 local function onKeyPress(key)
@@ -391,20 +451,44 @@ end
 -- Input
 do
     local function nextQ()
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
-        if not mainMenu then return end
+        if menuHandler.getMenu(commonData.trackingMenuId) then
+            return
+        end
 
-        mainMenu:selectNextPreviousQuestInList(1)
+        local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
+        if topicMenu then
+            topicMenu:selectNextPreviousInList(1)
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if mainMenu then
+            mainMenu:selectNextPreviousInList(1)
+        end
     end
 
     local function prevQ()
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
-            if not mainMenu then return end
+        if menuHandler.getMenu(commonData.trackingMenuId) then
+            return
+        end
 
-        mainMenu:selectNextPreviousQuestInList(-1)
+        local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
+        if topicMenu then
+            topicMenu:selectNextPreviousInList(-1)
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if mainMenu then
+            mainMenu:selectNextPreviousInList(-1)
+        end
     end
 
     local function toggleTrackObjects()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
+            return
+        end
+
         local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
         if not mainMenu then return end
 
@@ -412,6 +496,10 @@ do
     end
 
     local function trackObjects()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
+            return
+        end
+
         local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
         if not mainMenu then return end
 
@@ -419,6 +507,10 @@ do
     end
 
     local function untrackObjects()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
+            return
+        end
+
         local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
         if not mainMenu then return end
 
@@ -426,10 +518,20 @@ do
     end
 
     local function toggleTopTopics()
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
-        if not mainMenu then return end
+        if menuHandler.getMenu(commonData.trackingMenuId) then
+            return
+        end
 
-        mainMenu:toggleTopTopics()
+        local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
+        if topicMenu then
+            topicMenu:loadMoreEntries()
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if mainMenu then
+            mainMenu:toggleTopTopics()
+        end
     end
 
     menuHandler.onMenuModeActivated = function ()

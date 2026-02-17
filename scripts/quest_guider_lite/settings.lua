@@ -163,6 +163,7 @@ local res, err = pcall(function()
     local initialized = inputModSettings:get("input.initialized")
     if initialized then return end
 
+    local trackingSection = storage.playerSection(commonData.configTrackingSectionName)
     local mainModSettings = storage.playerSection(commonData.configJournalSectionName)
     local journalMenuKey = mainModSettings:get("journal.menuKey")
 
@@ -171,6 +172,10 @@ local res, err = pcall(function()
         if journalMenuKeyBind and journalMenuKeyBind.key == commonData.journalMenuTriggerId then
             bindingSection:set(journalMenuKey, nil)
             I.DijectKeyBindings.registerKey(commonData.journalMenuTriggerId, journalMenuKey)
+            if trackingSection:get("tracking.toggleVisibilityByJournalKey") == true then
+                I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, "LeftShift + "..journalMenuKey)
+            end
+            I.DijectKeyBindings.registerKey(commonData.allQuestsTriggerId, "LeftShift + LeftCtrl + "..journalMenuKey)
         end
     end
 
@@ -196,6 +201,8 @@ local res, err = pcall(function()
 
     if not journalMenuKey then
         I.DijectKeyBindings.registerKey(commonData.journalMenuTriggerId, config.default.journal.menuKey)
+        I.DijectKeyBindings.registerKey(commonData.allQuestsTriggerId, config.default.input.keys.allQuestsMenu)
+        I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, config.default.input.keys.toggleMarkersVisibility)
     end
 
     inputModSettings:set("input.initialized", true)
@@ -289,6 +296,9 @@ I.Settings.registerGroup{
     permanentStorage = true,
     order = 2,
     settings = {
+        inputKey{key = "input.keys.allQuestsMenu", name = "allQuestsMenuKey", description = "allQuestsMenuKeyDescription", action = commonData.allQuestsTriggerId, default = config.default.input.keys.allQuestsMenu},
+        inputKey{key = "input.keys.topicMenu", name = "topicMenuKey", description = "topicMenuKeyDescription", action = commonData.topicMenuTriggerId, default = config.default.input.keys.topicMenu},
+        inputKey{key = "input.keys.trackingMenu", name = "trackingMenuKey", description = "trackingMenuKeyDescription", action = commonData.trackingMenuTriggerId, default = config.default.input.keys.trackingMenu},
         inputKey{key = "input.keys.toggleMarkersVisibility", name = "markerVisibilityKey", description = "markerVisibilityKeyDescription", action = commonData.toggleMarkersTriggerId, default = config.default.input.keys.toggleMarkersVisibility},
         boolSetting{key = "input.gamepadJournalScroll", name = "gamepadJournalScroll", description = "gamepadJournalScrollDescription", default = config.default.input.gamepadJournalScroll},
         inputKey{key = "input.keys.previousQuest", name = "previousQuestKey", description = "previousQuestKeyDescription", action = commonData.previousQuestTriggerId, default = config.default.input.keys.previousQuest},

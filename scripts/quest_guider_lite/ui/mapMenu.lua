@@ -251,7 +251,7 @@ function this.new(params)
 
     local layout = {
         type = ui.TYPE.Widget,
-        layer = "Windows",
+        layer = commonData.messageLayer,
         props = {
             size = params.size,
             relativePosition = params.relativePosition,
