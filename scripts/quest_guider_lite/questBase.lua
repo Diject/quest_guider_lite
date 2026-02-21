@@ -212,6 +212,8 @@ function this.checkConditionsForQuest(questId, questIndex, ref, player)
         local ignoredTypes = {
             [myTypes.requirementType.CustomDisposition] = true,
             [myTypes.requirementType.CustomDialogue] = true,
+            [myTypes.requirementType.CustomDisposition] = true,
+            [myTypes.requirementType.NPCReputation] = true,
         }
 
         local truthTable = {
@@ -262,7 +264,7 @@ end
 
 
 ---@return table<string, boolean>?
-function this.getGiverQuests(object)
+function this.getGiverQuests(object, player)
     local objectData = dataHandler.getObjectData(object.recordId)
     if not objectData or not objectData.starts then return end
 
@@ -270,18 +272,18 @@ function this.getGiverQuests(object)
 
     for _, diaId in pairs(objectData.starts) do
         local diaIdLower = diaId:lower()
-        if (playerQuests.getCurrentIndex(diaIdLower) or 0) > 0 then goto continue end
+        if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
 
         local questData = dataHandler.getQuestData(diaIdLower)
         if not questData or not questData.name then goto continue end
 
         for _, linkId in pairs(questData.links or {}) do
-            if (playerQuests.getCurrentIndex(linkId) or 0) > 0 then goto continue end
+            if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then goto continue end
         end
 
         local firstIndexStr = this.getFirstIndex(questData)
         if not firstIndexStr then goto continue end
-        if not this.checkConditionsForQuest(diaIdLower, firstIndexStr, object) then
+        if not this.checkConditionsForQuest(diaIdLower, firstIndexStr, object, player) then
             goto continue
         end
 

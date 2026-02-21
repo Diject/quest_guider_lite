@@ -10,7 +10,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 
 local commonInfo = require("scripts.quest_guider_lite.common")
 
-local questLib = require("scripts.quest_guider_lite.quest")
+local questBase = require("scripts.quest_guider_lite.questBase")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
 local cellLib = require("scripts.quest_guider_lite.cell")
@@ -76,33 +76,15 @@ function this.createQuestGiverMarker(ref, player)
         end
     end
 
-    local objectData = questLib.getObjectData(recordId)
-    if not objectData or not objectData.starts then return end
+    local diaIds = questBase.getGiverQuests(ref, player)
+    if not diaIds then return end
 
     local questNames = {}
-    local diaIds = {}
-
-    for _, diaId in pairs(objectData.starts) do
-        local diaIdLower = diaId:lower()
-        if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
-
-        local questData = questLib.getQuestData(diaIdLower)
-        if not questData or not questData.name then goto continue end
-
-        for _, linkId in pairs(questData.links or {}) do
-            if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then goto continue end
+    for diaId in pairs(diaIds) do
+        local qName = playerQuests.getQuestNameByDiaId(diaId)
+        if qName then
+            questNames[qName] = qName
         end
-
-        local firstIndexStr = questLib.getFirstIndex(questData)
-        if not firstIndexStr then goto continue end
-        if not questLib.checkConditionsForQuest(diaIdLower, firstIndexStr) then
-            goto continue
-        end
-
-        questNames[questData.name] = questData.name
-        diaIds[diaId] = true
-
-        ::continue::
     end
 
     questNames = tableLib.values(questNames, true)
@@ -221,16 +203,12 @@ function this.createQuestGiverMarkerForDoor(ref, player)
 
     local cellsData = cellLib.findReachableCellsByNode({cell = destCell}, nil, nil, 3) ---@diagnostic disable-line: missing-fields
 
-    ---@type table<string, {data : questDataGenerator.objectInfo, ref : any}>
-    local giverIdsWithData = {}
+    local diaIds = {}
 
-    local function checkObj(ref)
-        local recordId = ref.recordId
-        if giverIdsWithData[recordId] then return end
-
-        local objectData = questLib.getObjectData(recordId)
-        if not objectData or not objectData.starts then return end
-        giverIdsWithData[recordId] = {ref = ref, data = objectData}
+    local function checkObj(r)
+        local dIds = questBase.getGiverQuests(r, player)
+        if not dIds then return end
+        tableLib.copy(dIds, diaIds)
     end
 
     for _, cellData in pairs(cellsData or {}) do
@@ -244,37 +222,10 @@ function this.createQuestGiverMarkerForDoor(ref, player)
     end
 
     local questNames = {}
-    local diaIds = {}
-
-    for objId, giverData in pairs(giverIdsWithData) do
-        local objectData = giverData.data
-        local giverRef = giverData.ref
-        for _, diaId in pairs(objectData.starts) do
-            local diaIdLower = diaId:lower()
-            if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
-
-            local questData = questLib.getQuestData(diaIdLower)
-            if not questData or not questData.name then goto continue end
-
-            for _, linkId in pairs(questData.links or {}) do
-                if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then goto continue end
-            end
-
-            local firstIndexStr = questLib.getFirstIndex(questData)
-            if not firstIndexStr then goto continue end
-            if not questLib.checkConditionsForQuest(diaIdLower, firstIndexStr) then
-                goto continue
-            end
-
-            local currentIndex = playerQuests.getCurrentIndex(diaIdLower, player)
-            if not currentIndex or currentIndex > 0 then
-                goto continue
-            end
-
-            questNames[questData.name] = questData.name
-            diaIds[diaId] = true
-
-            ::continue::
+    for diaId in pairs(diaIds) do
+        local qName = playerQuests.getQuestNameByDiaId(diaId)
+        if qName then
+            questNames[qName] = qName
         end
     end
 

@@ -245,42 +245,7 @@ function this.init()
     end)
 
 
-    if config.data.tracking.questGivers then
-        this.questGiverTemplate = trackingInt.addTemplate{
-            path = commonInfo.mapGiverMarkerPath,
-            pathA = commonInfo.mapGiverMarkerUpPath,
-            pathB = commonInfo.mapGiverMarkerDownPath,
-            size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
-            anchor = util.vector2(0.5, 1),
-            visible = this.giverMarkersVisible and this.storageData.giversVisibility or false,
-            color = config.data.ui.defaultColor,
-            tText = "@name@",
-            tEvent = true,
-            onClick = commonInfo.advWMapGiverCallback,
-            userData = {
-                type = "questGiver",
-            },
-        }
-
-        this.questGiverMarker = trackingInt.addMarker{
-            template = this.questGiverTemplate,
-            types = {"NPC", "Creature"},
-            alive = true,
-            priority = -100,
-            objValidateFn = function (marker, template, object)
-                if not config.data.tracking.advWMapMarkers.enabled or
-                    not config.data.tracking.advWMapMarkers.details.givers then return false end
-
-                local giverQuests = questBase.getGiverQuests(object)
-
-                if giverQuests then
-                    return true
-                else
-                    return false
-                end
-            end,
-        }
-    end
+    this.updateGiversMarker()
 
 
     local dmSize = util.vector2(1, 1) * math.floor(config.data.tracking.advWMapMarkers.size * 0.6)
@@ -566,6 +531,7 @@ end
 
 
 function this.createDoorGiversMarker(doorRef, qNames)
+    if not initialized then return end
 
     local markerId = trackingInt.addMarker{
         template = this.doorGiversTemplate,
@@ -577,6 +543,58 @@ function this.createDoorGiversMarker(doorRef, qNames)
 
     local hash = doorHash(doorRef, protectedDoor.destCell(doorRef).id)
     this.doorGiversMarkers[hash] = {qNames = qNames, mId = markerId}
+end
+
+
+function this.updateGiversMarker()
+    if this.questGiverMarker then
+        trackingInt.removeMarker(this.questGiverMarker)
+        this.questGiverMarker = nil
+    end
+
+    if not config.data.tracking.questGivers or not config.data.tracking.advWMapMarkers.enabled or
+            not config.data.tracking.advWMapMarkers.details.givers then
+        if this.questGiverTemplate then
+            trackingInt.removeTemplate(this.questGiverTemplate)
+            this.questGiverTemplate = nil
+        end
+        return
+    end
+
+    this.questGiverTemplate = this.questGiverTemplate or trackingInt.addTemplate{
+        path = commonInfo.mapGiverMarkerPath,
+        pathA = commonInfo.mapGiverMarkerUpPath,
+        pathB = commonInfo.mapGiverMarkerDownPath,
+        size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
+        anchor = util.vector2(0.5, 1),
+        visible = this.giverMarkersVisible and this.storageData.giversVisibility or false,
+        color = config.data.ui.defaultColor,
+        tText = "@name@",
+        tEvent = true,
+        onClick = commonInfo.advWMapGiverCallback,
+        userData = {
+            type = "questGiver",
+        },
+    }
+
+    this.questGiverMarker = trackingInt.addMarker{
+        template = this.questGiverTemplate,
+        types = {"NPC", "Creature"},
+        alive = true,
+        priority = -100,
+        objValidateFn = function (marker, template, object)
+            if not config.data.tracking.advWMapMarkers.enabled or
+                not config.data.tracking.advWMapMarkers.details.givers then return false end
+
+            local giverQuests = questBase.getGiverQuests(object)
+
+            if giverQuests then
+                return true
+            else
+                return false
+            end
+        end,
+    }
 end
 
 

@@ -556,6 +556,12 @@ do
 end
 
 
+local function updateQuestGivers()
+    core.sendGlobalEvent("QGL:updateQuestGiverMarkers")
+    advWMapIntegration.updateGiversMarker()
+end
+
+
 time.runRepeatedly(function()
     handleTracking()
 end, 5 * time.second + math.random())
@@ -576,7 +582,7 @@ return {
                 onQuestUpdateTimerStarted = true
                 async:newUnsavableSimulationTimer(0.05, function()
                     handleTracking()
-                    core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
+                    updateQuestGivers()
                     tracking.updateTemporaryMarkers()
                     onQuestUpdateTimerStarted = false
                 end)
@@ -584,7 +590,7 @@ return {
         end,
         onTeleported = function ()
             async:newUnsavableSimulationTimer(0.1, function () -- delay for the player cell data to be updated
-                core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {})
+                updateQuestGivers()
                 teleportedCallback()
             end)
         end,
@@ -602,6 +608,9 @@ return {
     eventHandlers = {
         UiModeChanged = function (e)
             timeLib.requestTimeUpdate()
+            if e.oldMode == "Dialogue" then
+                updateQuestGivers()
+            end
         end,
 
         ["QGL:addMarker"] = function(data)
