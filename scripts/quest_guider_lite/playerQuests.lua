@@ -55,6 +55,7 @@ local this = {}
 ---@field name string
 ---@field disabled boolean?
 ---@field finished boolean?
+---@field pinned boolean?
 ---@field timestamp number?
 ---@field globalTime number?
 ---@field list questGuider.playerQuest.storageQuestInfo[]
@@ -90,6 +91,7 @@ local function initStorageQuestData(qName)
             name = qName,
             disabled = false,
             finished = false,
+            pinned = false,
             timestamp = 0,
         }
         storageData.questData[qName] = arr
@@ -281,6 +283,7 @@ function this.generateStorageQuestDataByDiaIdList(list)
                 globalTime = plData and plData.globalTime,
                 disabled = plData and plData.disabled,
                 finished = plData and plData.finished,
+                pinned = plData and plData.pinned,
             }
             res[qName] = storDt
         end

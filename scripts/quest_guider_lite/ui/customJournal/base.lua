@@ -296,13 +296,16 @@ function journalMeta.fillQuestsContent(self)
 
     local finishedSubVal = 200000000000
     local disabledSubVal = 100000000000
+    local pinnedAddVal = 200000000000
     local function compareFunc(a, b)
         local aVal = timeLib.getTimestamp(a)
-        aVal = a.finished and aVal - finishedSubVal
+        aVal = a.pinned and aVal + pinnedAddVal or
+            a.finished and aVal - finishedSubVal
             or a.disabled and aVal - disabledSubVal or aVal
 
         local bVal = timeLib.getTimestamp(b)
-        bVal = b.finished and bVal - finishedSubVal
+        bVal = b.pinned and bVal + pinnedAddVal or
+            b.finished and bVal - finishedSubVal
             or b.disabled and bVal - disabledSubVal or bVal
         return aVal > bVal
     end

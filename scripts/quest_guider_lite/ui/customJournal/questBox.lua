@@ -57,7 +57,7 @@ function questBoxMeta.getButtonWidget(self)
 end
 
 function questBoxMeta.getButtonFlex(self)
-    return self:getButtonWidget().content[3]
+    return self:getButtonWidget().content[2]
 end
 
 function questBoxMeta.getHeader(self)
@@ -566,43 +566,73 @@ function this.create(params)
                     horizontal = true,
                 },
                 content = ui.content {
-                    checkBox{
-                        updateFunc = function ()
-                            params.updateFunc()
-                        end,
-                        checked = params.playerQuestData.finished,
-                        text = l10n("finished"),
-                        textSize = params.fontSize or 18,
-                        visible = not params.isQuestList,
-                        relativePosition = util.vector2(0.01, 0.5),
-                        anchor = util.vector2(0, 0.5),
-                        event = function (checked, layout)
-                            params.playerQuestData.finished = checked
-                        end
-                    },
-                    checkBox{
-                        updateFunc = function ()
-                            params.updateFunc()
-                        end,
-                        checked = params.playerQuestData.disabled,
-                        text = l10n("hidden"),
-                        relativePosition = util.vector2(0.25, 0.5),
-                        anchor = util.vector2(0, 0.5),
-                        textSize = params.fontSize or 18,
-                        visible = not params.isQuestList,
-                        event = function (checked, layout)
-                            params.playerQuestData.disabled = checked
-                            local qData = playerQuests.getQuestDataByName(params.questName)
-                            if qData then
-                                local changed = false
-                                for diaId, _ in pairs(qData.records or {}) do
-                                    changed = tracking.setDisableMarkerState{questId = diaId, value = checked} or changed
+                    {
+                        type = ui.TYPE.Flex,
+                        props = {
+                            autoSize = true,
+                            horizontal = true,
+                            anchor = util.vector2(0, 0.5),
+                            position = util.vector2(0, checkBoxBlockSize.y / 2),
+                        },
+                        content = ui.content{
+                            checkBox{
+                                updateFunc = function ()
+                                    params.updateFunc()
+                                end,
+                                checked = params.playerQuestData.pinned,
+                                text = l10n("pinned"),
+                                textSize = params.fontSize or 18,
+                                visible = not params.isQuestList,
+                                event = function (checked, layout)
+                                    params.playerQuestData.pinned = checked
+                                    local selectedQuest = meta.parent:getQuestListSelectedFladValue()
+                                    meta.parent:fillQuestsContent()
+                                    meta.parent:selectQuest(selectedQuest)
                                 end
-                                if changed then
-                                    tracking.updateMarkers()
+                            },
+                            interval(config.data.ui.fontSize, 0),
+                            checkBox{
+                                updateFunc = function ()
+                                    params.updateFunc()
+                                end,
+                                checked = params.playerQuestData.finished,
+                                text = l10n("finished"),
+                                textSize = params.fontSize or 18,
+                                visible = not params.isQuestList,
+                                event = function (checked, layout)
+                                    params.playerQuestData.finished = checked
+                                    local selectedQuest = meta.parent:getQuestListSelectedFladValue()
+                                    meta.parent:fillQuestsContent()
+                                    meta.parent:selectQuest(selectedQuest)
                                 end
-                            end
-                        end
+                            },
+                            interval(config.data.ui.fontSize, 0),
+                            checkBox{
+                                updateFunc = function ()
+                                    params.updateFunc()
+                                end,
+                                checked = params.playerQuestData.disabled,
+                                text = l10n("hidden"),
+                                textSize = params.fontSize or 18,
+                                visible = not params.isQuestList,
+                                event = function (checked, layout)
+                                    params.playerQuestData.disabled = checked
+                                    local qData = playerQuests.getQuestDataByName(params.questName)
+                                    if qData then
+                                        local changed = false
+                                        for diaId, _ in pairs(qData.records or {}) do
+                                            changed = tracking.setDisableMarkerState{questId = diaId, value = checked} or changed
+                                        end
+                                        if changed then
+                                            tracking.updateMarkers()
+                                        end
+                                    end
+                                    local selectedQuest = meta.parent:getQuestListSelectedFladValue()
+                                    meta.parent:fillQuestsContent()
+                                    meta.parent:selectQuest(selectedQuest)
+                                end
+                            },
+                        }
                     },
                     {
                         type = ui.TYPE.Flex,
