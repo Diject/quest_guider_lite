@@ -61,9 +61,10 @@ end
 if not ui.layers.indexOf(commonData.topicMenuLayer) then
     ui.layers.insertAfter(commonData.mainMenuLayer, commonData.topicMenuLayer, { interactive = true })
 end
-if not ui.layers.indexOf(commonData.trackingMenuLayer) then
-    ui.layers.insertAfter(commonData.topicMenuLayer, commonData.trackingMenuLayer, { interactive = true })
-end
+-- Tracking menu uses the same layer as topic menu, so no need to add it
+-- if not ui.layers.indexOf(commonData.trackingMenuLayer) then
+--     ui.layers.insertAfter(commonData.topicMenuLayer, commonData.trackingMenuLayer, { interactive = true })
+-- end
 
 
 core.sendGlobalEvent("QGL:setScaledScreenSize", uiUtils.getScaledScreenSize())
