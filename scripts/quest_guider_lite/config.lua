@@ -73,6 +73,7 @@ this.default = {
         maxPosDescrInTracking = 3,
         mapByDefault = true,
         useGlobalDate = true,
+        firstInitMenu = true,
     },
     ui = {
         fontSize = 20,

@@ -114,6 +114,7 @@ this.topicsMenuId = "__QGL:Topics__"
 this.trackingMenuId = "__QGL:Tracking__"
 this.simpleMapMenuId = "__QGL:Journal__"
 this.messageBoxMenuId = "__QGL:MessageBox__"
+this.firstInitMenuId = "__QGL:FirstInit__"
 
 
 function this.colorToArray(color)

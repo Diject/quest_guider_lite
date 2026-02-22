@@ -41,6 +41,7 @@ local mapWidget = require("scripts.quest_guider_lite.ui.mapWidget")
 local createQuestMenu = require("scripts.quest_guider_lite.ui.customJournal.base")
 local createTopicMenu = require("scripts.quest_guider_lite.ui.topicMenu")
 local createTrackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu").createMenu
+local createFirstInitMenu = require("scripts.quest_guider_lite.ui.firstInitMenu").new
 local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.nextStagesBlock")
 local simpleMap = require("scripts.quest_guider_lite.ui.mapMenu")
 local messageBox = require("scripts.quest_guider_lite.ui.messageBox")
@@ -188,6 +189,12 @@ local function gamepadJournalScroll(lTr, rTr)
         journalMenu:scrollInfo(rTr - lTr)
         return
     end
+
+    local firstInitMenu = menuHandler.getMenu(commonData.firstInitMenuId)
+    if firstInitMenu then
+        firstInitMenu:scrollInfo(rTr - lTr)
+        return
+    end
 end
 
 controllerScrollTimer.triggerCallback = gamepadJournalScroll
@@ -330,10 +337,21 @@ end
 local function toggleMenu()
     if menuHandler.getMenu(commonData.journalMenuId) then
         menuHandler.destroyMenu(commonData.journalMenuId)
+    elseif menuHandler.getMenu(commonData.firstInitMenuId) then
+        menuHandler.destroyMenu(commonData.firstInitMenuId)
     else
         menuHandler.activateMenuMode()
 
-        menuHandler.registerMenu(commonData.journalMenuId, buildMainQuestMenu())
+        if configLib.data.journal.firstInitMenu and playerDataHandler.data.isReady then
+            menuHandler.registerMenu(commonData.firstInitMenuId, createFirstInitMenu{
+                yesCallback = function ()
+                    configLib.setValue("journal.firstInitMenu", false)
+                    menuHandler.registerMenu(commonData.journalMenuId, buildMainQuestMenu())
+                end
+            })
+        else
+            menuHandler.registerMenu(commonData.journalMenuId, buildMainQuestMenu())
+        end
     end
 end
 

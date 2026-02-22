@@ -104,6 +104,8 @@ markerVisibilityKey: "Toggle marker visibility key"
 markerVisibilityKeyDescription: "Sets the key used to toggle the visibility of all markers added by the mod."
 enableShiftJournalMarkersToggle: "Enable Shift+Journal marker toggle"
 enableShiftJournalMarkersToggleDescription: "Lets you toggle all mod markers by using Shift + the mod journal key."
+firstInitMenu: "Tracking preferences menu on first run"
+firstInitMenuDescription: "If enabled, the tracking preferences menu will appear when the mod is run. This menu lets you choose which types of quest objects to track. This option only has an effect if quest data is detected."
 
 InputSettings: "Input"
 InputSettingsDescription: "Settings related to input keys and gamepad controls. Hotkeys can be set to key combinations, not just a single key."
@@ -192,6 +194,17 @@ questDataDisabled: "Quest data is disabled."
 questDataIncorrectFolderError: "Quest Guider Lite: Quest data is installed incorrectly. Quest data files must be in the \"questData\" folder."
 
 dateFormat: "%d %B 3E %Y, %H:%M"
+
+
+firstInitQuestDataFound: "Quest data detected. Select tracking preferences."
+firstInitNote0: "If any of the mods listed below are not installed, tracking will begin once they are installed.\nChanging object tracking settings does not affect markers for already tracked objects. Changes to quest giver tracking settings will take effect only after entering a new location."
+firstInitMapMarkersCategory: "Map markers via Advanced World Map mod\n(https://www.nexusmods.com/morrowind/mods/57881)"
+firstInitProximityMarkersCategory: "Proximity markers via proximityTool mod\n(https://www.nexusmods.com/morrowind/mods/57286)"
+firstInitHUDMarkersCategory: "HUD markers via HUDMarkers mod\n(https://www.nexusmods.com/morrowind/mods/57112 , also requires proximityTool)"
+firstInitGivers: "Quest givers"
+firstInitObjects: "Quest objects"
+firstInitNote1: "Data accuracy is not guaranteed: the mod may indicate quest givers whose quests you cannot yet take, or incorrectly determine available stages of tracked quests and point to wrong objects."
+firstInitBtn: "Ok (Enter/Y)"
 
 
 true_l: "true"
