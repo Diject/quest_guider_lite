@@ -153,7 +153,6 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                         },
                         content = ui.content {
                             {
-                                template = templates.textNormal,
                                 type = ui.TYPE.Text,
                                 props = {
                                     text = objData.name,
@@ -221,7 +220,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     self:updateObjectElements()
                                 end
                             },
-                            interval((self.params.fontSize or 18) * 2, 0),
+                            interval((self.params.fontSize or 18) * 2, (self.params.fontSize or 18) + 8),
                             button{
                                 updateFunc = self.update,
                                 text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
@@ -254,7 +253,6 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             },
                             interval((self.params.fontSize or 18) * 2, 0),
                             {
-                                template = templates.textNormal,
                                 type = ui.TYPE.Text,
                                 props = {
                                     text = l10n("closestColon"),
@@ -290,7 +288,6 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             local posTextShift = self.params.fontSize / 2
             local posHeight = uiUtils.getTextHeight(objData.descr, self.params.fontSize, self.params.size.x - posTextShift, config.data.journal.textHeightMulRecord)
             local position = {
-                template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
                     text = objData.descr,
@@ -335,7 +332,6 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
         end
         local textHeight = uiUtils.getTextHeight(text, params.fontSize or 18, self.params.size.x, config.data.journal.textHeightMulRecord, 1)
         content:add{
-            template = templates.textNormal,
             type = ui.TYPE.Text,
             props = {
                 text = text,
@@ -369,7 +365,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             for _, nextData in ipairs(diaData) do
                 if not params.isQuestListMode and curentIndex >= nextData.index then goto continue end
 
-                nextBtnsFlexContent:add(interval(12, 0))
+                nextBtnsFlexContent:add(interval(12, params.fontSize + 8))
                 nextBtnsFlexContent:add(
                     button{
                         text = string.format(format, tostring(nextData.index)),
@@ -378,7 +374,6 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                         updateFunc = params.updateFunc,
                         tooltipContent = ui.content{
                             {
-                                template = templates.textNormal,
                                 type = ui.TYPE.Text,
                                 props = {
                                     text = string.format(l10n("idIndexShort"), diaId, nextData.index),
@@ -394,13 +389,13 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                             local variantBtnFlex = self:getHeaderVariantBtnsFlex()
                             variantBtnFlex.content = ui.content{
                                 {
-                                    template = templates.textNormal,
                                     type = ui.TYPE.Text,
                                     props = {
                                         text = l10n("variantsColon"),
                                         textColor = config.data.ui.defaultColor,
                                         autoSize = true,
                                         textSize = params.fontSize or 18,
+                                        anchor = util.vector2(0, 0.5),
                                         multiline = false,
                                         wordWrap = false,
                                     },
@@ -425,6 +420,7 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
                                     button{
                                         text = string.format("-%d-", i),
                                         textSize = params.fontSize,
+                                        anchor = util.vector2(0, 0.5),
                                         parentScrollBoxUserData = self.params.parentScrollBoxUserData,
                                         updateFunc = params.updateFunc,
                                         event = function (layout)
@@ -501,6 +497,7 @@ function this.create(params)
         props = {
             autoSize = true,
             horizontal = true,
+            anchor = util.vector2(0, 0.5),
         },
         content = ui.content{}
     }
@@ -518,10 +515,10 @@ function this.create(params)
                 props = {
                     autoSize = true,
                     horizontal = true,
+                    arrange = ui.ALIGNMENT.Center,
                 },
                 content = ui.content {
                     {
-                        template = templates.textNormal,
                         type = ui.TYPE.Text,
                         props = {
                             text = params.isQuestListMode and l10n("requirementsColon") or l10n("nextColon"),
@@ -541,6 +538,7 @@ function this.create(params)
                 props = {
                     autoSize = true,
                     horizontal = true,
+                    arrange = ui.ALIGNMENT.Center,
                 },
                 content = ui.content{}
             }

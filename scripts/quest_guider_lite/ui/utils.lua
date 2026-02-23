@@ -90,13 +90,13 @@ end
 
 function this.getElementHeight(elem)
     if elem.userData and elem.userData.height then
-        return elem.userData.height
-    elseif elem.props and elem.props.size then
-        return elem.props.size.y
-    elseif elem.props and elem.props.textSize then
-        return elem.props.textSize + (elem.props.textShadow and 1 or 0)
+        return math.floor(elem.userData.height)
+    elseif elem.props and elem.props.size and elem.props.autoSize ~= true then
+        return math.floor(elem.props.size.y)
+    elseif elem.props and elem.props.textSize and elem.props.autoSize ~= false then
+        return math.floor(elem.props.textSize + (elem.props.textShadow and 1 or 0))
     elseif elem.content then
-        return this.getContentHeight(elem.content, elem.props and elem.props.horisontal or false)
+        return this.getContentHeight(elem.content, elem.props and elem.props.horizontal or false)
     end
 
     return 0
@@ -104,18 +104,19 @@ end
 
 
 ---@return number
-function this.getContentHeight(content, isHorisontal)
+function this.getContentHeight(content, isHorizontal)
     local res = 0
 
     local function add(val)
-        if isHorisontal then
+        val = math.floor(val)
+        if isHorizontal then
             res = math.max(res, val)
         else
             res = res + val
         end
     end
 
-    for _, elem in pairs(content) do
+    for _, elem in ipairs(content) do
         add(this.getElementHeight(elem))
     end
 

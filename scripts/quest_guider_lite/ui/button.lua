@@ -144,7 +144,8 @@ return function (params)
                 textSize = params.textSize or 18,
                 multiline = false,
                 wordWrap = false,
-                textAlignH = ui.ALIGNMENT.Start,
+                textAlignH = ui.ALIGNMENT.Center,
+                textAlignV = ui.ALIGNMENT.Center,
                 textColor = params.textColor or configData.data.ui.defaultColor,
                 anchor = util.vector2(0.5, 0.5),
             },
@@ -178,7 +179,7 @@ return function (params)
         userData = {
             params = params,
             pressed = false,
-            height = params.size and params.size.y or params.textSize or 18 + 6,
+            height = params.size and (params.size.y + 8) or params.textSize and (params.textSize + 8) or 18 + 8,
             parentScrollBoxUserData = params.parentScrollBoxUserData,
             meta = meta,
         },

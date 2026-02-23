@@ -583,6 +583,9 @@ function this.create(params)
                                 text = l10n("pinned"),
                                 textSize = params.fontSize or 18,
                                 visible = not params.isQuestList,
+                                getScrollBoxMeta = function ()
+                                    return meta:getScrollBoxMeta()
+                                end,
                                 event = function (checked, layout)
                                     params.playerQuestData.pinned = checked
                                     local selectedQuest = meta.parent:getQuestListSelectedFladValue()
@@ -599,6 +602,9 @@ function this.create(params)
                                 text = l10n("finished"),
                                 textSize = params.fontSize or 18,
                                 visible = not params.isQuestList,
+                                getScrollBoxMeta = function ()
+                                    return meta:getScrollBoxMeta()
+                                end,
                                 event = function (checked, layout)
                                     params.playerQuestData.finished = checked
                                     local selectedQuest = meta.parent:getQuestListSelectedFladValue()
@@ -615,6 +621,9 @@ function this.create(params)
                                 text = l10n("hidden"),
                                 textSize = params.fontSize or 18,
                                 visible = not params.isQuestList,
+                                getScrollBoxMeta = function ()
+                                    return meta:getScrollBoxMeta()
+                                end,
                                 event = function (checked, layout)
                                     params.playerQuestData.disabled = checked
                                     local qData = playerQuests.getQuestDataByName(params.questName)
