@@ -133,6 +133,7 @@ toggleTopTopicsKeyDescription: "Key to toggle the display of topics of the most 
 pinned: "Pinned"
 hidden: "Hidden"
 finished: "Finished"
+pinnedLabel: "!"
 finishedLabel: "F"
 hiddenLabel: "H"
 filter: "Filter"

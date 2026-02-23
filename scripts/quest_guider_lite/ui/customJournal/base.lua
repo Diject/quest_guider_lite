@@ -183,6 +183,7 @@ journalMeta.selectQuest = function (self, qName)
 end
 
 journalMeta.update = function(self)
+    if not self.menu.layout then return end
     self.menu:update()
 end
 
@@ -346,8 +347,9 @@ function journalMeta.fillQuestsContent(self)
 
         local qNameText = qName == "" and l10n("miscellaneous") or qName or "???"
 
-        if dt.finished or dt.disabled then
-            qNameText = string.format("(%s%s) %s",
+        if dt.finished or dt.disabled or dt.pinned then
+            qNameText = string.format("(%s%s%s) %s",
+                dt.pinned and l10n("pinnedLabel") or "",
                 dt.finished and l10n("finishedLabel") or "",
                 dt.disabled and l10n("hiddenLabel") or "",
                 qNameText
