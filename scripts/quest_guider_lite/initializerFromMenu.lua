@@ -9,7 +9,7 @@ I.Settings.registerGroup{
     l10n = commonData.l10nKey,
     name = "questData",
     permanentStorage = true,
-    order = 3,
+    order = 4,
     settings = {
         {
             key = "statusMessage",

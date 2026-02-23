@@ -563,7 +563,7 @@ local dataFuncs = {
             for topicName, data in pairs(playerQuests.getTopicList(player) or {}) do
                 for _, entry in pairs(data.entries) do
                     local text = stringLib.utf8_lower(entry.text or "")
-                    if text:find(dialogueId) then
+                    if text:find(dialogueId, 1, true) then
                         return operator.check(true, true, req.operator)
                     end
                 end

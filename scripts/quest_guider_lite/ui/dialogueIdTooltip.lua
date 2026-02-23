@@ -60,10 +60,8 @@ function this.getContentForTooltip(params)
     end
 
     local scaledScreenSize = uiUtils.getScaledScreenSize()
-    local width = scaledScreenSize.x / 3
+    local width = scaledScreenSize.x / 5
     local fontSize = params.fontSize or (meta and meta.params.fontSize) or 18
-    local idTextHeight = uiUtils.getTextHeight(idStr, fontSize, width, config.data.journal.textHeightMulRecord)
-    local startedInHeight = uiUtils.getTextHeight(startedInStr, fontSize, width, config.data.journal.textHeightMulRecord)
 
     if params.filter then
         idStr = uiUtils.colorize(idStr, params.filter, "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
@@ -71,31 +69,31 @@ function this.getContentForTooltip(params)
 
     return ui.content{
         {
-            template = templates.textNormal,
-            type = ui.TYPE.Text,
+            type = ui.TYPE.TextEdit,
             props = {
                 text = idStr,
                 textColor = config.data.ui.defaultColor,
-                autoSize = false,
-                size = util.vector2(width, idTextHeight),
+                size = util.vector2(width, 0),
                 textSize = fontSize,
                 multiline = true,
                 wordWrap = true,
+                readOnly = true,
+                autoSize = true,
                 textAlignH = ui.ALIGNMENT.Start,
             },
         },
-        interval(0, fontSize),
+        interval(0, fontSize / 2),
         {
-            template = templates.textNormal,
-            type = ui.TYPE.Text,
+            type = ui.TYPE.TextEdit,
             props = {
                 text = startedInStr,
                 textColor = config.data.ui.defaultColor,
-                autoSize = false,
-                size = util.vector2(width, startedInHeight),
+                size = util.vector2(width, 0),
                 textSize = fontSize,
                 multiline = true,
                 wordWrap = true,
+                readOnly = true,
+                autoSize = true,
                 textAlignH = ui.ALIGNMENT.Start,
             },
         },

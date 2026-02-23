@@ -52,10 +52,11 @@ local l10n = core.l10n(commonData.l10nKey)
 local questBoxUpdateQueue = {}
 local questBoxUpdateTimer = nil
 
-
-if not ui.layers.indexOf(commonData.messageLayer) then
-    ui.layers.insertBefore("DragAndDrop", commonData.messageLayer, { interactive = true })
-end
+pcall(function ()
+    if not ui.layers.indexOf(commonData.messageLayer) then
+        ui.layers.insertBefore("DragAndDrop", commonData.messageLayer, { interactive = true })
+    end
+end)
 if not ui.layers.indexOf(commonData.mainMenuLayer) then
     ui.layers.insertAfter("Windows", commonData.mainMenuLayer, { interactive = true })
 end
@@ -77,7 +78,7 @@ I.Settings.registerGroup{
     l10n = commonData.l10nKey,
     name = "removeAllGroup",
     permanentStorage = false,
-    order = 4,
+    order = 5,
     settings = {
         {
             key = "removeAll",
@@ -178,21 +179,24 @@ local function gamepadJournalScroll(lTr, rTr)
         return
     end
 
+    local v = rTr - lTr
+    if math.abs(v) < 0.5 then return end
+
     local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
     if topicMenu then
-        topicMenu:scrollInfo(rTr - lTr)
+        topicMenu:scrollInfo(v)
         return
     end
 
     local journalMenu = menuHandler.getMenu(commonData.journalMenuId)
     if journalMenu then
-        journalMenu:scrollInfo(rTr - lTr)
+        journalMenu:scrollInfo(v)
         return
     end
 
     local firstInitMenu = menuHandler.getMenu(commonData.firstInitMenuId)
     if firstInitMenu then
-        firstInitMenu:scrollInfo(rTr - lTr)
+        firstInitMenu:scrollInfo(v)
         return
     end
 end
@@ -401,7 +405,6 @@ local function markerClick(userData)
 
     if userData.type == "tracking" and userData.questName then ---@diagnostic disable-line: need-check-nil
         if not menuHandler.getMenu(commonData.journalMenuId) then
-            menuHandler.activateMenuMode()
             menuHandler.registerMenu(commonData.journalMenuId, createQuestMenu{
                 fontSize = config.data.ui.fontSize,
                 sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),

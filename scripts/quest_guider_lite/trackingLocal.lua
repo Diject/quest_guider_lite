@@ -489,7 +489,7 @@ function this.addMarker(params)
             if wTemplId then
                 ---@type AdvWMap_tracking.MarkerData
                 local marker = {
-                    template = wTemplate,
+                    template = wTemplId,
                     positions = positions,
                     zoomOut = true,
                     temp = false,

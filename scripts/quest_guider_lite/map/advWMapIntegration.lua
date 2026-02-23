@@ -337,6 +337,7 @@ function this.init()
     events.registerHandler(events.EVENT.onLegendWidgetCreate, function (e)
 
         local flexContent = ui.content{}
+        local cfg = interface.getConfig()
 
         local size = e.size
 
@@ -346,7 +347,7 @@ function this.init()
                 props = {
                     size = util.vector2(
                         size.x,
-                        (elem.props.textSize or elem.props.size and elem.props.size.y or config.data.ui.fontSize) * (padding or 1.5)
+                        (elem.props.textSize or elem.props.size and elem.props.size.y or cfg.ui.fontSize) * (padding or 1.5)
                     ),
                 },
                 content = ui.content{
@@ -359,21 +360,24 @@ function this.init()
             type = ui.TYPE.Text,
             props = {
                 text = l10n("quests"),
-                textSize = config.data.ui.fontSize,
-                textColor = config.data.ui.defaultColor,
+                textSize = cfg.ui.fontSize,
+                textColor = cfg.ui.defaultColor,
                 autoSize = true,
                 anchor = util.vector2(0, 0.5),
-                position = util.vector2(4, config.data.ui.fontSize * 0.75),
+                position = util.vector2(4, cfg.ui.fontSize * 0.75),
             },
         }
 
         local markersCB = interface.uiElements.checkbox{
             updateFunc = e.menu.update,
             text = l10n("markers"),
-            textSize = config.data.ui.fontSize * 0.9,
+            textSize = cfg.ui.fontSize,
             anchor = util.vector2(0, 0.5),
-            position = util.vector2(config.data.ui.fontSize, config.data.ui.fontSize * 0.75),
+            position = util.vector2(cfg.ui.fontSize, cfg.ui.fontSize * 0.75),
             checked = this.storageData.markersVisibility,
+            getScrollBoxMeta = function ()
+                return e.scrollBox
+            end,
             event = function (checked, layout)
                 this.storageData.markersVisibility = checked
                 this.updateMarkerTemplatesVisibility()
@@ -383,10 +387,13 @@ function this.init()
         local giversCB = interface.uiElements.checkbox{
             updateFunc = e.menu.update,
             text = l10n("givers"),
-            textSize = config.data.ui.fontSize * 0.9,
+            textSize = cfg.ui.fontSize,
             anchor = util.vector2(0, 0.5),
-            position = util.vector2(config.data.ui.fontSize, config.data.ui.fontSize * 0.75),
+            position = util.vector2(cfg.ui.fontSize, cfg.ui.fontSize * 0.75),
             checked = this.storageData.giversVisibility,
+            getScrollBoxMeta = function ()
+                return e.scrollBox
+            end,
             event = function (checked, layout)
                 this.storageData.giversVisibility = checked
                 this.updateGiverMarkersVisibility()
