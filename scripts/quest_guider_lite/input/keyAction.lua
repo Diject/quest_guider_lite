@@ -93,6 +93,13 @@ function this.register(action, binding)
 end
 
 
+function this.isPressed(action)
+    local binding = this.actionBindingById[action]
+    if not binding then return false end
+    return keyBinding.isPressed(binding)
+end
+
+
 bindingSection:subscribe(async:callback(function(_, id)
     if not id then return end
 

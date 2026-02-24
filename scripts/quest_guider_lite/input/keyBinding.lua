@@ -87,6 +87,13 @@ local function createKeyCombinationDataSimple()
 end
 
 
+function this.isPressed(combStr)
+    local combination = createKeyCombinationDataSimple()
+    local keyCombMap, keyCombArr = keyCodes.getAllCombinationsMap(combination)
+    return keyCombMap[combStr] ~= nil
+end
+
+
 function this.triggerKeyCombinations(lastKeyCode)
     local combination = createKeyCombinationDataSimple()
 

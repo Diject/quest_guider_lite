@@ -13,7 +13,7 @@ bindingSection:setLifeTime(storage.LIFE_TIME.Persistent)
 return{
     interfaceName = "DijectKeyBindings",
     interface = {
-        version = 3,
+        version = 4,
         rendererName = "DijectKeyBindings:inputBinding",
         registerKey = function (id, keyStr)
             bindingSection:set(id, keyStr)
@@ -36,10 +36,14 @@ return{
             register = keyBinding.register,
             unregister = keyBinding.unregister,
             isContainsHandler = keyBinding.isContainsHandler,
+            -- available in version 4 and higher
+            isPressed = keyBinding.isPressed,
         },
         action = {
             register = keyAction.registerAction,
             unregister = keyAction.unregisterAction,
+            -- available in version 4 and higher
+            isPressed = keyAction.isPressed,
         }
     },
     engineHandlers = {
