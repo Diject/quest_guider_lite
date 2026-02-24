@@ -407,11 +407,13 @@ function this.addMarker(params)
     if createAdvWMapMarkers then
         local color = util.color.rgb(objectTrackingData.color[1], objectTrackingData.color[2], objectTrackingData.color[3])
         color = config.data.tracking.colored and color or config.data.ui.defaultColor
+        local iaActorReq = params.reqData and params.reqData.data.type == requirementType.CustomActor
+
         ---@type AdvWMap_tracking.TemplateData
         local template = {
-            path = common.mapMarkerPath,
-            pathA = common.mapMarkerUpPath,
-            pathB = common.mapMarkerDownPath,
+            path = iaActorReq and common.mapQuestionMarkPath or common.mapMarkerPath,
+            pathA = iaActorReq and common.mapQuestionMarkUpPath or common.mapMarkerUpPath,
+            pathB = iaActorReq and common.mapQuestionMarkDownPath or common.mapMarkerDownPath,
             size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
             anchor = util.vector2(0.5, 1),
             color = color,

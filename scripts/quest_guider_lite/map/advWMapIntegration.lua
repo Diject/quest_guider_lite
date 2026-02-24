@@ -242,7 +242,7 @@ function this.init()
                 }
             }
         end
-    end)
+    end, 8)
 
 
     this.updateGiversMarker()
@@ -588,7 +588,7 @@ function this.updateGiversMarker()
         template = this.questGiverTemplate,
         types = {"NPC", "Creature"},
         alive = true,
-        priority = -100,
+        priority = 8,
         objValidateFn = function (marker, template, object)
             if not config.data.tracking.advWMapMarkers.enabled or
                 not config.data.tracking.advWMapMarkers.details.givers then return false end

@@ -38,7 +38,7 @@ this.default = {
         },
         advWMapMarkers = {
             enabled = true,
-            size = 12,
+            size = 14,
             wSize = 18,
             details = {
                 givers = true,
