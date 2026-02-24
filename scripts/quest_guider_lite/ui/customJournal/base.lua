@@ -137,6 +137,21 @@ journalMeta.selectQuest = function (self, qName)
         return
     end
 
+    local function moveScroll()
+        local indS, index = pcall(function() return qListContent:indexOf(qName) end)
+        if not indS then return end
+
+        local scrollPos = scrollBoxMeta:getScrollPosition()
+        local scrollHeight = scrollBoxMeta.params.size.y
+        local elemHeight = (self.params.fontSize or 18)
+        local height = index * elemHeight
+        if scrollPos > height then
+            scrollBoxMeta:setScrollPosition(math.max(0, height))
+        elseif scrollPos + scrollHeight < (height + elemHeight) then
+            scrollBoxMeta:setScrollPosition(height - scrollHeight + elemHeight)
+        end
+    end
+
     local function applyTextShadow()
         selectedLayout.content[3].props.textShadow = true
         selectedLayout.content[3].props.textShadowColor = config.data.ui.shadowColor
@@ -169,6 +184,7 @@ journalMeta.selectQuest = function (self, qName)
     self:resetQuestListSelection()
     self:setQuestListSelectedFlad(qName)
     applyTextShadow()
+    moveScroll()
 
     self:update()
 
@@ -958,17 +974,6 @@ local function create(params)
             local nextSelected = content[nextIndex]
             if nextSelected and nextSelected.name then
                 self:selectQuest(nextSelected.name)
-
-                local scrollPos = sBoxMeta:getScrollPosition()
-                local scrollHeight = sBoxMeta.params.size.y
-                local elemHeight = (self.params.fontSize or 18)
-                local height = (nextIndex - 1) * elemHeight
-                if scrollPos > height then
-                    sBoxMeta:setScrollPosition(math.max(0, height))
-                elseif scrollPos + scrollHeight < (height + 2 * elemHeight) then
-                    sBoxMeta:setScrollPosition(height - scrollHeight + 2 * elemHeight)
-                end
-                self:update()
             end
         end)
     end
@@ -1032,7 +1037,8 @@ local function create(params)
     if not params.isQuestList then
         local lastQName = localStorage.data.lastSelectedQuest
         local qDt = playerQuests.getQuestDataByName(lastQName)
-        if lastQName and (qDt and not qDt.isFinished or meta.textFilter ~= "") then
+        local plQDt = playerQuests.getQuestStorageData(lastQName)
+        if lastQName and (qDt and (not qDt.isFinished or plQDt and plQDt.pinned) or meta.textFilter ~= "") then
             meta:selectQuest(lastQName)
         else
             meta:selectNextPreviousInList(1)

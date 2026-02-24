@@ -472,7 +472,13 @@ end
 
 -- Input
 do
+    local nextQTimer
     local function nextQ()
+        local hasTimer = nextQTimer ~= nil
+        if nextQTimer then
+            nextQTimer()
+            nextQTimer = nil
+        end
         if menuHandler.getMenu(commonData.trackingMenuId) then
             return
         end
@@ -480,16 +486,31 @@ do
         local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
         if topicMenu then
             topicMenu:selectNextPreviousInList(1)
-            return
+        else
+            local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+            if mainMenu then
+                mainMenu:selectNextPreviousInList(1)
+            end
         end
 
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
-        if mainMenu then
-            mainMenu:selectNextPreviousInList(1)
+        if I.DijectKeyBindings.version >= 4 then
+            nextQTimer = realTimer.newTimer(hasTimer and 0.15 or 0.75, function ()
+                if I.DijectKeyBindings.action.isPressed(commonData.nextQuestTriggerId) then
+                    nextQ()
+                else
+                    nextQTimer = nil
+                end
+            end)
         end
     end
 
+    local prevQTimer
     local function prevQ()
+        local hasTimer = prevQTimer ~= nil
+        if prevQTimer then
+            prevQTimer()
+            prevQTimer = nil
+        end
         if menuHandler.getMenu(commonData.trackingMenuId) then
             return
         end
@@ -497,12 +518,21 @@ do
         local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
         if topicMenu then
             topicMenu:selectNextPreviousInList(-1)
-            return
+        else
+            local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+            if mainMenu then
+                mainMenu:selectNextPreviousInList(-1)
+            end
         end
 
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
-        if mainMenu then
-            mainMenu:selectNextPreviousInList(-1)
+        if I.DijectKeyBindings.version >= 4 then
+            prevQTimer = realTimer.newTimer(hasTimer and 0.15 or 0.75, function ()
+                if I.DijectKeyBindings.action.isPressed(commonData.previousQuestTriggerId) then
+                    prevQ()
+                else
+                    prevQTimer = nil
+                end
+            end)
         end
     end
 
