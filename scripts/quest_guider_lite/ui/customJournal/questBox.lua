@@ -83,18 +83,6 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         self.trackObjectsFunc = nil
     end
 
-    self:getButtonFlex().content:add(button{
-        text = l10n("trackObjects"),
-        textSize = self.params.fontSize * 0.8,
-        visible = tracking.initialized and not self.params.isQuestList,
-        parentScrollBoxUserData = self:getScrollBox().userData,
-        event = self.trackObjectsFunc,
-        updateFunc = function ()
-            self.params.updateFunc()
-        end
-    })
-
-
     local hasTracked = showRemoveBtn
     for _, info in pairs(self.dialogueInfo) do
         hasTracked = hasTracked or tracking.isDialogueHasTracked{diaId = info.diaId}
@@ -122,7 +110,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
 
     self.toggleTrackObjectsFunc = function ()
         local hasTracked = false
-            for _, info in pairs(self.dialogueInfo) do
+        for _, info in pairs(self.dialogueInfo) do
             hasTracked = hasTracked or tracking.isDialogueHasTracked{diaId = info.diaId}
             if hasTracked then break end
         end
@@ -146,6 +134,17 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             visible = tracking.initialized and not self.params.isQuestList,
             parentScrollBoxUserData = self:getScrollBox().userData,
             event = self.untrackObjectsFunc,
+            updateFunc = function ()
+                self.params.updateFunc()
+            end
+        })
+    else
+        self:getButtonFlex().content:add(button{
+            text = l10n("trackObjects"),
+            textSize = self.params.fontSize * 0.8,
+            visible = tracking.initialized and not self.params.isQuestList,
+            parentScrollBoxUserData = self:getScrollBox().userData,
+            event = self.trackObjectsFunc,
             updateFunc = function ()
                 self.params.updateFunc()
             end
