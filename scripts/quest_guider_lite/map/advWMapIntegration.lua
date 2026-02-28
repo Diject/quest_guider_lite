@@ -138,7 +138,7 @@ function this.init()
     interface = I.AdvancedWorldMap
     ---@type AdvWMap_tracking.Interface
     trackingInt = I.AdvWMap_tracking
-    if not interface or not trackingInt then
+    if not interface or not trackingInt or interface.version < 10 then
         return false
     end
 
@@ -245,7 +245,7 @@ function this.init()
     end, 8)
 
 
-    this.updateGiversMarker()
+    this.updateGiversMarker(true)
 
 
     local dmSize = util.vector2(1, 1) * math.floor(config.data.tracking.advWMapMarkers.size * 0.6)
@@ -553,7 +553,9 @@ function this.createDoorGiversMarker(doorRef, qNames)
 end
 
 
-function this.updateGiversMarker()
+function this.updateGiversMarker(force)
+    if not force and not initialized then return end
+
     if this.questGiverMarker then
         trackingInt.removeMarker(this.questGiverMarker)
         this.questGiverMarker = nil
@@ -606,6 +608,8 @@ end
 
 
 function this.setGiverMarkersVisibility(val)
+    if not initialized then return end
+
     this.giverMarkersVisible = val
     if this.questGiverTemplate then
         trackingInt.setTemplateVisibility(this.questGiverTemplate, val and this.storageData.giversVisibility or false)
@@ -617,11 +621,15 @@ end
 
 
 function this.updateGiverMarkersVisibility()
+    if not initialized then return end
+
     this.setGiverMarkersVisibility(this.giverMarkersVisible)
 end
 
 
 function this.updateCellMarkers()
+    if not initialized then return end
+
     if this.activeMenu then
         this.activeMenu.mapWidget:updateOnZoomMarkers(true)
     end
@@ -655,6 +663,9 @@ end
 
 function this.setMarkerTemplateVisibility(templateId, visible)
     this.markerTemplatesVis[templateId] = visible or false
+
+    if not initialized then return end
+
     local vis = this.storageData.markersVisibility and visible or false
     if not trackingInt.setTemplateVisibility(templateId, vis) then
         this.markerTemplatesVis[templateId] = nil
