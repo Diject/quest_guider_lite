@@ -4,6 +4,7 @@ local I = require('openmw.interfaces')
 local types = require('openmw.types')
 local playerRef = require('openmw.self')
 local util = require("openmw.util")
+local async = require("openmw.async")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -19,6 +20,7 @@ local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataH
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
+---@module "scripts.quest_guider_lite.map.advWMapIntegration"
 local advWMapIntegration
 
 local requirementType = require("scripts.quest_guider_lite.types.requirement")
@@ -1400,6 +1402,20 @@ function this.setMarkersVisibility(params)
     end
 
     this.updateMarkers()
+end
+
+
+function this.recreateMarkers()
+    for objId, data in pairs(this.markerByObjectId) do
+        for qId, markerData in pairs(data.markers) do
+            this.removeMarker{ questId = qId, objectId = objId }
+            this.trackObject{ diaId = qId, objectId = objId, index = markerData.index }
+        end
+    end
+    this.updateMarkers()
+    async:newUnsavableSimulationTimer(0.1, function ()
+        this.updateTemporaryMarkers()
+    end)
 end
 
 

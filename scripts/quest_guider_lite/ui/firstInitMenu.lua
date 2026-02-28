@@ -10,6 +10,7 @@ local stringLib = require("scripts.quest_guider_lite.utils.string")
 
 local commonData = require("scripts.quest_guider_lite.common")
 local config = require("scripts.quest_guider_lite.configLib")
+local tracking = require("scripts.quest_guider_lite.trackingLocal")
 
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
@@ -44,7 +45,7 @@ function this.new(params)
 
     params.fontSize = params.fontSize or config.data.ui.fontSize
 
-    params.size = params.size or util.vector2(screenSize.x * 0.5, screenSize.y * 0.5)
+    params.size = params.size or util.vector2(screenSize.x * 0.6, screenSize.y * 0.6)
     params.relativePosition = util.vector2(0.5, 0.5)
 
 
@@ -60,6 +61,8 @@ function this.new(params)
         if not self.menu then return end
         I.DijectKeyBindings.keybind.unregister("C_Y", meta.btnFunction)
         I.DijectKeyBindings.keybind.unregister("Enter", meta.btnFunction)
+        I.DijectKeyBindings.keybind.unregister("C_X", meta.btnRecreateFunction)
+        I.DijectKeyBindings.keybind.unregister("X", meta.btnRecreateFunction)
         self.menu:destroy()
         menuHandler.unregisterMenu(params.menuId)
     end
@@ -147,7 +150,7 @@ function this.new(params)
                         text = l10n("firstInitQuestDataFound"),
                         textSize = params.fontSize,
                         autoSize = false,
-                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 2),
+                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 3),
                         textColor = config.data.ui.defaultColor,
                         multiline = true,
                         wordWrap = true,
@@ -162,7 +165,7 @@ function this.new(params)
                         text = l10n("firstInitNote0"),
                         textSize = params.fontSize,
                         autoSize = false,
-                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 4),
+                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 5),
                         textColor = config.data.ui.defaultColor,
                         multiline = true,
                         wordWrap = true,
@@ -189,7 +192,7 @@ function this.new(params)
                         text = l10n("firstInitNote1"),
                         textSize = params.fontSize,
                         autoSize = false,
-                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 4),
+                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 5),
                         textColor = config.data.ui.defaultColor,
                         multiline = true,
                         wordWrap = true,
@@ -276,6 +279,22 @@ function this.new(params)
                             meta.btnFunction()
                         end
                     },
+                    {
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = "    "..l10n("or").."    ",
+                            textSize = params.fontSize,
+                            textColor = config.data.ui.defaultColor,
+                        },
+                    },
+                    button{
+                        updateFunc = meta.update,
+                        textSize = params.fontSize,
+                        text = l10n("firstInitRecreateMarkersBtn"),
+                        event = function ()
+                            meta.btnRecreateFunction()
+                        end
+                    },
                 }
             },
             borders.thick(),
@@ -315,7 +334,14 @@ function this.new(params)
         meta:close()
     end
 
+    meta.btnRecreateFunction = function ()
+        tracking:recreateMarkers()
+        meta.btnFunction()
+    end
+
     I.DijectKeyBindings.keybind.register("C_Y", meta.btnFunction)
+    I.DijectKeyBindings.keybind.register("C_X", meta.btnRecreateFunction)
+    I.DijectKeyBindings.keybind.register("X", meta.btnRecreateFunction)
     I.DijectKeyBindings.keybind.register("Enter", meta.btnFunction)
 
     return meta

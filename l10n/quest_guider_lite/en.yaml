@@ -161,7 +161,7 @@ cellsAway: |-
     other {{count} cells away}
   }
 startedTracking: "Started tracking"
-doorGiverMessage: "%s can be started here or in surrounding locations."
+doorGiverMessage: "Available quests: %s."
 questGiverU: "Quest Giver"
 questGiversU: "Quest Givers"
 idIndexShort: "ID: \"%s\", index: %d"
@@ -186,6 +186,7 @@ markersDisabled: "Markers are disabled"
 showQuestByTrackingMenuBtn: ">>"
 mapUpdateQuestDataMessage: "To access the map, update the quest data."
 andMorePattern: "and %d more"
+or: "or"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."
@@ -198,7 +199,7 @@ dateFormat: "%d %B 3E %Y, %H:%M"
 
 
 firstInitQuestDataFound: "Quest data detected. Select tracking preferences."
-firstInitNote0: "If any of the mods listed below are not installed, tracking will begin once they are installed.\nChanging object tracking settings does not affect markers for already tracked objects. Changes to quest giver tracking settings will take effect only after entering a new location."
+firstInitNote0: "If any of the mods listed below are not installed, tracking will begin once they are installed.\nChanging object settings will not affect markers for already tracked objects if you do not recreate them."
 firstInitMapMarkersCategory: "Map markers via Advanced World Map mod\n(https://www.nexusmods.com/morrowind/mods/57881)"
 firstInitProximityMarkersCategory: "Proximity markers via proximityTool mod\n(https://www.nexusmods.com/morrowind/mods/57286)"
 firstInitHUDMarkersCategory: "HUD markers via HUDMarkers mod\n(https://www.nexusmods.com/morrowind/mods/57112 , also requires proximityTool)"
@@ -206,6 +207,7 @@ firstInitGivers: "Quest givers"
 firstInitObjects: "Quest objects"
 firstInitNote1: "Data accuracy is not guaranteed: the mod may indicate quest givers whose quests you cannot yet take, or incorrectly determine available stages of tracked quests and point to wrong objects."
 firstInitBtn: "Ok (Enter/Y)"
+firstInitRecreateMarkersBtn: "Recreate markers (X)"
 
 
 true_l: "true"
