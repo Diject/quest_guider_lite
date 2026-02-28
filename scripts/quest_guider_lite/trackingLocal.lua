@@ -409,15 +409,15 @@ function this.addMarker(params)
     if createAdvWMapMarkers then
         local color = util.color.rgb(objectTrackingData.color[1], objectTrackingData.color[2], objectTrackingData.color[3])
         color = config.data.tracking.colored and color or config.data.ui.defaultColor
-        local iaActorReq = params.reqData and params.reqData.data.type == requirementType.CustomActor
+        local isActorReq = params.reqData and params.reqData.data.type == requirementType.CustomActor
 
         ---@type AdvWMap_tracking.TemplateData
         local template = {
-            path = iaActorReq and common.mapQuestionMarkPath or common.mapMarkerPath,
-            pathA = iaActorReq and common.mapQuestionMarkUpPath or common.mapMarkerUpPath,
-            pathB = iaActorReq and common.mapQuestionMarkDownPath or common.mapMarkerDownPath,
+            path = isActorReq and common.mapQuestionMarkPath or common.mapMarkerPath,
+            pathA = isActorReq and common.mapQuestionMarkUpPath or common.mapMarkerUpPath,
+            pathB = isActorReq and common.mapQuestionMarkDownPath or common.mapMarkerDownPath,
             size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
-            anchor = util.vector2(0.5, 1),
+            anchor = util.vector2(0.5, isActorReq and 0.8 or 1),
             color = color,
             temp = false,
             userData = userData,
@@ -450,6 +450,7 @@ function this.addMarker(params)
                 positions = positions,
                 item = isItem and objectId or nil,
                 temp = false,
+                active = not markEntrances,
                 priority = 100 - (positions and #positions or 0),
             }
 
@@ -485,7 +486,7 @@ function this.addMarker(params)
                 temp = false,
                 userData = userData,
                 onClick = common.advWMapMarkerCallback,
-                tText = {"@name@", qName, text}
+                tText = {string.format("#%s%s", color:asHex(), params.objectName), qName, text}
             }
 
             local wTemplId = advWMap_tracking.addTemplate(wTemplate)
@@ -537,6 +538,12 @@ function this.addMarker(params)
 
         local dTemplId = advWMap_tracking.addTemplate(dTemplate)
         if dTemplId then
+            local id = advWMap_tracking.addMarker{
+                template = dTemplId,
+                positions = doorPoss,
+                temp = false,
+            }
+
             advWMapIntegration.registerTargetCells(dTemplId, objectTrackingData.targetCells or {})
             objectMarkerData.advWMapDoorMarker = dTemplId
             advWMapIntegration.setMarkerTemplateVisibility(dTemplId, true)

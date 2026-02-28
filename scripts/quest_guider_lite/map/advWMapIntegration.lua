@@ -158,6 +158,16 @@ function this.init()
     end)
 
 
+    events.registerHandler(events.EVENT.onMapShown, function (e)
+        if not e.isNew and not config.data.tracking.advWMapMarkers.enabled or
+            not config.data.tracking.advWMapMarkers.details.markers then return end
+
+        for _, marker in pairs(e.mapWidget:getActiveMarkers()) do
+            checkMapElement(e.mapWidget.cellId, marker)
+        end
+    end)
+
+
     events.registerHandler(events.EVENT.onMapElementCreated, function (e)
         if not config.data.tracking.advWMapMarkers.enabled or
             not config.data.tracking.advWMapMarkers.details.markers then return end
@@ -539,16 +549,28 @@ end
 
 function this.createDoorGiversMarker(doorRef, qNames)
     if not initialized then return end
+    local destCell = protectedDoor.destCell(doorRef)
+    if not destCell then return end
+
+    local destCellId = destCell.id
+    local isDiscovered = not interface.getConfig().legend.onlyDiscovered or interface.isDiscovered(destCellId)
 
     local markerId = trackingInt.addMarker{
         template = this.doorGiversTemplate,
-        objects = {doorRef},
-        active = true,
+        positions = {{pos = doorRef.position, id = not doorRef.cell.isExterior and doorRef.cell.id or nil}},
+        short = true,
         priority = -100,
+        isVisibleFn = not isDiscovered and function (markerDt)
+            local discovered = interface.isDiscovered(destCellId)
+            if discovered then
+                markerDt.isVisibleFn = nil
+            end
+            return discovered
+        end or nil,
     }
     if not markerId then return end
 
-    local hash = doorHash(doorRef, protectedDoor.destCell(doorRef).id)
+    local hash = doorHash(doorRef, destCellId)
     this.doorGiversMarkers[hash] = {qNames = qNames, mId = markerId}
 end
 
@@ -575,7 +597,7 @@ function this.updateGiversMarker(force)
         pathA = commonInfo.mapGiverMarkerUpPath,
         pathB = commonInfo.mapGiverMarkerDownPath,
         size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
-        anchor = util.vector2(0.5, 1),
+        anchor = util.vector2(0.5, 0.8),
         visible = this.giverMarkersVisible and this.storageData.giversVisibility or false,
         color = config.data.ui.defaultColor,
         tText = "@name@",
