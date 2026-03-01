@@ -1139,6 +1139,8 @@ function this.getRequirementPositionData(requirement, customConfig)
         end
     end
 
+    cellLib.findExitPosCache = {}
+
     return out
 end
 
@@ -1195,6 +1197,8 @@ function this.getPositions(objectId, params)
             tableLib.addValues(linkPositions, positions)
         end
     end
+
+    cellLib.findExitPosCache = {}
 
     return positions, linkPositions
 end

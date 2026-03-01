@@ -6,9 +6,11 @@ local utils = require("scripts.quest_guider_lite.utils.common")
 local tes3 = require("scripts.quest_guider_lite.core.tes3")
 local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
 
-local maxDepth = 20
+local maxDepth = 8
 
 local this = {}
+
+this.findExitPosCache = {}
 
 ---@param cell tes3cell
 ---@return tes3vector3|nil outPos
@@ -29,46 +31,55 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
     if (checked[cell.id] and checked[cell.id] < depth) or depth > maxDepth then
         return nil, nil, nil, nil, checked, depth
     end
-    checked[cell.id] = depth
+    checked[cell.id] = math.min(checked[cell.id] or depth, depth)
 
-    local results = {}
+    if depth == 1 and this.findExitPosCache[cell.id] then
+        return table.unpack(this.findExitPosCache[cell.id]) ---@diagnostic disable-line: redundant-return-value
+    end
+
+    local bestResult = nil
+
     for _, door in pairs(cell:getAll(types.Door)) do
         if not types.Door.isTeleport(door) or not door.enabled then goto continue end
 
-        local destCell
-        local destPos
-        destCell = protectedDoor.destCell(door)
-        destPos = protectedDoor.destPosition(door)
+        local destCell = protectedDoor.destCell(door)
+        local destPos = protectedDoor.destPosition(door)
 
         if not destCell or not destPos then goto continue end
 
+        if checked[destCell.id] and checked[destCell.id] < depth + 1 then goto continue end
+
         local destCellData = tes3.getCellData(destCell)
 
-        ---@type tes3travelDestinationNode[]
-        local pathCopy = tableLib.copy(path)
-        table.insert(pathCopy, {cell = destCell, dCId = cell.id, cellData = destCellData, marker = {position = destPos}})
+        table.insert(path, {cell = destCell, dCId = cell.id, cellData = destCellData, marker = {position = destPos}})
+        table.insert(cellPath, destCellData)
 
-        local cellPathCopy = tableLib.copy(cellPath)
-        table.insert(cellPathCopy, destCellData)
-
+        local candidate
         if destCell.isExterior or destCell:hasTag("QuasiExterior") then
-            table.insert(results, {utils.copyVector3(destPos), pathCopy, cellPathCopy, destCell.isExterior, checked, depth})
+            candidate = {utils.copyVector3(destPos), tableLib.copy(path), tableLib.copy(cellPath), destCell.isExterior, checked, depth}
         else
-            local out, destPath, cPath, isEx, ch, dp = this.findExitPos(destCell, pathCopy, checked, cellPathCopy, depth + 1)
+            local out, destPath, cPath, isEx, ch, dp = this.findExitPos(destCell, path, checked, cellPath, depth + 1)
             if out then
-                table.insert(results, {out, destPath, cPath, isEx, checked, dp})
+                candidate = {out, destPath, cPath, isEx, checked, dp}
             end
+        end
+
+        table.remove(path)
+        table.remove(cellPath)
+
+        if candidate then
+            if not bestResult or candidate[6] < bestResult[6] then
+                bestResult = candidate
+            end
+
+            if bestResult[6] == 1 then break end
         end
 
         ::continue::
     end
 
-    if next(results) then
-        table.sort(results, function(a, b)
-            return a[6] < b[6]
-        end)
-
-        local res = results[1]
+    if bestResult then
+        local res = bestResult
         for _, drData in pairs(res[2] or {}) do
             if drData.cell then
                 if drData.cellData.isExterior then
@@ -90,11 +101,15 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
                 end
 
                 drData.cell = nil
-                drData.dCId = nil
+                drData.dCId = nil ---@diagnostic disable-line: inject-field
             end
         end
 
-        return table.unpack(results[1]) ---@diagnostic disable-line: redundant-return-value
+        if depth == 1 then
+            this.findExitPosCache[cell.id] = {table.unpack(bestResult)}
+        end
+
+        return table.unpack(bestResult) ---@diagnostic disable-line: redundant-return-value
     end
 
     return nil, nil, nil, nil, checked, depth
