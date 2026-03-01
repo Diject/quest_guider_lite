@@ -410,6 +410,8 @@ function this.addMarker(params)
         local color = util.color.rgb(objectTrackingData.color[1], objectTrackingData.color[2], objectTrackingData.color[3])
         color = config.data.tracking.colored and color or config.data.ui.defaultColor
         local isActorReq = params.reqData and params.reqData.data.type == requirementType.CustomActor
+        local coloredTrackingObjName = params.objectName and params.objectName ~= "" and
+            string.format("@list:qgObjects@#%s%s", color:asHex(), params.objectName) or ""
 
         ---@type AdvWMap_tracking.TemplateData
         local template = {
@@ -422,7 +424,7 @@ function this.addMarker(params)
             temp = false,
             userData = userData,
             onClick = common.advWMapMarkerCallback,
-            tText = {"@name@", qName, text}
+            tText = {"@name@", coloredTrackingObjName, qName, text}
         }
 
         local templId = advWMap_tracking.addTemplate(template)
@@ -486,7 +488,7 @@ function this.addMarker(params)
                 temp = false,
                 userData = userData,
                 onClick = common.advWMapMarkerCallback,
-                tText = {string.format("#%s%s", color:asHex(), params.objectName), qName, text}
+                tText = {coloredTrackingObjName, qName, text}
             }
 
             local wTemplId = advWMap_tracking.addTemplate(wTemplate)
