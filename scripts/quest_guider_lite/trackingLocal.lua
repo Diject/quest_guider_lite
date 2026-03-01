@@ -65,6 +65,7 @@ local exteriorDoors = {}
 ---@field color number[]?
 ---@field markers table<string, questGuider.tracking.markerData> by quest id
 ---@field targetCells table<string, string>? parent cell editor name by editor name of cell that have access to the parent
+---@field pathCells table<string, boolean>?
 ---@field firstEntranceCells table<string, any>?
 
 ---@type table<string, questGuider.tracking.objectRecord>
@@ -119,6 +120,7 @@ function this.init()
             local doorTemplateId = mrkData.data.advWMapDoorMarker
             if doorTemplateId then
                 advWMapIntegration.registerTargetCells(doorTemplateId, objData.targetCells or {})
+                advWMapIntegration.registerPathCells(doorTemplateId, objData.pathCells or {})
             end
         end
     end
@@ -299,6 +301,8 @@ function this.addMarker(params)
     local positionalMarkers = { record = objectMarkerData.localMarkerId, groupName = qName, positions = {} }
     local doorMarkers = { record = objectMarkerData.localDoorMarkerId, groupName = qName, positions = {} }
 
+    ---@type table<string, {drPath : tes3travelDestinationNode[], depth : integer}[]>
+    local exitPathsByDestCell = {}
     for _, data in pairs(positionData.positions or {}) do
 
         local rawData = data.rawData
@@ -345,6 +349,21 @@ function this.addMarker(params)
 
                 objectTrackingData.targetCells[cell.id] = cell.id
                 tableLib.copy(data.firstEntranceCellIds or {}, objectTrackingData.firstEntranceCells)
+            end
+
+            if data.doorPath and next(data.doorPath) then
+                local exDrPosDt = data.doorPath[#data.doorPath]
+                if exDrPosDt then
+                    exitPathsByDestCell[data.id] = exitPathsByDestCell[data.id] or {}
+                    table.insert(exitPathsByDestCell[data.id], {drPath = data.doorPath, depth = #data.doorPath})
+                end
+
+                objectTrackingData.pathCells = objectTrackingData.pathCells or {}
+                for _, pathDt in pairs(data.doorPath) do
+                    if pathDt.cellData.id then
+                        objectTrackingData.pathCells[pathDt.cellData.id] = pathDt.pos
+                    end
+                end
             end
         end
     end
@@ -413,6 +432,25 @@ function this.addMarker(params)
         local coloredTrackingObjName = params.objectName and params.objectName ~= "" and
             string.format("@list:qgObjects@#%s%s", color:asHex(), params.objectName) or ""
 
+        local exitPositions = {}
+        local pathPositions = {}
+        for cellId, posDt in pairs(exitPathsByDestCell) do
+            exitPathsByDestCell[cellId] = table.sort(posDt, function(a, b) return a.depth < b.depth end)
+            for i = 1, math.min(#posDt, config.data.tracking.advWMapMarkers.maxWorldMapMarkersForCell) do
+                local dt = posDt[i]
+                if not dt or dt.depth == 0 then goto continue end
+
+                local exitDt = dt.drPath[#dt.drPath]
+                table.insert(exitPositions, {pos = exitDt.pos, id = exitDt.cellData.id})
+
+                for _, pathDt in pairs(dt.drPath) do
+                    table.insert(pathPositions, {pos = pathDt.pos, id = pathDt.cellData.id})
+                end
+
+                ::continue::
+            end
+        end
+
         ---@type AdvWMap_tracking.TemplateData
         local template = {
             path = isActorReq and common.mapQuestionMarkPath or common.mapMarkerPath,
@@ -452,8 +490,8 @@ function this.addMarker(params)
                 positions = positions,
                 item = isItem and objectId or nil,
                 temp = false,
-                active = not markEntrances,
-                priority = 100 - (positions and #positions or 0),
+                activeEx = not markEntrances,
+                priority = math.max(0, 100 - (positions and #positions or 0)),
             }
 
             local markerId = advWMap_tracking.addMarker(marker)
@@ -465,11 +503,13 @@ function this.addMarker(params)
             end
         end
 
-        do
+        if markEntrances then
             local positions = {}
-            for _, dt in pairs(doorMarkers.positions or {}) do
-                local pos = dt.position
-                positions[string.format("%d_%d", pos.x / 1024, pos.y / 1024)] = {pos = pos}
+            for _, dt in pairs(exitPositions) do
+                if dt.id == nil then
+                    local pos = dt.pos
+                    positions[string.format("%d_%d", pos.x / 1024, pos.y / 1024)] = {pos = pos}
+                end
             end
             for _, dt in pairs(positionalMarkers.positions or {}) do
                 local pos = dt.position
@@ -500,6 +540,7 @@ function this.addMarker(params)
                     positions = positions,
                     zoomOut = true,
                     temp = false,
+                    priority = math.max(0, 100 - (positions and #positions or 0)),
                 }
 
                 local markerId = advWMap_tracking.addMarker(marker)
@@ -513,42 +554,39 @@ function this.addMarker(params)
             ::tonext::
         end
 
-        local doorPoss = {}
-        local doorCnt = 0
-        for _, dt in pairs(doorMarkers.positions or {}) do
-            table.insert(doorPoss, {pos = dt.position, id = dt.cell.id})
-            doorCnt = doorCnt + 1
-        end
+        if next(pathPositions) then
 
-        ---@type AdvWMap_tracking.TemplateData
-        local dTemplate = {
-            path = common.mapMarkerPath,
-            layer = "nonInteractive",
-            size = util.vector2(1, 1) * (config.data.tracking.advWMapMarkers.size * 0.8),
-            anchor = util.vector2(0.5, 1),
-            color = color,
-            temp = false,
-            userData = {
-                priority = 100 - doorCnt,
-                diaId = params.questId,
-                index = params.questStage,
-                objtId = objectId,
-                objName = params.objectName,
-                color = color
-            },
-        }
-
-        local dTemplId = advWMap_tracking.addTemplate(dTemplate)
-        if dTemplId then
-            local id = advWMap_tracking.addMarker{
-                template = dTemplId,
-                positions = doorPoss,
+            ---@type AdvWMap_tracking.TemplateData
+            local dTemplate = {
+                path = common.mapMarkerPath,
+                layer = "nonInteractive",
+                size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
+                anchor = util.vector2(0.5, 1),
+                color = color,
                 temp = false,
+                userData = {
+                    diaId = params.questId,
+                    index = params.questStage,
+                    objtId = objectId,
+                    objName = params.objectName,
+                    color = color
+                },
             }
 
-            advWMapIntegration.registerTargetCells(dTemplId, objectTrackingData.targetCells or {})
-            objectMarkerData.advWMapDoorMarker = dTemplId
-            advWMapIntegration.setMarkerTemplateVisibility(dTemplId, true)
+            local dTemplId = advWMap_tracking.addTemplate(dTemplate)
+            if dTemplId then
+                local id = advWMap_tracking.addMarker{
+                    template = dTemplId,
+                    positions = pathPositions,
+                    temp = false,
+                    priority = math.max(0, 100 - (pathPositions and #pathPositions or 0)),
+                }
+
+                advWMapIntegration.registerTargetCells(dTemplId, objectTrackingData.targetCells or {})
+                advWMapIntegration.registerPathCells(dTemplId, objectTrackingData.pathCells or {})
+                objectMarkerData.advWMapDoorMarker = dTemplId
+                advWMapIntegration.setMarkerTemplateVisibility(dTemplId, true)
+            end
         end
 
     end
@@ -907,6 +945,7 @@ local function removeMarker(params)
 
             if markerData.data.advWMapDoorMarker then
                 advWMapIntegration.unregisterTargetCells(markerData.data.advWMapDoorMarker, objData.targetCells or {})
+                advWMapIntegration.unregisterPathCells(markerData.data.advWMapDoorMarker, objData.pathCells or {})
             end
             addToRemove(markerData.data)
             objData.markers[qId] = nil

@@ -38,8 +38,9 @@ this.default = {
         },
         advWMapMarkers = {
             enabled = true,
-            size = 14,
+            size = 12,
             wSize = 18,
+            maxWorldMapMarkersForCell = 2,
             details = {
                 givers = true,
                 markers = true,

@@ -125,14 +125,23 @@ end
 
 
 function this.getUIScale()
-	local width = ui.layers[ui.layers.indexOf("HUD")].size.x
+	local width = ui.layers[1].size.x
 	local screenSize = ui.screenSize()
 	return screenSize.x / width
 end
 
 
 function this.getScaledScreenSize()
-    return ui.layers[ui.layers.indexOf("HUD")].size
+    return ui.layers[1].size
+end
+
+
+function this.getTooltipWidth()
+    local scaledScreenSize = ui.layers[1].size
+    local width = scaledScreenSize.x
+	local screenSize = ui.screenSize()
+    local scale = screenSize.x / width
+    return math.min(scaledScreenSize.x * 0.4, width / 5 * scale)
 end
 
 

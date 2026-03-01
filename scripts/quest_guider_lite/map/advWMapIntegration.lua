@@ -38,6 +38,8 @@ this.storageData = {}
 
 ---@type table<string, table<string, boolean>> by cellId, templateId = true
 this.targetCells = {}
+---@type table<string, table<string, boolean>> by cellId, templateId = true
+this.pathCells = {}
 ---@type table<string, table<string, table<string, string>>> by cellId, doorId, templateId = advWMapMarkerId
 this.doorMarkers = {}
 ---@type table<string, {qNames: string[], mId: string}> by doorHash
@@ -185,16 +187,18 @@ function this.init()
         if not config.data.tracking.advWMapMarkers.enabled or
             not config.data.tracking.advWMapMarkers.details.markers then return end
 
+        local mapWidget = e.marker._parent
+        local cellId = mapWidget.cellId
         local userData = e.marker:getUserData()
         if not userData then return end
         local destCellId = userData.cellId
-        if not destCellId or not this.targetCells[destCellId] then return end
+        if not destCellId or (not this.pathCells[destCellId] and not this.targetCells[destCellId]) then return end
 
         local names = {}
 
-        for templateId, _ in pairs(this.targetCells[destCellId]) do
+        local function processTemplate(templateId)
             local template = trackingInt.getTemplate(templateId)
-            if not template or not template.userData then goto continue end
+            if not template or not template.userData or not template.visible then return end
 
             local diaId = template.userData.diaId
             local index = template.userData.index
@@ -202,17 +206,24 @@ function this.init()
             local color = template.userData.color
 
             local questName = playerQuests.getQuestNameByDiaId(diaId)
-            if not questName then goto continue end
+            if not questName then return end
 
             names[questName] = names[questName] or {}
             if objname then
                 names[questName][objname] = color
             end
-
-            ::continue::
         end
 
-        local size = util.vector2(uiUtils.getScaledScreenSize().x / 5, 0)
+        for templateId, _ in pairs(this.targetCells[destCellId] or {}) do
+            processTemplate(templateId)
+        end
+        for templateId, _ in pairs(this.pathCells[destCellId] or {}) do
+            if not cellId or not (this.targetCells[cellId] and this.targetCells[cellId][templateId]) then
+                processTemplate(templateId)
+            end
+        end
+
+        local size = util.vector2(uiUtils.getTooltipWidth(), 0)
 
         for qName, objects in pairs(names) do
             local strs = {}
@@ -287,7 +298,7 @@ function this.init()
         qNames = tableLib.keys(qNames)
 
         local text = stringLib.getValueEnumString(qNames, config.data.journal.objectNames, l10n("starts").." %s")
-        local size = util.vector2(uiUtils.getScaledScreenSize().x / 5, 0)
+        local size = util.vector2(uiUtils.getTooltipWidth(), 0)
         e.content:add{
             type = ui.TYPE.TextEdit,
             props = {
@@ -324,7 +335,7 @@ function this.init()
         end
 
         local text = stringLib.getValueEnumString(doorMarkerData.qNames, config.data.journal.objectNames, l10n("doorGiverMessage"))
-        local size = util.vector2(uiUtils.getScaledScreenSize().x / 5, 0)
+        local size = util.vector2(uiUtils.getTooltipWidth(), 0)
         e.content:add{
             type = ui.TYPE.TextEdit,
             props = {
@@ -677,6 +688,31 @@ function this.unregisterTargetCells(markerId, table)
             dt[markerId] = nil
             if not next(dt) then
                 this.targetCells[cellId] = nil
+            end
+        end
+    end
+end
+
+
+---@param markerId string
+---@param table table<string, any>
+function this.registerPathCells(markerId, table)
+    for cellId, _ in pairs(table) do
+        this.pathCells[cellId] = this.pathCells[cellId] or {}
+        this.pathCells[cellId][markerId] = true
+    end
+end
+
+
+---@param markerId string
+---@param table table<string, any>
+function this.unregisterPathCells(markerId, table)
+    for cellId, _ in pairs(table) do
+        local dt = this.pathCells[cellId]
+        if dt then
+            dt[markerId] = nil
+            if not next(dt) then
+                this.pathCells[cellId] = nil
             end
         end
     end

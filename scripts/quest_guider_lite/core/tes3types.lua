@@ -2,6 +2,7 @@
 ---@field cell tes3cell?
 ---@field cellData tes3cellData
 ---@field marker {position : tes3vector3, rotation : tes3vector3}
+---@field pos tes3vector3?
 
 ---@class tes3cell
 ---@field name string

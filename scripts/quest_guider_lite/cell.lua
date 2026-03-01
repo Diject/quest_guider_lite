@@ -16,25 +16,29 @@ local this = {}
 ---@return tes3cellData[]|nil cellPath
 ---@return boolean|nil isExterior
 ---@return table<string,tes3cell>|nil checkedCells
-function this.findExitPos(cell, path, checked, cellPath)
+---@return number|nil depth
+function this.findExitPos(cell, path, checked, cellPath, depth)
     if not checked then checked = {} end
     if not path then path = {} end
+    if not depth then depth = 1 end
     if not cellPath then
         cellPath = {}
         table.insert(cellPath, tes3.getCellData(cell))
     end
 
-    if checked[cell.id] then return nil, nil, nil, nil, checked end
-    checked[cell.id] = cell
+    if (checked[cell.id] and checked[cell.id] < depth) or depth > maxDepth then
+        return nil, nil, nil, nil, checked, depth
+    end
+    checked[cell.id] = depth
+
+    local results = {}
     for _, door in pairs(cell:getAll(types.Door)) do
         if not types.Door.isTeleport(door) or not door.enabled then goto continue end
 
         local destCell
         local destPos
-        pcall(function ()
-            destCell = protectedDoor.destCell(door)
-            destPos = protectedDoor.destPosition(door)
-        end)
+        destCell = protectedDoor.destCell(door)
+        destPos = protectedDoor.destPosition(door)
 
         if not destCell or not destPos then goto continue end
 
@@ -42,22 +46,58 @@ function this.findExitPos(cell, path, checked, cellPath)
 
         ---@type tes3travelDestinationNode[]
         local pathCopy = tableLib.copy(path)
-        table.insert(pathCopy, {cellData = destCellData, marker = {position = destPos}})
+        table.insert(pathCopy, {cell = destCell, dCId = cell.id, cellData = destCellData, marker = {position = destPos}})
 
         local cellPathCopy = tableLib.copy(cellPath)
         table.insert(cellPathCopy, destCellData)
 
         if destCell.isExterior or destCell:hasTag("QuasiExterior") then
-            return utils.copyVector3(destPos), pathCopy, cellPathCopy, destCell.isExterior, checked
+            table.insert(results, {utils.copyVector3(destPos), pathCopy, cellPathCopy, destCell.isExterior, checked, depth})
         else
-            local out, destPath, cPath, isEx = this.findExitPos(destCell, pathCopy, checked, cellPathCopy)
-            if out then return out, destPath, cPath, isEx, checked end
+            local out, destPath, cPath, isEx, ch, dp = this.findExitPos(destCell, pathCopy, checked, cellPathCopy, depth + 1)
+            if out then
+                table.insert(results, {out, destPath, cPath, isEx, checked, dp})
+            end
         end
-
 
         ::continue::
     end
-    return nil, nil, nil, nil, checked
+
+    if next(results) then
+        table.sort(results, function(a, b)
+            return a[6] < b[6]
+        end)
+
+        local res = results[1]
+        for _, drData in pairs(res[2] or {}) do
+            if drData.cell then
+                if drData.cellData.isExterior then
+                    local door = this.findNearestDoor(drData.marker.position, drData.cell)
+                    local doorDestCell = door and protectedDoor.destCell(door)
+
+                    if doorDestCell then
+                        if doorDestCell.id == drData.dCId then
+                            drData.pos = door.position or drData.marker.position
+                        else
+                            drData.pos = drData.marker.position
+                        end
+                    else
+                        drData.pos = drData.marker.position
+                    end
+                else
+                    local door = this.findNearestDoor(drData.marker.position, drData.cell)
+                    drData.pos = door and door.position or drData.marker.position
+                end
+
+                drData.cell = nil
+                drData.dCId = nil
+            end
+        end
+
+        return table.unpack(results[1]) ---@diagnostic disable-line: redundant-return-value
+    end
+
+    return nil, nil, nil, nil, checked, depth
 end
 
 ---@param node tes3travelDestinationNode
