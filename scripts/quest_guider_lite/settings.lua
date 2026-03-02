@@ -163,32 +163,50 @@ local res, err = pcall(function()
     local initialized = inputModSettings:get("input.initialized")
     if initialized then return end
 
-    local trackingSection = storage.playerSection(commonData.configTrackingSectionName)
-    local mainModSettings = storage.playerSection(commonData.configJournalSectionName)
-    local journalMenuKey = mainModSettings:get("journal.menuKey")
-
-    if journalMenuKey ~= nil then
-        local journalMenuKeyBind = bindingSection:get(journalMenuKey)
-        if journalMenuKeyBind and journalMenuKeyBind.key == commonData.journalMenuTriggerId then
-            bindingSection:set(journalMenuKey, nil)
-            I.DijectKeyBindings.registerKey(commonData.journalMenuTriggerId, journalMenuKey)
-            if trackingSection:get("tracking.toggleVisibilityByJournalKey") == true then
-                I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, "LeftShift + "..journalMenuKey)
+    local binds = bindingSection:asTable()
+    local function getKey(triggerId)
+        for kId, dt in pairs(binds) do
+            if dt.key == triggerId and dt.button then
+                if dt.device == "keyboard" then
+                    for k, id in pairs(input.KEY) do
+                        if dt.button == id then
+                            return k, kId
+                        end
+                    end
+                elseif dt.device == "mouse" then
+                    local keys = {"LMB", "MMB", "RMB", "MB4", "MB5"}
+                    return keys[dt.button], kId
+                elseif dt.device == "controller" then
+                    for k, id in pairs(input.CONTROLLER_BUTTON) do
+                        if dt.button == id then
+                            return "C_"..tostring(k), kId
+                        end
+                    end
+                end
             end
-            I.DijectKeyBindings.registerKey(commonData.allQuestsTriggerId, "LeftShift + LeftCtrl + "..journalMenuKey)
         end
     end
 
-    local trackingModSettings = storage.playerSection(commonData.configTrackingSectionName)
-    local toggleTrackingKey = trackingModSettings:get("tracking.toggleVisibilityKey")
-    if toggleTrackingKey ~= nil then
-        local journalMenuKeyBind = bindingSection:get(toggleTrackingKey)
-        if journalMenuKeyBind and journalMenuKeyBind.key == commonData.toggleMarkersTriggerId then
-            bindingSection:set(toggleTrackingKey, nil)
-            I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, toggleTrackingKey)
-            inputModSettings:set("input.keys.toggleMarkersVisibility", toggleTrackingKey)
-            trackingModSettings:set("tracking.toggleVisibilityKey", nil)
+    local trackingSection = storage.playerSection(commonData.configTrackingSectionName)
+    local mainModSettings = storage.playerSection(commonData.configJournalSectionName)
+    local journalMenuKey, journalKeySectionId = getKey(commonData.journalMenuTriggerId)
+
+    if journalMenuKey ~= nil then
+        bindingSection:set(journalKeySectionId, nil)
+        I.DijectKeyBindings.registerKey(commonData.journalMenuTriggerId, journalMenuKey)
+        if trackingSection:get("tracking.toggleVisibilityByJournalKey") == true then
+            I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, "LeftShift + "..journalMenuKey)
         end
+        I.DijectKeyBindings.registerKey(commonData.allQuestsTriggerId, "LeftShift + LeftCtrl + "..journalMenuKey)
+    end
+
+    local trackingModSettings = storage.playerSection(commonData.configTrackingSectionName)
+    local toggleTrackingKey, toggleTrackingSectionId = getKey(commonData.toggleMarkersTriggerId)
+    if toggleTrackingKey ~= nil then
+        bindingSection:set(toggleTrackingSectionId, nil)
+        I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, toggleTrackingKey)
+        inputModSettings:set("input.keys.toggleMarkersVisibility", toggleTrackingKey)
+        trackingModSettings:set("tracking.toggleVisibilityKey", nil)
     end
 
 
