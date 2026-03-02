@@ -277,6 +277,7 @@ function this.init()
         layer = "nonInteractive",
         anchor = dmAnchor,
         color = config.data.ui.defaultColor,
+        visible = this.giverMarkersVisible and this.storageData.giversVisibility or false,
     }
 
     ---@param e AdvancedWorldMap.Event.onTrackingTooltipShowEvent
@@ -320,7 +321,8 @@ function this.init()
 
     events.registerHandler(events.EVENT.onMarkerTooltipShow, function (e)
         if not config.data.tracking.advWMapMarkers.enabled or
-            not config.data.tracking.advWMapMarkers.details.givers then return end
+            not config.data.tracking.advWMapMarkers.details.givers or
+            not this.storageData.giversVisibility then return end
 
         local userData = e.marker:getUserData()
         if not userData or not userData.hash then return end
@@ -402,6 +404,7 @@ function this.init()
             event = function (checked, layout)
                 this.storageData.markersVisibility = checked
                 this.updateMarkerTemplatesVisibility()
+                trackingInt.update()
             end
         }
 
@@ -418,6 +421,7 @@ function this.init()
             event = function (checked, layout)
                 this.storageData.giversVisibility = checked
                 this.updateGiverMarkersVisibility()
+                trackingInt.update()
             end
         }
 
@@ -459,7 +463,7 @@ function this.init()
         local function onOpen(m, content)
             if not this.trackingLib then return end
 
-            layout.props.textColor = interface.getConfig().ui.whiteColor
+            layout.props.color = interface.getConfig().ui.whiteColor
 
             local mapWidgetSize = m.mapWidget:getSize()
 
@@ -524,7 +528,7 @@ function this.init()
         end
 
         local function onClose()
-            layout.props.textColor = interface.getConfig().ui.defaultColor
+            layout.props.color = interface.getConfig().ui.defaultColor
         end
 
         e.menu:addWidget{
