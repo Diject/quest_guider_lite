@@ -625,6 +625,7 @@ return {
         onQuestUpdate = function(questId, stage)
             timeLib.requestTimeUpdate()
             playerQuests.update(questId, stage)
+            core.sendGlobalEvent("QGL:clearCache")
 
             if not tracking.initialized then return end
             if config.data.tracking.autoTrack then

@@ -558,5 +558,9 @@ return {
         end,
 
         ["QGL:requestTimeUpdate"] = updateTime,
+
+        ["QGL:clearCache"] = function ()
+            cellLib.findExitPosCache = {}
+        end,
     },
 }
