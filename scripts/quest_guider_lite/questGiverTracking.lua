@@ -201,7 +201,7 @@ function this.createQuestGiverMarkerForDoor(ref, player)
 
     local destCellData = tes3.getCellData(destCell)
 
-    local cellsData = cellLib.findReachableCellsByNode({cell = destCell}, nil, nil, 3) ---@diagnostic disable-line: missing-fields
+    local cellsData = cellLib.findReachableCellsByNode({cell = destCell}, nil, nil, 2, {[ref.cell.id] = true}) ---@diagnostic disable-line: missing-fields
 
     local diaIds = {}
 

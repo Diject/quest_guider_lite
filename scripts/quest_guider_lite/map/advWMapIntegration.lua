@@ -40,7 +40,7 @@ this.storageData = {}
 this.targetCells = {}
 ---@type table<string, table<string, boolean>> by cellId, templateId = true
 this.pathCells = {}
----@type table<string, table<string, table<string, string>>> by cellId, doorId, templateId = advWMapMarkerId
+---@type table<string, table<string, table<string, string>>> by cellId, doorHash, templateId = advWMapMarkerId
 this.doorMarkers = {}
 ---@type table<string, {qNames: string[], mId: string}> by doorHash
 this.doorGiversMarkers = {}
@@ -62,31 +62,41 @@ this.doorMarkerSize = 6
 
 ---@param cellId string
 ---@param marker AdvancedWorldMap.MapElement
-local function checkMapElement(cellId, marker)
+---@param templatesByDHash table<string, table<string, boolean>>?
+local function checkMapElement(cellId, marker, templatesByDHash)
     local userData = marker:getUserData()
     if not userData or userData.type ~= "AdvWMap:DoorMarker" then return end
 
     local destCellId = userData.cellId
-    if not destCellId or not this.targetCells[destCellId] then return end
+    if not templatesByDHash and (not destCellId or not this.targetCells[destCellId]) then return end
 
-    local doorId = marker._params.id or ""
+    local dHash = userData.hash
+    if not dHash then return end
+
+    if not templatesByDHash then
+        templatesByDHash = {}
+        for templateId, _ in pairs(this.targetCells[destCellId]) do
+            templatesByDHash[dHash] = templatesByDHash[dHash] or {}
+            templatesByDHash[dHash][templateId] = true
+        end
+    end
 
     this.doorMarkers[cellId or ""] = this.doorMarkers[cellId or ""] or {}
     local doorMarkers = this.doorMarkers[cellId or ""]
 
-    for markerId, _ in pairs(this.targetCells[destCellId]) do
-        local template = trackingInt.getTemplate(markerId)
+    for templateId, _ in pairs(templatesByDHash[dHash] or {}) do
+        local template = trackingInt.getTemplate(templateId)
 
         if not template then goto continue end
 
         if template.invalid then
-            if doorMarkers[doorId] then
-                local id = doorMarkers[doorId][markerId]
+            if doorMarkers[dHash] then
+                local id = doorMarkers[dHash][templateId]
                 if id then
-                    doorMarkers[doorId][id] = nil
+                    doorMarkers[dHash][id] = nil
 
-                    if not next(doorMarkers[doorId]) then
-                        doorMarkers[doorId] = nil
+                    if not next(doorMarkers[dHash]) then
+                        doorMarkers[dHash] = nil
                     end
                 end
             end
@@ -94,18 +104,18 @@ local function checkMapElement(cellId, marker)
             goto continue
         end
 
-        if doorMarkers[doorId] and doorMarkers[doorId][markerId] then goto continue end
+        if doorMarkers[dHash] and doorMarkers[dHash][templateId] then goto continue end
 
         local id = trackingInt.addMarker{
-            template = markerId,
+            template = templateId,
             positions = {{pos = marker._params.pos, id = cellId}},
             short = true,
             priority = template.userData and template.userData.priority or nil,
         }
 
         if id then
-            doorMarkers[doorId] = doorMarkers[doorId] or {}
-            doorMarkers[doorId][markerId] = id
+            doorMarkers[dHash] = doorMarkers[dHash] or {}
+            doorMarkers[dHash][templateId] = id
         end
 
         ::continue::
@@ -164,18 +174,20 @@ function this.init()
         if not e.isNew and not config.data.tracking.advWMapMarkers.enabled or
             not config.data.tracking.advWMapMarkers.details.markers then return end
 
+        local dt = this.getTemplatesByDHashTable(e.mapWidget)
         for _, marker in pairs(e.mapWidget:getActiveMarkers()) do
-            checkMapElement(e.mapWidget.cellId, marker)
+            checkMapElement(e.mapWidget.cellId, marker, dt)
         end
     end)
 
 
-    events.registerHandler(events.EVENT.onMapElementCreated, function (e)
-        if not config.data.tracking.advWMapMarkers.enabled or
-            not config.data.tracking.advWMapMarkers.details.markers then return end
+    -- events.registerHandler(events.EVENT.onMapElementCreated, function (e)
+    --     if e.mapWidget.cellId then return end
+    --     if not config.data.tracking.advWMapMarkers.enabled or
+    --         not config.data.tracking.advWMapMarkers.details.markers then return end
 
-        checkMapElement(e.mapWidget.cellId, e.marker)
-    end)
+    --     checkMapElement(e.mapWidget.cellId, e.marker)
+    -- end)
 
 
     events.registerHandler(events.EVENT.onMapDestroyed, function (e)
@@ -192,7 +204,10 @@ function this.init()
         local userData = e.marker:getUserData()
         if not userData then return end
         local destCellId = userData.cellId
-        if not destCellId or (not this.pathCells[destCellId] and not this.targetCells[destCellId]) then return end
+        local dHash = userData.hash
+        if not destCellId or not dHash or
+                (not this.pathCells[destCellId] and not this.targetCells[destCellId] and
+                not (this.doorMarkers[cellId] and this.doorMarkers[cellId][dHash])) then return end
 
         local names = {}
 
@@ -220,6 +235,11 @@ function this.init()
         for templateId, _ in pairs(this.pathCells[destCellId] or {}) do
             if not cellId or not (this.targetCells[cellId] and this.targetCells[cellId][templateId]) then
                 processTemplate(templateId)
+            end
+        end
+        if this.doorMarkers[cellId] and this.doorMarkers[cellId][dHash] then
+            for templ, _ in pairs(this.doorMarkers[cellId][dHash]) do
+                processTemplate(templ)
             end
         end
 
@@ -559,6 +579,64 @@ local function doorHash(doorRef, destCellId)
     local destCellIdHash = destCellId:sub(-10)
     local cellIdHash = doorRef.cell.id:sub(-10)
     return string.format("%s_%d_%d_%s", cellIdHash, math.floor(doorPos.x / 256), math.floor(doorPos.y / 256), destCellIdHash)
+end
+
+
+function this.getTemplatesByDHashTable(mapWidget)
+    local cellId = mapWidget.cellId
+    if not cellId then return end
+
+    local maxDepth = 6
+    local arr = {}
+
+    ---@param eDt AdvancedWorldMap.DataHandler.EntranceData
+    local function processCell(parentDHash, eDt, depth)
+        if eDt.dCId:find(commonInfo.exteriorCellLabel) or depth > maxDepth or (depth > 1 and eDt.dHash == parentDHash) then return end
+        arr[eDt.dCId] = arr[eDt.dCId] or {d = depth, dHashes = {[depth] = {[parentDHash] = true}}}
+        if arr[eDt.dCId].d >= depth then
+            arr[eDt.dCId].d = depth
+            arr[eDt.dCId].dHashes[depth] = arr[eDt.dCId].dHashes[depth] or {}
+            arr[eDt.dCId].dHashes[depth][parentDHash] = true
+        else
+            return
+        end
+
+        local entrances = interface.getEntranceMarkerData(eDt.dCId)
+        if not entrances then return end
+
+        for _, dt in pairs(entrances) do
+            processCell(parentDHash, dt, depth + 1)
+        end
+    end
+
+    local entrances = interface.getEntranceMarkerData(cellId)
+    for _, dt in pairs(entrances or {}) do
+        processCell(dt.dHash, dt, 1)
+    end
+
+    local templatesByDHash = {}
+    for cId, dt in pairs(arr) do
+        if cId ~= cellId and this.targetCells[cId] then
+            for templateId, _ in pairs(this.targetCells[cId]) do
+                for h, _ in pairs(dt.dHashes[dt.d] or {}) do
+                    templatesByDHash[h] = templatesByDHash[h] or {}
+                    templatesByDHash[h][templateId] = true
+                end
+            end
+        end
+    end
+
+    return templatesByDHash
+end
+
+
+function this.updateDoorMarkers()
+    if not this.activeMenu then return end
+    local mapWidget = this.activeMenu.mapWidget
+    local dt = this.getTemplatesByDHashTable(mapWidget)
+    for _, marker in pairs(mapWidget:getActiveMarkers()) do
+        checkMapElement(mapWidget.cellId, marker, dt)
+    end
 end
 
 

@@ -119,6 +119,8 @@ this.simpleMapMenuId = "__QGL:Journal__"
 this.messageBoxMenuId = "__QGL:MessageBox__"
 this.firstInitMenuId = "__QGL:FirstInit__"
 
+this.exteriorCellLabel = "Esm3ExteriorCell:"
+
 
 function this.colorToArray(color)
     return {color.r, color.g, color.b, color.a}

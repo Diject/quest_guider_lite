@@ -625,6 +625,9 @@ return {
         onQuestUpdate = function(questId, stage)
             timeLib.requestTimeUpdate()
             playerQuests.update(questId, stage)
+            realTimer.newTimer(1, function ()
+                advWMapIntegration.updateDoorMarkers()
+            end)
             core.sendGlobalEvent("QGL:clearCache")
 
             if not tracking.initialized then return end
