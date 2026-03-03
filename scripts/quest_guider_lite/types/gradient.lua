@@ -27,9 +27,12 @@ end
 local numColors = 40
 local gradient = {}
 
+local br = {0.4, 0.5, 0.6}
+local s = {0.8, 0.7, 0.6}
+
 for i = 0, numColors - 1 do
     local hue = i / numColors
-    local r, g, b = hslToRgb(hue, 0.7, 0.5)
+    local r, g, b = hslToRgb(hue, s[i % 3 + 1], br[i % 3 + 1])
     table.insert(gradient, {r, g, b})
 end
 
