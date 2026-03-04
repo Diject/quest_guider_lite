@@ -338,13 +338,15 @@ local function buildAllQuestsMenu()
 end
 
 
-local function toggleMenu()
+local function toggleMenu(withoutMenuMode)
     if menuHandler.getMenu(commonData.journalMenuId) then
         menuHandler.destroyMenu(commonData.journalMenuId)
     elseif menuHandler.getMenu(commonData.firstInitMenuId) then
         menuHandler.destroyMenu(commonData.firstInitMenuId)
     else
-        menuHandler.activateMenuMode()
+        if not withoutMenuMode then
+            menuHandler.activateMenuMode()
+        end
 
         if configLib.data.journal.firstInitMenu and playerDataHandler.data.isReady then
             menuHandler.registerMenu(commonData.firstInitMenuId, createFirstInitMenu{
@@ -393,9 +395,14 @@ end)
 
 if config.data.journal.overrideJournal then
     I.UI.registerWindow("Journal",
-        function() toggleMenu() end,
+        function()
+            toggleMenu(true)
+            menuMode.setActivatedFlag(true)
+        end,
         function ()
-            menuHandler.destroyMenu(commonData.journalMenuId)
+            realTimer.newTimer(0.1, function ()
+                menuHandler.destroyMenu(commonData.journalMenuId)
+            end)
         end)
 end
 

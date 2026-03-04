@@ -22,6 +22,11 @@ function this.deactivate()
 end
 
 
+function this.setActiveFlag(active)
+    activated = active and true or false
+end
+
+
 function this.isActivated()
     return activated
 end
