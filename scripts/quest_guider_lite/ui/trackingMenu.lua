@@ -142,7 +142,7 @@ topicMenuMeta.updateListElements = function (self)
             end
         end
 
-        local textElem = elem.content[1]
+        local textElem = elem
         if not trackedState or not trackingData then
             textElem.props.textColor = config.data.ui.defaultColor
         elseif not disabledState then
