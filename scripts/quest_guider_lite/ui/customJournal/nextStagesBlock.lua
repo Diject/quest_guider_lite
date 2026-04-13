@@ -462,7 +462,9 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
     end
 
     addNextStageButtons(nextStageData.next, "-%d-")
-    addNextStageButtons(nextStageData.linked, "(%d)")
+    if not self.params.hideLinkedButtons then
+        addNextStageButtons(nextStageData.linked, "(%d)")
+    end
 
     self.params.updateHeightFunc()
 end
@@ -474,6 +476,7 @@ end
 ---@field data questGuider.main.fillQuestBoxQuestInfo.returnBlock
 ---@field isQuestListMode boolean?
 ---@field hideTrackButtons boolean?
+---@field hideLinkedButtons boolean?
 ---@field parentScrollBoxUserData table?
 ---@field updateFunc function
 ---@field updateHeightFunc function

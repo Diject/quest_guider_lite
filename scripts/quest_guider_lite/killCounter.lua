@@ -13,6 +13,7 @@ end
 function this.initByStorageData(storageData)
     this.data = storageData[commonData.killCounterDataLabel] or {}
     core.sendGlobalEvent("QGL:updateKillCounter", this.data)
+    storageData[commonData.killCounterDataLabel] = this.data
 end
 
 function this.registerKill(ref)

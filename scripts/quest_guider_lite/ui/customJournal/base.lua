@@ -190,11 +190,13 @@ journalMeta.selectQuest = function (self, qName)
 
     ---@type questGuider.ui.questBoxMeta
     local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
+    questBoxMeta.requestId = tostring(math.random())
     core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", {
         data = questBoxMeta.dialogueInfo,
         menuId = self.params.menuId,
         useCurrentIndex = self.params.isQuestList,
         player = playerRef.object,
+        requestId = questBoxMeta.requestId
     })
 end
 

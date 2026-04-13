@@ -411,6 +411,15 @@ function this.isFinished(dialogueId)
     return this.finished[dialogueId]
 end
 
+---@param questId string
+---@return boolean?
+function this.isHidden(questId)
+    local data = this.getQuestStorageData(questId)
+    if not data then return end
+
+    return data.disabled
+end
+
 ---@param diaId string
 ---@return integer|nil
 function this.getCurrentIndex(diaId, player)

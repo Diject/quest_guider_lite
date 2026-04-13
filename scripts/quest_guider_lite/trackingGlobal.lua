@@ -45,6 +45,8 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId, player)
     local doorByObjId = {}
 
     for objId, objData in pairs(markerByObjectId) do
+        if objData.doorMarkersDisabled then goto continue end
+
         for qId, markerInfo in pairs(objData.markers) do
             local markerData = markerInfo.data
 
@@ -60,6 +62,8 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId, player)
                 end
             end
         end
+
+        ::continue::
     end
 
     for objId, objDoorDt in pairs(doorByObjId) do

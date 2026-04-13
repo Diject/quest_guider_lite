@@ -8,6 +8,7 @@ local config = require("scripts.quest_guider_lite.config")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
+local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 
 local log = require("scripts.quest_guider_lite.utils.log")
 local dataHandler = require("scripts.quest_guider_lite.storage.dataHandler")
@@ -20,6 +21,7 @@ local common = require("scripts.quest_guider_lite.common")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 local playerQuests = require('scripts.quest_guider_lite.playerQuests')
+local myTypes = require("scripts.quest_guider_lite.types")
 
 local l10n = core.l10n(common.l10nKey)
 
@@ -31,7 +33,7 @@ local l10n = core.l10n(common.l10nKey)
 ---@alias questGuider.main.fillQuestBoxQuestInfo.returnDt table<string, questGuider.main.fillQuestBoxQuestInfo.returnFieldDt[]> by dia id, sorted by index
 ---@alias questGuider.main.fillQuestBoxQuestInfo.returnBlock {next : questGuider.main.fillQuestBoxQuestInfo.returnDt?, linked : questGuider.main.fillQuestBoxQuestInfo.returnDt?, objectPositions : table<string, questGuider.quest.getRequirementPositionData.returnData>, diaId : string, diaIndex : integer}
 
----@alias questGuider.main.fillQuestBoxQuestInfo.return {data : table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock>, menuId : string} data by content id
+---@alias questGuider.main.fillQuestBoxQuestInfo.return {data : table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock>, menuId : string, requestId : string} data by content id
 
 
 local function onInit()
@@ -174,10 +176,20 @@ local function objectInactive(ref)
 end
 
 
----@param params {diaId : string, diaIndex : number|string, objectId : string?, priority : number?, player : any}
+---@class questGuider.main.addMarkersForQuestParams
+---@field questData questDataGenerator.questData?
+---@field diaId string
+---@field diaIndex number|string
+---@field objectId string?
+---@field priority number?
+---@field player any
+---@field protectedActors table<string, any>?
+---@field checkRequirements boolean?
+
+---@param params questGuider.main.addMarkersForQuestParams
 local function addMarkersForQuest(params)
 
-    local questData = questLib.getQuestData(params.diaId)
+    local questData = params.questData or questLib.getQuestData(params.diaId)
     if not questData then return end
 
     local indexStr = tostring(params.diaIndex)
@@ -188,42 +200,77 @@ local function addMarkersForQuest(params)
 
     for i, reqDataBlock in pairs(indexData.requirements or {}) do
 
-        local requirementData = questLib.getDescriptionDataFromDataBlock(reqDataBlock)
+        if params.checkRequirements and not requirementChecker.checkBlock(reqDataBlock, {
+                    threatErrorsAs = true,
+                    ignoredTypes = {
+                        [myTypes.requirementType.CustomDialogue] = true,
+                        [myTypes.requirementType.CustomActor] = true,
+                        [myTypes.requirementType.Item] = true,
+                        [myTypes.requirementType.Dead] = true,
+                        [myTypes.requirementType.CustomOnDeath] = true,
+                    }
+                }, params.player) then
+            goto continue
+        end
+
+        local requirementData = questLib.getDescriptionDataFromDataBlock(reqDataBlock, params.diaId)
         if not requirementData then goto continue end
 
+        local hasJournalReq = false
         for _, requirement in ipairs(requirementData) do
+            if not params.objectId and requirement.data.type == myTypes.requirementType.Dead and
+                    (requirement.data.operator == myTypes.operator.value.NotEqual and requirement.data.value == 1 or
+                    requirement.data.operator == myTypes.operator.value.Equal and requirement.data.value == 0) then
+                goto continue
+            end
+
+            if not params.objectId and requirement.data.object and (requirement.data.type == myTypes.requirementType.CustomActor or
+                    requirement.data.type == myTypes.requirementType.CustomDisposition) and
+                    killCounter.getKillCount(requirement.data.object) > 0 then
+                goto continue
+            end
+
             for objId, posData in pairs(requirement.positionData or {}) do
-                if params.objectId and params.objectId ~= objId then goto continue end
-
-                if posData then
-                    ---@type questGuider.tracking.addMarker
-                    local eventParams = {
-                        questId = params.diaId,
-                        objectId = objId,
-                        objectName = posData.name,
-                        positionData = posData,
-                        questData = questData,
-                        questStage = params.diaIndex,
-                        reqData = requirement,
-                        priority = params.priority,
-                    }
-                    params.player:sendEvent("QGL:addMarker", eventParams)
-
-                    objects[objId] = posData.name
+                if params.objectId and params.objectId ~= objId or
+                        not params.objectId and (posData.isActorAliveReq or
+                        params.protectedActors and posData.actorCount and posData.actorCount > 0 and
+                        indexData.finished and params.protectedActors[objId]) then
+                    goto continue
                 end
+
+                ---@type questGuider.tracking.addMarker
+                local eventParams = {
+                    questId = params.diaId,
+                    objectId = objId,
+                    objectName = posData.name,
+                    positionData = posData,
+                    questData = questData,
+                    questStage = params.diaIndex,
+                    reqData = requirement,
+                    priority = params.priority,
+                }
+
+                params.player:sendEvent("QGL:addMarker", eventParams)
 
                 ::continue::
             end
+
+            ::continue::
         end
 
         ::continue::
     end
 
+    -- Removed:
+    -- if this quest has its own requirement blocks, do not track links to not started quests
+    -- tr_dbattack 50, a1_v_vivecinformants 1
+    -- removed because it can cause issues with some quests like "town_tel_vos"
+
     return objects
 end
 
 
----@param params {menuId : string, useCurrentIndex : boolean?, data: table<string, {diaId : string, index : integer, contentIndex : integer}>, player : any}
+---@param params {menuId : string, useCurrentIndex : boolean?, data: table<string, {diaId : string, index : integer, contentIndex : integer}>, player : any, requestId : string}
 local function fillQuestBoxQuestInfo(params)
     local player = params.player or world.players[1]
     ---@type table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock>
@@ -261,7 +308,7 @@ local function fillQuestBoxQuestInfo(params)
         if params.useCurrentIndex then
             questNextIndexes = {diaInfo.index}
         else
-            questNextIndexes, linkedIndexData = questLib.getNextIndexes(qData, diaId, diaInfo.index, {findCompleted = false, findInLinked = true})
+            questNextIndexes, linkedIndexData = questLib.getNextIndexes(qData, diaId, diaInfo.index, {findCompleted = false, findInLinked = true}, player)
         end
         if not questNextIndexes and not linkedIndexData then goto continue end
 
@@ -273,8 +320,13 @@ local function fillQuestBoxQuestInfo(params)
             arr.index = tonumber(index)
 
             for i, reqDataBlock in pairs(indexData.requirements or {}) do
-                local requirementData = questLib.getDescriptionDataFromDataBlock(reqDataBlock)
+                local requirementData, linkedQuests = questLib.getDescriptionDataFromDataBlock(reqDataBlock, diaInfo.diaId)
                 if not requirementData then goto continue end
+
+                if linkedQuests then
+                    linkedIndexData = linkedIndexData or {}
+                    tableLib.copy(linkedQuests, linkedIndexData)
+                end
 
                 table.insert(arr.requirements, requirementData)
 
@@ -380,7 +432,7 @@ local function fillQuestBoxQuestInfo(params)
     end
 
     if next(out) then
-        player:sendEvent("QGL:fillQuestBoxQuestInfo", {data = out, menuId = params.menuId})
+        player:sendEvent("QGL:fillQuestBoxQuestInfo", {data = out, menuId = params.menuId, requestId = params.requestId})
     end
 end
 
@@ -424,7 +476,7 @@ end
 return {
     interfaceName = common.interfaceName,
     interface = {
-        version = 3,
+        version = 5,
         getQuestsData = function ()
             return dataHandler.quests or {}
         end,
@@ -450,36 +502,95 @@ return {
         ["QGL:Interop:DataReady"] = function (data)
             dataHandler.load(data)
         end,
+        ---@param data questGuider.tracking.trackQuest.eventArgument
         ["QGL:trackQuest"] = function (data)
             local player = data.player or world.players[1]
-            local questNextIndexes, linkedIndexData = questLib.getNextIndexes(data.questId, data.questId, data.index, data.params)
+            local questNextIndexes, linkedIndexData, validLinked = questLib.getNextIndexes(data.questId, data.questId, data.index, data.params, player)
 
             local objects = {}
 
-            if questNextIndexes and not data.finished then
+            local questData = questLib.getQuestData(data.questId)
+            if questData and questNextIndexes and not data.finished then
+                local stageFlags = {}
+
+                -- check if stage has any finished requirements that do not require killing an actor,
+                -- if so, do suppress tracking for requiremnts that require killing an actor
+                local protectedFinActors = {}
+                local deadFinReqActors = {}
+                local aliveFinReqActors = {}
+                for _, index in pairs(questNextIndexes) do
+                    local stageData = questData[tostring(index)]
+                    if not stageData then goto continue end
+
+                    if stageData.finished then
+                        for _, reqBlock in pairs(stageData.requirements or {}) do
+                            for _, req in pairs(reqBlock) do
+                                if req.type == myTypes.requirementType.CustomActor then
+                                    if req.object then
+                                        protectedFinActors[req.object] = true
+                                    end
+
+                                elseif req.type == myTypes.requirementType.Dead then
+                                    if req.variable then
+                                        if myTypes.operator.check(req.value or 0, 1, req.operator or 48) then
+                                            deadFinReqActors[req.variable] = true
+                                        else
+                                            aliveFinReqActors[req.variable] = true
+                                        end
+                                    end
+
+                                end
+                            end
+                        end
+                    end
+
+                    ::continue::
+                end
+
+                for objId, _ in pairs(deadFinReqActors) do
+                    if aliveFinReqActors[objId] then
+                        protectedFinActors[objId] = true
+                    end
+                end
+
                 for _, indexStr in pairs(questNextIndexes) do
-                    local objs = addMarkersForQuest{diaId = data.questId, diaIndex = indexStr, player = player}
+                    local objs = addMarkersForQuest{questData = questData, diaId = data.questId, diaIndex = indexStr, player = player,
+                        protectedActors = protectedFinActors}
                     tableLib.copy(objs, objects)
                 end
                 data.shouldUpdate = true
             end
 
-            if linkedIndexData and config.data.tracking.autoTrackSideBranches then
+            if linkedIndexData then
                 for qId, dt in pairs(linkedIndexData) do
                     if not config.data.tracking.autoTrackOneEntryDialogues then
                         local indexes = questLib.getIndexes(dt.qData) or {}
                         if #indexes <= 1 then goto continue end
                     end
 
+                    -- do not auto track dialogues that have "kill" in their id, as those are likely to be fail state entries
+                    if string.sub(qId, -4):lower() == "kill" then
+                        goto continue
+                    end
+
                     local currentIndex = playerQuests.getCurrentIndex(qId, player)
                     if currentIndex and currentIndex >= dt.index then goto continue end
 
-                    local objs = addMarkersForQuest{diaId = qId, diaIndex = dt.index, priority = -100, player = player}
+                    local isValidLinkedToTrack = validLinked and validLinked[qId]
+
+                    local objs = addMarkersForQuest{
+                        diaId = qId,
+                        diaIndex = dt.index,
+                        priority = -100,
+                        checkRequirements = not (config.data.tracking.autoTrackSideBranches or isValidLinkedToTrack),
+                        player = player
+                    }
                     tableLib.copy(objs, objects)
+
+                    data.shouldUpdate = true
 
                     ::continue::
                 end
-                data.shouldUpdate = true
             end
 
             if next(objects) then
@@ -560,7 +671,7 @@ return {
         ["QGL:requestTimeUpdate"] = updateTime,
 
         ["QGL:clearCache"] = function ()
-            cellLib.findExitPosCache = {}
+            cacheLib.clear()
         end,
     },
 }

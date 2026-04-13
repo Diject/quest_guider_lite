@@ -32,4 +32,10 @@ function this.isItem(recordId)
 end
 
 
+---@return boolean
+function this.isItemType(type)
+    return itemTypes[type] and true or false
+end
+
+
 return this

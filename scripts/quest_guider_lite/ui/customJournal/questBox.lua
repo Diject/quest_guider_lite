@@ -73,7 +73,6 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
 
             for _, info in pairs(self.questInfo) do
                 tracking.trackQuest(info.diaId, info.diaIndex)
-                break
             end
             async:newUnsavableSimulationTimer(0.1, function ()
                 tracking.updateTemporaryMarkers()
@@ -481,6 +480,7 @@ function this.create(params)
     ---@class questGuider.ui.questBoxMeta
     local meta = setmetatable({}, questBoxMeta)
 
+    meta.requestId = nil
     meta.params = params
 
     meta.update = function (self)

@@ -17,6 +17,7 @@ local supportedObjectTypes = {
     [types.Probe] = true,
     [types.Repair] = true,
     [types.Weapon] = true,
+    [types.Activator] = true,
 }
 
 ---@param id string

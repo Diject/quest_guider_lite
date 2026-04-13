@@ -6,6 +6,7 @@ local log = require("scripts.quest_guider_lite.utils.log")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local cellLib = require("scripts.quest_guider_lite.cell")
+local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 
 local config = require("scripts.quest_guider_lite.config")
 
@@ -21,6 +22,8 @@ local dialogueChecker = require("scripts.quest_guider_lite.dialogueChecker")
 local tes = require("scripts.quest_guider_lite.core.tes3")
 local questBase = require("scripts.quest_guider_lite.questBase")
 local getObject = require("scripts.quest_guider_lite.core.getObject")
+local isItemType = require("scripts.quest_guider_lite.types.item").isItemType
+local isActorType = require("scripts.quest_guider_lite.types.actor").isActorType
 
 local commonData = require("scripts.quest_guider_lite.common")
 local core = require('openmw.core')
@@ -40,7 +43,7 @@ end
 
 
 local disallowedRequirementTypes = {
-    -- ["SCR"] = true
+    [myTypes.requirementType.CustomDialogueChoiceLink] = true
 }
 
 
@@ -50,6 +53,11 @@ local filterForHandledReqBlock = {
     [myTypes.requirementType.RankRequirement] = true,
     [myTypes.requirementType.PlayerRankMinusNPCRank] = true,
     [myTypes.requirementType.Item] = true,
+    [myTypes.requirementType.CustomOnDeath] = true,
+}
+
+local filterForDeadReqs = {
+    [myTypes.requirementType.Dead] = true,
     [myTypes.requirementType.CustomOnDeath] = true,
 }
 
@@ -166,7 +174,8 @@ end
 ---@field objects table<string, string>|nil index is id, value is name
 ---@field positionData table<string, questGuider.quest.getRequirementPositionData.returnData>?
 ---@field data questDataGenerator.requirementData
----@field reqDataForHandling questDataGenerator.requirementBlock? for requirementType.CustomActor type
+---@field reqDataForHandling questDataGenerator.requirementBlock? requirement block that can be used for handling quest marker visibility
+---@field reqDataForHandlingArr questDataGenerator.requirementBlock[]? alternative requirement blocks. Added to preserve old handling method.
 
 ---@alias questGuider.quest.getDescriptionDataFromBlock.return questGuider.quest.getDescriptionDataFromBlock.returnArr[]
 
@@ -174,10 +183,19 @@ end
 ---@param questId string?
 ---@param customConfig questGuider.config?
 ---@return questGuider.quest.getDescriptionDataFromBlock.return|nil
+---@return table<string, {index: integer, qData: questDataGenerator.questData}>? linkedQuests
 function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
     if not reqBlock then return end
 
+    local blockHash = myTypes.gerRequirementBlockHash(reqBlock)
+    local cachedVal = cacheLib.get("reqBlockDescrData", blockHash)
+    if cachedVal then
+        return table.unpack(cachedVal) ---@diagnostic disable-line: redundant-return-value
+    end
+
     local configData = customConfig or config.data
+    ---@type table<string, {index: integer, qData: questDataGenerator.questData}>?
+    local linkedQuests
 
     local function getName(obj, default)
         if obj and obj.id == "player" then
@@ -188,30 +206,128 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
         return default or "???"
     end
 
+    local cellRestrictions = {}
+    local posReqs = myTypes.getReqirementsByTypeFromBlock(reqBlock, myTypes.requirementType.CustomActorCell)
+    if posReqs then
+        for _, req in pairs(posReqs) do
+            cellRestrictions[req.value or ""] = true
+        end
+    end
+    posReqs = myTypes.getReqirementsByTypeFromBlock(reqBlock, myTypes.requirementType.NotActorCell)
+    if posReqs then
+        for _, req in pairs(posReqs) do
+            cellRestrictions[req.variable or ""] = false
+        end
+    end
+    cellRestrictions = next(cellRestrictions) and cellRestrictions or nil
+
     ---@type questGuider.quest.getDescriptionDataFromBlock.return
     local out = {}
 
     ---@type table<string, boolean>
     local checkedDialogObjects = {}
 
+    local processedReqs = {}
+
     ---@param requirement questDataGenerator.requirementData
-    local function processRequirement(requirement, additionalPriority, skipNested)
+    ---@param reqBlockForHandling questDataGenerator.requirementBlock?
+    local function processRequirement(requirement, additionalPriority, skipNested, reqBlockForHandling)
         if disallowedRequirementTypes[requirement.type] then goto continue end
 
         if requirement.type == myTypes.requirementType.Journal and requirement.variable == questId then
             goto continue
+        elseif requirement.type == myTypes.requirementType.CustomScript and requirement.script then
+            local scrData = dataHandler.questObjects[requirement.script]
+            if scrData and scrData.links then
+                for _, dt in pairs(scrData.links) do
+                    if dt[2] == nil then goto continue end
+
+                    local objDt = this.getObjectData(dt[1])
+                    if not objDt or objDt.type > 2 then goto continue end
+
+                    processRequirement({type = "SCR2", operator = 48, variable = dt[1], script = requirement.script}, (additionalPriority or 0) - 10000)
+
+                    ::continue::
+                end
+                return
+            end
         end
+
+        local recHash = myTypes.getRequirementHash(requirement)
+        if processedReqs[recHash] then goto continue end
+        processedReqs[recHash] = true
 
         ---@type questGuider.quest.getDescriptionDataFromBlock.returnArr
         local reqOut = {str = "", priority = additionalPriority or 0, data = requirement}
 
-        if requirement.type == myTypes.requirementType.CustomActor then
-            reqOut.reqDataForHandling = requirementChecker.getFilterredRequirementBlock(reqBlock, filterForHandledReqBlock)
+        if reqBlockForHandling then
+            reqOut.reqDataForHandling = reqBlockForHandling
+        elseif requirement.type == myTypes.requirementType.CustomActor then
+            local blockCopy = tableLib.copy(reqBlock)
+            table.insert(blockCopy, {
+                type = myTypes.requirementType.Dead,
+                operator = myTypes.operator.value.Equal,
+                value = 0,
+                object = requirement.object,
+            })
+            reqOut.reqDataForHandling = requirementChecker.getFilterredRequirementBlock(blockCopy, filterForHandledReqBlock)
         elseif requirement.type == myTypes.requirementType.Journal then
-            local req = tableLib.copy(requirement)
-            req.operator = myTypes.operator.value.Equal
-            req.value = 0
-            reqOut.reqDataForHandling = requirementChecker.getFilterredRequirementBlock({req}, filterForHandledReqBlock)
+
+            local isAddedNotStartedQuest = false
+            if requirement.type == myTypes.requirementType.Journal
+                    and not ((requirement.operator == myTypes.operator.value.Equal or requirement.operator == myTypes.operator.value.LessOrEqual) and requirement.value == 0)
+                    and not (requirement.operator == myTypes.operator.value.Less and requirement.value == 1) then
+
+                local index = playerQuests.getCurrentIndex(requirement.variable or "")
+                if not index or index == 0 then
+                    local qDt = this.getQuestData(requirement.variable)
+                    if qDt and qDt.givers then
+                        local firstIndex = this.getFirstIndex(qDt)
+
+                        local id = 1
+                        for _, giverId in pairs(qDt.givers) do
+                            local giverDt = dataHandler.questObjects[giverId]
+                            if not giverDt or (giverDt.type > 2 and giverDt.type ~= 4) then goto continue end
+
+                            reqOut.reqDataForHandlingArr = reqOut.reqDataForHandlingArr or {}
+                            reqOut.reqDataForHandlingArr[id] = reqOut.reqDataForHandlingArr[id] or {}
+                            if giverDt.type <= 2 then
+                                table.insert(reqOut.reqDataForHandlingArr[id], {
+                                    type = myTypes.requirementType.Dead,
+                                    operator = myTypes.operator.value.Equal,
+                                    value = 0,
+                                    object = giverId,
+                                })
+                            end
+                            table.insert(reqOut.reqDataForHandlingArr[id], {
+                                type = myTypes.requirementType.Journal,
+                                operator = myTypes.operator.value.Less,
+                                value = firstIndex or 0,
+                                variable = requirement.variable,
+                            })
+                            id = id + 1
+
+                            isAddedNotStartedQuest = true
+
+                            ::continue::
+                        end
+                    end
+                end
+            end
+
+            if not isAddedNotStartedQuest then
+                local req = tableLib.copy(requirement)
+                reqOut.reqDataForHandling = reqOut.reqDataForHandling or {}
+                tableLib.addValues(requirementChecker.getFilterredRequirementBlock({req}, filterForHandledReqBlock), reqOut.reqDataForHandling)
+            end
+
+        elseif requirement.type == "SCR2" then
+            local filteredBlock = requirementChecker.getFilterredRequirementBlock(reqBlock, filterForDeadReqs, true)
+            for _, req in pairs(filteredBlock or {}) do
+                req.object = requirement.variable
+            end
+            reqOut.reqDataForHandling = filteredBlock
+
         elseif requirement.type == "DIAP" then
             reqOut.reqDataForHandling = requirementChecker.getFilterredRequirementBlock(
                 {{operator = 49, type = myTypes.requirementType.CustomDialogue, variable = requirement.variable}}
@@ -494,23 +610,21 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
             reqOut.objects = objects
         end
 
-        reqOut.positionData = this.getRequirementPositionData(requirement, configData)
+        local posData, linkedQuestFromPos = this.getRequirementPositionData(requirement, configData, questId, not skipNested and {
+            cellRestrictions = cellRestrictions
+        } or nil)
+        reqOut.positionData = posData
+
+        if linkedQuestFromPos then
+            linkedQuests = linkedQuests or {}
+            tableLib.copy(linkedQuestFromPos, linkedQuests)
+        end
 
         table.insert(out, reqOut)
 
-        if requirement.type == myTypes.requirementType.CustomScript and environment.script then
-            local scrData = dataHandler.questObjects[environment.script]
-            if scrData and scrData.contains then
-                local objs, count = this.getObjectNamesFromLinkTable(scrData.contains)
+        if not skipNested and requirement.type == myTypes.requirementType.CustomLocal and requirement.variable and requirement.value then
 
-                if count > 0 then
-                    processRequirement({type = "SCR1", operator = 48, value = environment.script}, additionalPriority)
-                end
-            end
-
-        elseif not skipNested and requirement.type == myTypes.requirementType.CustomLocal and requirement.variable and requirement.value then
-
-            local function process(objectId, addPriority)
+            local function process(objectId, scriptId, addPriority)
                 if not addPriority then addPriority = 0 end
 
                 local localVarDt = dataHandler.localVariablesByScriptId[objectId]
@@ -527,6 +641,9 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 local reqs = resReqBlock[1]
 
                 local scriptIds = {}
+                if scriptId then
+                    scriptIds[scriptId] = true
+                end
                 for _, req in pairs(reqs) do
                     local isNew = true
                     for _, r in pairs(reqBlock) do
@@ -537,7 +654,8 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                     end
 
                     if isNew then
-                        processRequirement(req, addPriority - 9000, true)
+                        local reqCopy = tableLib.copy(req)
+                        processRequirement(req, addPriority - 9000, true, {myTypes.invertRequirement(reqCopy)})
                         if req.script then
                             scriptIds[req.script] = true
                         end
@@ -545,17 +663,67 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 end
 
                 for scrId, _ in pairs(scriptIds) do
-                    processRequirement({type = myTypes.requirementType.CustomScript, operator = 48, variable = scrId, script = scrId}, addPriority - 10000, true)
+                    processRequirement({type = myTypes.requirementType.CustomScript, operator = 48, variable = scrId, script = scrId}, addPriority - 10000, true, reqs)
                 end
             end
 
-            if requirement.object then
-                process(requirement.object)
+            if requirement.object or requirement.script then
+                local id = requirement.object or requirement.script
 
+                process(id, requirement.script)
+                local qObjData = this.getObjectData(id)
+                if qObjData and qObjData.contains then
+                    for _, dt in ipairs(qObjData.contains) do
+                        if dt[2] ~= nil then break end
+                        local linkedObjData = this.getObjectData(dt[1])
+                        if linkedObjData and linkedObjData.type == 4 then
+                            process(dt[1], dt[1])
+                        end
+                    end
+                end
             else
-                for i, req in pairs(reqBlock) do
-                    if req.type == myTypes.requirementType.CustomActor and req.object then
-                        process(req.object, -i * 10000)
+                local foundScripts = {}
+                local varData = this.getObjectData(requirement.variable)
+                -- TODO: dehardcode limit
+                if varData and varData.links and (varData.total or 0) <= 10 then
+                    local linkCount = #varData.links
+                    if linkCount < 10 then
+                        for _, dt in ipairs(varData.links) do
+                            if dt[2] ~= nil then break end
+
+                            if not foundScripts[dt[1]] then
+                                local objData = this.getObjectData(dt[1])
+                                if objData and objData.type == 4 then
+                                    foundScripts[dt[1]] = objData
+                                end
+                            end
+                        end
+                    end
+                end
+
+                local foundValid = false
+                for scrId, scrObjDt in pairs(foundScripts) do
+                    local total = varData.total or 0
+                    local linkCount = #(varData.links or {})
+                    if total == 0 or linkCount == 1 then
+                        process(scrId, scrId)
+                        foundValid = true
+                    else
+                        for _, dt in pairs(scrObjDt.stages or {}) do
+                            if dt.id == questId then
+                                process(scrId, scrId)
+                                foundValid = true
+                                break
+                            end
+                        end
+                    end
+                end
+
+                if not foundValid then
+                    for i, req in pairs(reqBlock) do
+                        if req.type == myTypes.requirementType.CustomActor and req.object then
+                            process(req.object, nil, -i * 10000)
+                        end
                     end
                 end
             end
@@ -594,72 +762,6 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
             addDialogueData(environment.variable)
         end
 
-        -- if requirement.type == myTypes.requirementType.CustomDialogue and environment.variable then
-        --     local foundData = {}
-
-        --     local function findParentDialogues(recId, parentId, depth, dataChain)
-        --         if depth <= 0 then return end
-
-        --         if not dataChain then dataChain = {} end
-
-        --         local recData = this.getObjectData(recId)
-        --         if not recData then return end
-
-        --         if recData.type == 3 then
-        --             local dialogue = tes3.findDialogue{ topic = string.sub(recId, 7) }
-        --             if not dialogue or dialogue.type ~= tes3.dialogueType.topic then return end
-
-        --             if not isDialogueAvailable(dialogue) then
-        --                 for _, linkInfo in pairs(recData.links or {}) do
-        --                     local chainDepth, chain = findParentDialogues(linkInfo[1], recId, depth - 1)
-        --                     if chainDepth then
-        --                         table.insert(foundData, {chainDepth, chain})
-        --                     end
-        --                 end
-        --             else
-        --                 local chain = tableLib.copy(dataChain)
-        --                 table.insert(chain, {variable = parentId, value = recId})
-        --                 return depth, chain
-        --             end
-        --         elseif recData.type == 6 then
-        --             for _, linkInfo in pairs(recData.links or {}) do
-        --                 local chainDepth, chain = findParentDialogues(linkInfo[1], parentId, depth - 1)
-        --                 if chainDepth then
-        --                     table.insert(foundData, {chainDepth, chain})
-        --                 end
-        --             end
-        --         end
-        --     end
-
-        --     local dialogue = tes3.findDialogue{ topic = string.sub(environment.variable, 7) }
-        --     if not dialogue or dialogue.type ~= tes3.dialogueType.topic then goto continue end
-
-        --     if not isDialogueAvailable(dialogue) then
-        --         findParentDialogues(environment.variable, environment.variable, 6)
-
-        --         if #foundData == 0 then goto continue end
-        --         table.sort(foundData, function (a, b)
-        --             return a[1] < b[1]
-        --         end)
-
-        --         local minDepth = foundData[1][1]
-        --         local addedDialogues = {}
-
-        --         for _, data in pairs(foundData) do
-        --             if data[1] <= minDepth then
-        --                 for _, chainDt in pairs(data[2]) do
-        --                     if not addedDialogues[chainDt.variable] then
-        --                         processRequirement({type = "DIAP", operator = 48, variable = chainDt.variable, value = chainDt.value})
-        --                         addedDialogues[chainDt.variable] = true
-        --                     end
-        --                 end
-        --             else
-        --                 break
-        --             end
-        --         end
-        --     end
-        -- end
-
         ::continue::
     end
 
@@ -671,48 +773,10 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
         return a.priority > b.priority
     end)
 
-    return out
+    cacheLib.set("reqBlockDescrData", blockHash, {out, linkedQuests})
+
+    return out, linkedQuests
 end
-
-
----@class questGuider.quest.getPlayerQuestData.returnArr
----@field id string
----@field name string|nil
----@field activeStage integer|nil
----@field isFinished boolean|nil
----@field isReachable boolean|nil
-
----@alias questGuider.quest.getPlayerQuestData.return questGuider.quest.getPlayerQuestData.returnArr[]
-
--- ---@return questGuider.quest.getPlayerQuestData.return
--- function this.getPlayerQuestData()
---     local out = {}
-
---     local dialogueData = tes3.dataHandler.nonDynamicData.dialogues
-
---     for _, dialogue in pairs(dialogueData) do
---         if dialogue.type ~= tes3.dialogueType.journal then goto continue end
-
---         local dialogueId = dialogue.id:lower()
---         local storageData = dataHandler.quests[dialogueId]
-
---         if not storageData then goto continue end
-
---         ---@type questGuider.quest.getPlayerQuestData.returnArr
---         local diaOutData = {} ---@diagnostic disable-line: missing-fields
-
---         diaOutData.id = dialogueId
---         diaOutData.name = storageData.name
---         diaOutData.activeStage = dialogue.journalIndex
---         diaOutData.isFinished = dialogue.journalIndex and storageData[tostring(dialogue.journalIndex)] and storageData[tostring(dialogue.journalIndex)].finished or nil
-
---         table.insert(out, diaOutData)
-
---         ::continue::
---     end
-
---     return out
--- end
 
 
 ---@param reqBlock table<integer, questDataGenerator.requirementData>
@@ -727,24 +791,61 @@ function this.isContainsLocalVariableRequirement(reqBlock)
 end
 
 
-local findExitPosCache = {}
-
+---@param arr questGuider.quest.getRequirementPositionData.positionData[]
 ---@param objData questDataGenerator.objectInfo
-local function addPosData(arr, objData, ownerId, configData)
+---@param cellRestrictions table<string, boolean>?
+---@return boolean? foundValidPos
+local function addPosData(arr, objData, ownerId, configData, object, cellRestrictions)
     if not objData then return end
 
     if not objData.positions then
         return
     end
 
-    for _, posDt in pairs(objData.positions) do
+    local foundValidPos = false
+
+    local isDoActorChecks = object and (object.servicesOffered ~= nil and objData.total and objData.total < 5)
+    local function getNotFoundFlag(cell)
+        if not isDoActorChecks then return end
+
+        for _, ref in pairs(cell:getAll(object.isMale ~= nil and types.NPC or types.Creature)) do
+            if ref.recordId == object.id then
+                if ref.enabled then
+                    return nil
+                end
+            end
+        end
+        return true
+    end
+
+    local function checkRestrictions(cellId)
+        if not cellRestrictions then return true end
+
+        for cId, val in pairs(cellRestrictions) do
+            if string.sub(cellId, 1, #cId):lower() == cId then
+                if val then
+                    return true
+                end
+            elseif not val then
+                return true
+            end
+        end
+
+        return false
+    end
+
+    for i, posDt in ipairs(objData.positions) do
         local x = posDt.pos[1]
         local y = posDt.pos[2]
         local z = posDt.pos[3]
 
         if posDt.name then
+            if not checkRestrictions(posDt.name) then goto continue end
+
             local cell = tes.getCell{id = posDt.name}
             if cell then
+                local notFoundFlag = getNotFoundFlag(cell)
+
                 local newPosData = tableLib.copy(posDt)
                 if ownerId then
                     newPosData.type = 2
@@ -753,13 +854,7 @@ local function addPosData(arr, objData, ownerId, configData)
                     newPosData.type = 1
                 end
 
-                local exCellPos, doorPath, cellPath, isExterior, checkedCells
-                if findExitPosCache[cell.id] then
-                    exCellPos, doorPath, cellPath, isExterior, checkedCells = table.unpack(findExitPosCache[cell.id])
-                else
-                    exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
-                    findExitPosCache[cell.id] = {exCellPos, doorPath, cellPath, isExterior, checkedCells}
-                end
+                local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
 
                 if exCellPos then
 
@@ -784,8 +879,9 @@ local function addPosData(arr, objData, ownerId, configData)
                         end
                     end
 
+                    foundValidPos = foundValidPos or not notFoundFlag
                     table.insert(arr, {id = posDt.name, position = util.vector3(x, y, z), entrances = exits,  firstEntranceCellIds = firstEntranceCellIds,
-                        exitPos = exCellPos, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath, rawData = newPosData})
+                        exitPos = exCellPos, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath, rawData = newPosData, notFound = notFoundFlag})
 
                 else
                     local descr
@@ -800,13 +896,20 @@ local function addPosData(arr, objData, ownerId, configData)
                         tableLib.shuffle(list, count)
                         descr = stringLib.getValueEnumString(list, configData.journal.objectNames, l10n("reachableFrom").." %s")
                     end
-                    table.insert(arr, {description = descr or posDt.name, id = posDt.name, position = util.vector3(x, y, z), rawData = newPosData})
+
+                    foundValidPos = foundValidPos or not notFoundFlag
+                    table.insert(arr, {description = descr or posDt.name, id = posDt.name, position = util.vector3(x, y, z), rawData = newPosData, notFound = notFoundFlag})
                 end
             end
         elseif posDt.grid then
             local cell = tes.getCell{x = posDt.grid[1], y = posDt.grid[2]}
             if cell then
+                if not checkRestrictions(cell.name or "123") then goto continue end
+
+                local notFoundFlag = getNotFoundFlag(cell)
+
                 local descr = tes.getCellData(cell).name
+
                 local pos = util.vector3(x, y, z)
                 local newPosData = tableLib.copy(posDt)
                 if ownerId then
@@ -815,24 +918,22 @@ local function addPosData(arr, objData, ownerId, configData)
                 else
                     newPosData.type = 1
                 end
-                table.insert(arr, {description = descr, id = nil, position = pos, exitPos = pos, isExitEx = true, rawData = newPosData})
+
+                foundValidPos = foundValidPos or not notFoundFlag
+                table.insert(arr, {description = descr, id = nil, position = pos, exitPos = pos, isExitEx = true, rawData = newPosData, notFound = notFoundFlag})
             end
         end
 
         ::continue::
     end
+
+    return foundValidPos
 end
 
 
 local function addCellData(cell, id, arr, configData)
     if not cell.isExterior then
-        local exCellPos, doorPath, cellPath, isExterior, checkedCells
-        if findExitPosCache[cell.id] then
-            exCellPos, doorPath, cellPath, isExterior, checkedCells = table.unpack(findExitPosCache[cell.id])
-        else
-            exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
-            findExitPosCache[cell.id] = {exCellPos, doorPath, cellPath, isExterior, checkedCells}
-        end
+        local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
 
         if exCellPos then
 
@@ -891,6 +992,69 @@ local function addCellData(cell, id, arr, configData)
 end
 
 
+---@param objectData questDataGenerator.objectInfo
+---@param outD questGuider.quest.getRequirementPositionData.returnData?
+---@return boolean? foundValidPos
+local function fillLinkPositionData(posArr, objectData, configData, outD)
+    if not objectData.links then return end
+
+    local foundDirectLinks
+    local foundValidPos = false
+
+    for _, linkData in ipairs(objectData.links or {}) do
+        local objId = linkData[1]
+        local objChance = linkData[2]
+
+        local objDt = this.getObjectData(objId)
+        if not objDt then goto continue end
+
+        if objDt.type <= 2 then
+            if (objChance or 0) >= configData.tracking.minChance * 0.01 then
+                local obj = tes.getObject(objId)
+                if not obj then goto continue end
+
+                local hasValidPos = addPosData(posArr, objDt, objId, configData, obj)
+                foundValidPos = foundValidPos or hasValidPos
+                foundDirectLinks = true
+
+                if outD then
+                    outD.inWorld = (outD.inWorld or 0) + (objDt.inWorld or 0)
+                end
+            end
+        elseif objDt.type == 6 then
+            if not objDt.links then goto continue end
+            for _, lDt in pairs(objDt.links) do
+                if (lDt[2] or 0) < configData.tracking.minChance * 0.01 then goto continue end
+
+                local lObjDt = this.getObjectData(lDt[1])
+                if not lObjDt or lObjDt.type > 2 then goto continue end
+
+                local obj = tes.getObject(lDt[1])
+                if not obj then goto continue end
+
+                local hasValidPos = addPosData(posArr, lObjDt, lDt[1], configData, obj)
+                foundValidPos = foundValidPos or hasValidPos
+                foundDirectLinks = foundDirectLinks or false
+
+                if outD then
+                    outD.inWorld = (outD.inWorld or 0) + (lObjDt.inWorld or 0)
+                end
+
+                ::continue::
+            end
+        end
+
+        if outD and foundDirectLinks == false then
+            outD.disableInventoryTracking = true
+        end
+
+        ::continue::
+    end
+
+    return foundValidPos
+end
+
+
 
 ---@class questGuider.quest.getRequirementPositionData.positionData
 ---@field description string?
@@ -906,6 +1070,7 @@ end
 ---@field cellPath tes3cellData[]? list of cells to exit from the position
 ---@field rawData questDataGenerator.objectPosition|{id : string}|nil *id* is injected owner id, if it exists
 ---@field isExitEx boolean? true, if the exit is in an exterior cell
+---@field notFound boolean? true, if the object is not found in the game world
 
 ---@class questGuider.quest.getRequirementPositionData.returnData
 ---@field reqType string requirement type
@@ -913,21 +1078,35 @@ end
 ---@field inWorld integer? number of instances of the object in the game world
 ---@field parentObject string?
 ---@field itemCount integer? item count from *types.requirementType.Item*
+---@field disableInventoryTracking boolean? disables checking for the object in the object inventory if true, because the object is not directly linked to the requirement
 ---@field actorCount integer? kill count from *types.requirementType.Dead*
+---@field isActorAliveReq boolean? true if the requirement is to have the actor alive
 ---@field positions questGuider.quest.getRequirementPositionData.positionData[]
+---@field foundValidPos boolean true if at least one valid position is found for the requirement
 
 ---@param requirement questDataGenerator.requirementData
 ---@param customConfig questGuider.config?
+---@param questId string
+---@param params {cellRestrictions: table<string, boolean>?}?
 ---@return table<string, questGuider.quest.getRequirementPositionData.returnData>? ret by object id
-function this.getRequirementPositionData(requirement, customConfig)
+---@return table<string, {index: integer, qData: questDataGenerator.questData}>? linkedQuests
+function this.getRequirementPositionData(requirement, customConfig, questId, params)
+
+    local reqHash = myTypes.getRequirementHash(requirement)
+    local cachedVal = cacheLib.get("requirementPosData", reqHash)
+    if cachedVal then
+        return table.unpack(cachedVal) ---@diagnostic disable-line: redundant-return-value
+    end
 
     local configData = customConfig or config.data
-
     local trackingConfig = configData.tracking
 
-    if requirement.type == myTypes.requirementType.CustomDialogue then
+    if requirement.type == myTypes.requirementType.CustomDialogue or
+            requirement.type == myTypes.requirementType.CustomPos then
         return
     end
+
+    local linkedQuests = {}
 
     ---@type table<string, questGuider.quest.getRequirementPositionData.returnData>
     local out = {}
@@ -937,30 +1116,20 @@ function this.getRequirementPositionData(requirement, customConfig)
     local cells = {}
 
     local requirements = {requirement}
-    if requirement.type == myTypes.requirementType.Journal
-            and not ((requirement.operator == myTypes.operator.value.Equal or requirement.operator == myTypes.operator.value.LessOrEqual) and requirement.value == 0)
-            and not (requirement.operator == myTypes.operator.value.Less and requirement.value == 1) then
-        local index = playerQuests.getCurrentIndex(requirement.variable or "")
-        if not index or index == 0 then
-            local qDt = this.getQuestData(requirement.variable)
-            if qDt then
-                local firstIndex = this.getFirstIndex(qDt)
-                local stageData = qDt[tostring(firstIndex)]
 
-                if stageData then
-                    for _, block in pairs(stageData.requirements or {}) do
-                        local isReqsValid = requirementChecker.checkBlock(block, {
-                            threatErrorsAs = true,
-                            allowedTypes = {
-                                [myTypes.requirementType.Journal] = true,
-                                [myTypes.requirementType.CustomPCFaction] = true,
-                                [myTypes.requirementType.CustomPCRank] = true,
-                            }
-                        })
-                        if isReqsValid then
-                            for _, req in pairs(block) do
-                                table.insert(requirements, req)
-                            end
+
+    local function fillDataForScriptByTableName(scriptId, tableName)
+        local scrData = dataHandler.questObjects[scriptId]
+        if not scrData or not scrData[tableName] then return end
+
+        if scrData and scrData[tableName] then
+            for _, linkDt in pairs(scrData[tableName]) do
+                if linkDt[2] ~= nil and linkDt[2] >= configData.tracking.minChance * 0.01 then
+                    local objData = dataHandler.questObjects[linkDt[1]]
+                    if objData and objData.type <= 2 then
+                        local obj, tp = tes.getObject(linkDt[1])
+                        if obj then
+                            objects[linkDt[1]] = {obj, tp}
                         end
                     end
                 end
@@ -968,42 +1137,111 @@ function this.getRequirementPositionData(requirement, customConfig)
         end
     end
 
-    local function fillDataForScriptByTableName(scriptId, tableName)
-        local scrData = dataHandler.questObjects[scriptId]
-        if not scrData or not scrData[tableName] then return end
+    if requirement.type == myTypes.requirementType.Journal
+            and not ((requirement.operator == myTypes.operator.value.Equal or requirement.operator == myTypes.operator.value.LessOrEqual) and requirement.value == 0)
+            and not (requirement.operator == myTypes.operator.value.Less and requirement.value == 1) then
+        local index = playerQuests.getCurrentIndex(requirement.variable or "")
+        if not index or index == 0 then
+            local qDt = this.getQuestData(requirement.variable)
+            if qDt and qDt.givers then
+                linkedQuests = linkedQuests or {}
+                linkedQuests[requirement.variable] = linkedQuests[requirement.variable] or {
+                    index = this.getFirstIndex(qDt),
+                    qData = qDt
+                }
 
-        for _, linkDt in pairs(scrData[tableName]) do
-            local linkData = dataHandler.questObjects[linkDt[1]]
-            if linkData and (linkData.type <= 2) then
-                local obj = tes.getObject(linkDt[1])
-                if obj then
-                    objects[obj] = linkDt[1]
+                for _, giverId in pairs(qDt.givers) do
+                    local giverData = dataHandler.questObjects[giverId]
+                    if giverData then
+                        if giverData.type <= 2 then
+                            local obj, tp = tes.getObject(giverId)
+                            if obj then
+                                objects[giverId] = {obj, tp}
+                            end
+                        elseif giverData.type == 4 then
+                            fillDataForScriptByTableName(giverId, "links")
+                        end
+                    end
                 end
             end
         end
     end
 
+
     if requirement.type == myTypes.requirementType.CustomActor and requirement.object then
-        local obj = tes.getObject(requirement.object)
+        local obj, tp = tes.getObject(requirement.object)
         if obj then
-            objects[obj] = requirement.object
+            objects[requirement.object] = {obj, tp}
         end
-    elseif requirement.type == myTypes.requirementType.CustomScript and requirement.script then
-        fillDataForScriptByTableName(requirement.script, "links")
+
+    elseif requirement.type == myTypes.requirementType.CustomScript and (requirement.script or requirement.variable) then
+        fillDataForScriptByTableName(requirement.script or requirement.variable, "links")
+
+    elseif requirement.type == myTypes.requirementType.CustomLocal and (not requirement.object and not requirement.script) then
+        local foundScripts = {}
+        local foundDias = {}
+        local varData = this.getObjectData(requirement.variable)
+
+        -- TODO: dehardcode limit
+        if varData and varData.links and (varData.total or 0) <= 10 and #varData.links <= 10 then
+            for _, dt in ipairs(varData.links) do
+                if dt[2] ~= nil then break end
+
+                local objData = this.getObjectData(dt[1])
+                if objData then
+                    if objData.type == 4 then
+                        foundScripts[dt[1]] = objData
+                    elseif objData.type == 3 then
+                        foundDias[dt[1]] = objData
+                    end
+                end
+            end
+        end
+
+        local foundValid = false
+        for scrId, scrObjDt in pairs(foundScripts) do
+            for _, dt in pairs(scrObjDt.stages or {}) do
+                if dt.id == questId then
+                    for _, linkDt in ipairs(scrObjDt.links or {}) do
+                        if linkDt[2] ~= nil then break end
+
+                        if not objects[linkDt[1]] then
+                            local objData = this.getObjectData(linkDt[1])
+                            if objData and objData.type <= 2 then
+                                local obj, tp = tes.getObject(linkDt[1])
+                                if obj then
+                                    objects[linkDt] = {obj, tp}
+                                end
+                            end
+                        end
+                    end
+
+                    foundValid = true
+                    break
+                end
+            end
+        end
 
     elseif requirement.type == "SCR1" and requirement.value then
         fillDataForScriptByTableName(requirement.value, "contains")
 
     else
         for _, req in pairs(requirements) do
+
+            if req.type == myTypes.requirementType.CustomScript and req.variable then
+                fillDataForScriptByTableName(req.variable, "links")
+            end
+
             for name, value in pairs(req) do
+                if value == "" then goto continue end
+
                 if type(value) ~= "string" then
                     goto continue
                 end
 
-                local obj = tes.getObject(value)
+                local obj, tp = tes.getObject(value)
                 if obj then
-                    objects[obj] = value
+                    objects[value] = {obj, tp}
                     goto continue
                 end
 
@@ -1033,9 +1271,9 @@ function this.getRequirementPositionData(requirement, customConfig)
                             if linkData.type == 6 then
                                 findDiaData(linkId, depth - 1)
                             elseif linkData.type <= 2 then
-                                local obj1 = tes.getObject(linkId)
+                                local obj1, tp1 = tes.getObject(linkId)
                                 if obj1 then
-                                    objects[obj1] = linkId
+                                    objects[linkId] = {obj1, tp1}
                                 end
                             end
 
@@ -1053,55 +1291,38 @@ function this.getRequirementPositionData(requirement, customConfig)
         end
     end
 
-    ---@param objId string
-    ---@param obj any
-    ---@param dt questGuider.quest.getRequirementPositionData.positionData
-    local function add(objId, obj, dt)
-        if not out[objId] then
-            out[objId] = {reqType = requirement.type, name = obj.editorName or obj.name or obj.id or "", positions = {}}
-        end
-        table.insert(out[objId].positions, dt)
-    end
-
-    for object, id in pairs(objects) do
+    for id, objectDt in pairs(objects) do
         local positions = {}
+        local object = objectDt[1]
 
         local objectData = this.getObjectData(id)
         if not objectData then goto continue end
 
-        addPosData(positions, objectData, nil, configData)
+        local foundValidPos = addPosData(positions, objectData, nil, configData, object, params and params.cellRestrictions)
 
         if not out[id] then
-            out[id] = {reqType = requirement.type, name = object.name or object.id or "", positions = {}}
+            out[id] = {reqType = requirement.type, name = object.name or object.id or "", positions = {}, foundValidPos = foundValidPos or false}
         end
 
         local outD = out[id]
         if outD then
-            outD.inWorld = objectData.inWorld
+            outD.inWorld = objectData.inWorld or 0
         end
 
-        for _, linkData in pairs(objectData.links or {}) do
-            local obj = tes.getObject(linkData[1])
-            local objDt = this.getObjectData(linkData[1])
-            if obj and objDt and (objDt.type <= 2) and linkData[2] >= trackingConfig.minChance * 0.01 then
-                addPosData(positions, objDt, linkData[1], configData)
-                outD = out[id]
-                if outD then
-                    outD.inWorld = (outD.inWorld or 0) + objectData.inWorld
-                end
-            end
-        end
+        foundValidPos = foundValidPos or fillLinkPositionData(positions, objectData, configData, outD)
 
         outD.positions = positions
+        outD.foundValidPos = foundValidPos
 
         ::continue::
     end
 
     for cell, id in pairs(cells) do
         if not out[id] then
-            out[id] = {reqType = requirement.type, name = cell.displayName or cell.name or cell.id or "", positions = {}}
+            out[id] = {reqType = requirement.type, name = cell.displayName or cell.name or cell.id or "", positions = {}, foundValidPos = false}
         end
         addCellData(cell, id, out[id].positions, configData)
+        out[id].foundValidPos = next(out[id].positions) and true or false
     end
 
     if tableLib.size(out) == 0 then
@@ -1133,13 +1354,34 @@ function this.getRequirementPositionData(requirement, customConfig)
 
                 if requirement.type == myTypes.requirementType.Dead then
                     data.actorCount = data.itemCount
+                    if data.actorCount == nil then
+                        data.isActorAliveReq = true
+                    end
                     data.itemCount = nil
                 end
             end
         end
+
+    elseif requirement.type == myTypes.requirementType.CustomScript then
+        for id, data in pairs(out) do
+            local objDt = objects[id]
+            if not objDt then goto continue end
+
+            local obj = objDt[1]
+            local objTp = objDt[2]
+
+            if isItemType(objTp) then
+                data.parentObject = id
+                data.itemCount = 1
+            end
+
+            ::continue::
+        end
     end
 
-    return out
+    cacheLib.set("requirementPosData", reqHash, {out, linkedQuests})
+
+    return out, linkedQuests
 end
 
 
@@ -1153,6 +1395,7 @@ end
 ---@return questGuider.quest.getRequirementPositionData.positionData[]? positions
 ---@return questGuider.quest.getRequirementPositionData.positionData[]? links
 function this.getPositions(objectId, params)
+    if objectId == "" then return {} end
     if not params then params = {} end
 
     local configData = params.customConfig or config.data
@@ -1177,19 +1420,14 @@ function this.getPositions(objectId, params)
     local objectData = this.getObjectData(objectId)
     if not objectData then return end
 
-    addPosData(positions, objectData, nil, configData)
+    local object = tes.getObject(objectId)
+    addPosData(positions, objectData, nil, configData, object)
 
     local linkPositions
     if params.findLinks then
         linkPositions = {}
 
-        for _, linkData in pairs(objectData.links or {}) do
-            local obj = tes.getObject(linkData[1])
-            local objDt = this.getObjectData(linkData[1])
-            if obj and objDt and (objDt.type <= 2) and linkData[2] >= trackingConfig.minChance * 0.01 then
-                addPosData(linkPositions, objDt, linkData[1], configData)
-            end
-        end
+        fillLinkPositionData(linkPositions, objectData, configData)
 
         if params.includeLinks then
             tableLib.addValues(linkPositions, positions)
@@ -1220,13 +1458,8 @@ function this.getObjectPositionDescription(objData, maxNames)
         if posDt.name then
             local cell = tes.getCell{id = posDt.name}
             if cell then
-                local exCellPos, doorPath, cellPath, isExterior, checkedCells
-                if findExitPosCache[cell.id] then
-                    exCellPos, doorPath, cellPath, isExterior, checkedCells = table.unpack(findExitPosCache[cell.id])
-                else
-                    exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
-                    findExitPosCache[cell.id] = {exCellPos, doorPath, cellPath, isExterior, checkedCells}
-                end
+                local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+
                 if exCellPos then
 
                     if cellPath then

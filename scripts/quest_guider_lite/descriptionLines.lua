@@ -89,6 +89,7 @@ return {
     [types.requirementType.CustomSoundPlaying] = { str = l10n("types.requirementType.CustomSoundPlaying") or "", },
     [types.requirementType.CustomScript] = { str = l10n("types.requirementType.CustomScript") or "", priority = -2000 },
     ["SCR1"] = { str = l10n("SCR1") or "", priority = -2001 },
+    ["SCR2"] = { str = l10n("SCR2") or "", priority = -2002 },
     [types.requirementType.CustomDay] = { str = l10n("types.requirementType.CustomDay") or "", },
     [types.requirementType.CustomMonth] = { str = l10n("types.requirementType.CustomMonth") or "", },
     [types.requirementType.CustomYear] = { str = l10n("types.requirementType.CustomYear") or "", },

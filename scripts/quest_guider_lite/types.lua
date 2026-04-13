@@ -202,4 +202,60 @@ function this.areRequirementsEqual(req1, req2)
     return true
 end
 
+
+function this.invertRequirement(req)
+    if not req then return nil end
+    req.operator = this.operator.invert(req.operator)
+    return req
+end
+
+
+function this.getRequirementHash(req)
+    if not req then return "" end
+    return string.format("%s_%s_%s_%s_%s_%s_%s_%s",
+        req.type or "",
+        req.operator or "",
+        req.value or "",
+        req.variable or "",
+        req.object or "",
+        req.skill or "",
+        req.attribute or "",
+        req.script or ""
+    )
+end
+
+
+function this.gerRequirementBlockHash(reqBlock)
+    if not reqBlock then return "" end
+    local hash = ""
+    for i, req in pairs(reqBlock) do
+        hash = hash..this.getRequirementHash(req).."|"
+    end
+    return hash
+end
+
+
+---@param reqBlock questDataGenerator.requirementBlock
+---@return questDataGenerator.requirementData[]?
+function this.getReqirementsByTypeFromBlock(reqBlock, type)
+    local res = {}
+    for _, req in pairs(reqBlock or {}) do
+        if req.type == type then
+            table.insert(res, req)
+        end
+    end
+    return next(res) and res or nil
+end
+
+
+---@return string?
+function this.getActorDialogueIdFromBlock(reqBlock)
+    for _, req in pairs(reqBlock or {}) do
+        if req.type == this.requirementType.CustomActor then
+            return req.variable
+        end
+    end
+end
+
+
 return this

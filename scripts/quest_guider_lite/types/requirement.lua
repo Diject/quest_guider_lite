@@ -187,6 +187,7 @@ return {
     CustomRandom = "RND",
 
     CustomDialogue = "DIA",
+    CustomDialogueChoiceLink = "DCL",
 
     CustomResistMagicka = "RMG",
     CustomResistFire = "RFI",

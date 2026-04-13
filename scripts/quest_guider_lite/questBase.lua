@@ -6,6 +6,7 @@ local dialogueChecker = require("scripts.quest_guider_lite.dialogueChecker")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local myTypes = require("scripts.quest_guider_lite.types")
+local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 
 local dataHandler
 if include("openmw.self") then
@@ -13,6 +14,14 @@ if include("openmw.self") then
 else
     dataHandler = require("scripts.quest_guider_lite.storage.dataHandler")
 end
+
+
+local topicTestScripts = {
+    ["t_sctest_topicstr1"] = true,
+    ["t_sctest_topicstr2"] = true,
+    ["t_sctest_topicstr3"] = true,
+    ["t_sctest_topicstr4"] = true,
+}
 
 
 local this = {}
@@ -54,7 +63,8 @@ end
 ---@param params {findInLinked: boolean?, findCompleted: boolean?}?
 ---@return integer[]?
 ---@return table<string, {index: integer, qData: questDataGenerator.questData}>?
-function this.getNextIndexes(questData, quesId, questIndex, params)
+---@return table<string, integer>?
+function this.getNextIndexes(questData, quesId, questIndex, params, player)
     if not params then params = {} end
     if not questData then return end
     if type(questData) == "string" then
@@ -95,7 +105,7 @@ function this.getNextIndexes(questData, quesId, questIndex, params)
                         [myTypes.requirementType.Journal] = true,
                     },
                     threatErrorsAs = true,
-                })
+                }, player)
                 if valid then break end
             end
 
@@ -110,10 +120,14 @@ function this.getNextIndexes(questData, quesId, questIndex, params)
 
     if not tpData and not linkedNext then
         local intQuestIndex = tonumber(questIndex)
-        for i, index in ipairs(this.getIndexes(questData) or {}) do
-            if intQuestIndex and index > intQuestIndex then
-                tpData = questData[tostring(index)]
-                break
+        if intQuestIndex then
+            local indexes = this.getIndexes(questData) or {}
+            for i = #indexes, 1, -1 do
+                local index = indexes[i]
+                if index and index < intQuestIndex then
+                    tpData = questData[tostring(index)]
+                    break
+                end
             end
         end
         if not tpData or tpData.finished then return end
@@ -121,40 +135,110 @@ function this.getNextIndexes(questData, quesId, questIndex, params)
 
     if not tpData then return nil, linkedNext end
 
+    local linkedMap = {}
+    local checkedIndexes = {}
+    local function checkIndex(ind, advancedChecks)
+        if checkedIndexes[ind] ~= nil then return checkedIndexes[ind] end
+
+        local dt = questData[tostring(ind)]
+        if dt then
+            local isPossible = not next(dt.requirements) and true or false
+            for _, bl in pairs(dt.requirements or {}) do
+                if not requirementChecker.isBlockCompletionPossible(bl, nil, player) then
+                    isPossible = isPossible or false
+                else
+                    for _, linkDt in pairs(dt.linked or {}) do
+                        linkedMap[linkDt[1]] = math.min(linkedMap[linkDt[1]] or math.huge, linkDt[2])
+                    end
+
+                    if advancedChecks then
+                        local res = requirementChecker.checkBlock(bl, {
+                            threatErrorsAs = true,
+                            allowedTypes = {
+                                [myTypes.requirementType.Journal] = true,
+                                [myTypes.requirementType.RankRequirement] = true,
+                                [myTypes.requirementType.CustomPCRank] = true,
+                                [myTypes.requirementType.CustomPCFaction] = true,
+                            }
+                        }, player)
+
+                        isPossible = res or false
+                    else
+                        isPossible = true
+                    end
+                end
+
+                if isPossible then
+                    checkedIndexes[ind] = true
+                    return true
+                end
+            end
+
+            if not isPossible then
+                checkedIndexes[ind] = false
+                return false
+            end
+        end
+
+        checkedIndexes[ind] = false
+        return false
+    end
+
     local nextIndexes = {}
-    local foundNextIndex = false
     if tpData.next then
         for _, ind in pairs(tpData.next) do
-            if plIndex < ind then
+            if plIndex < ind and checkIndex(ind) then
                 nextIndexes[ind] = true
-                foundNextIndex = true
             end
         end
     end
-    if not foundNextIndex and tpData.nextIndex and not (plIndex >= tpData.nextIndex) then
+
+    if tpData.nextIndex and plIndex < tpData.nextIndex and checkIndex(tpData.nextIndex, true) then
         nextIndexes[tpData.nextIndex] = true
     end
 
-    -- adds the next sequential index if its requirements are met
-    if tableLib.count(nextIndexes) == 1 and not nextIndexes[tpData.nextIndex] then
-        ---@type questDataGenerator.stageData
-        local nextIndexData = questData[tostring(tpData.nextIndex)]
-        if nextIndexData then
-            local valid = false
-            for _, block in pairs(nextIndexData.requirements) do
-                valid = valid or requirementChecker.checkBlock(block, {
-                    ignoredTypes = {
-                        [myTypes.requirementType.CustomDisposition] = true,
-                        [myTypes.requirementType.CustomDialogue] = true,
-                    },
-                    threatErrorsAs = true,
-                })
-                if valid then break end
+    if not next(nextIndexes) then
+        checkedIndexes = {}
+        local indexes = this.getIndexes(questData)
+
+        for _, ind in ipairs(indexes) do
+            if ind > plIndex and checkIndex(ind) then
+                nextIndexes[ind] = true
+                break
+            end
+        end
+    end
+
+    -- for cases where there are requirements with dialogues that are impossible to obtain
+    if dataHandler.info.version >= 8 then
+        for ind, _ in pairs(nextIndexes) do
+            local dt = questData[tostring(ind)]
+            if not dt then goto continue end
+
+            for _, bl in pairs(dt.requirements or {}) do
+                local diaId = myTypes.getActorDialogueIdFromBlock(bl)
+                if not diaId then goto continue end
+
+                local diaDt = dataHandler.getObjectData(diaId)
+                if diaDt then
+                    if diaDt.links and (#diaDt.links > 1 or not topicTestScripts[diaDt.links[1][1] or ""]) then
+                        goto continue
+                    end
+                else
+                    goto continue
+                end
             end
 
-            if valid then
-                nextIndexes[tpData.nextIndex] = true
+            for _, nInd in pairs(dt.next or {}) do
+                if plIndex < nInd and not checkedIndexes[nInd] and checkIndex(nInd) then
+                    nextIndexes[nInd] = true
+                end
             end
+            if dt.nextIndex and plIndex < dt.nextIndex and not checkedIndexes[dt.nextIndex] and checkIndex(dt.nextIndex) then
+                nextIndexes[dt.nextIndex] = true
+            end
+
+            ::continue::
         end
     end
 
@@ -164,7 +248,7 @@ function this.getNextIndexes(questData, quesId, questIndex, params)
 
     table.sort(nextIndexKeys)
 
-    return nextIndexKeys, linkedNext
+    return nextIndexKeys, linkedNext, linkedMap
 end
 
 
@@ -263,7 +347,98 @@ function this.checkConditionsForQuest(questId, questIndex, ref, player)
 end
 
 
+---@param diaId string
+---@return table<string, questDataGenerator.questData>
+function this.getQuestMainDialogueIdsMap(diaId)
+    local diaIdLower = diaId:lower()
+
+    local cachedVal = cacheLib.get("mainDiaIds", diaId)
+    if cachedVal ~= nil then return cachedVal end
+
+    local questData = dataHandler.getQuestData(diaIdLower)
+    if not questData then return {} end
+
+    local out = {}
+
+    if not questData.links then
+        out[diaId] = questData
+        cacheLib.set("mainDiaIds", diaId, out)
+        return out
+    end
+
+    local questDias = {}
+
+    local function addDia(id, qDt)
+        local indexes = this.getIndexes(qDt)
+        local indCnt = #indexes
+
+        table.insert(questDias, {id = id, qd = qDt, ind = indexes, indCnt = indCnt})
+    end
+
+    addDia(diaIdLower, questData)
+
+    for _, link in pairs(questData.links) do
+        if questDias[link] then goto continue end
+
+        local linkDt = dataHandler.getQuestData(link)
+        if not linkDt then goto continue end
+
+        addDia(link, linkDt)
+
+        ::continue::
+    end
+
+    local linkCount = #questDias
+    if linkCount == 1 then
+        out[questDias[1].id] = questDias[1].qd
+        cacheLib.set("mainDiaIds", diaId, out)
+        return out
+    end
+
+    table.sort(questDias, function (a, b)
+        return a.indCnt > b.indCnt
+    end)
+
+    local hasFinished = false
+    local firstStageCount = questDias[1].indCnt
+    for i = linkCount, 1, -1 do
+        local dt = questDias[i]
+        if dt then
+            if dt.indCnt * 2 <= firstStageCount then
+                questDias[i] = nil
+            else
+                hasFinished = dt.qd.hasFinished or hasFinished
+            end
+        end
+    end
+
+    linkCount = #questDias
+    if linkCount == 1 then
+        out[questDias[1].id] = questDias[1].qd
+        cacheLib.set("mainDiaIds", diaId, out)
+        return out
+    end
+
+    if hasFinished then
+        for _, dt in pairs(questDias) do
+            if dt.qd.hasFinished then
+                out[dt.id] = dt.qd
+            end
+        end
+    else
+        for _, dt in pairs(questDias) do
+            out[dt.id] = dt.qd
+        end
+    end
+
+
+    cacheLib.set("mainDiaIds", diaId, out)
+    return out
+end
+
+
 ---@return table<string, boolean>?
+---@return boolean? isGiver
 function this.getGiverQuests(object, player)
     local objectData = dataHandler.getObjectData(object.recordId)
     if not objectData or not objectData.starts then return end
@@ -272,6 +447,9 @@ function this.getGiverQuests(object, player)
 
     for _, diaId in pairs(objectData.starts) do
         local diaIdLower = diaId:lower()
+
+        if not this.getQuestMainDialogueIdsMap(diaIdLower)[diaIdLower] then goto continue end
+
         if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
 
         local questData = dataHandler.getQuestData(diaIdLower)
@@ -292,9 +470,74 @@ function this.getGiverQuests(object, player)
         ::continue::
     end
 
-    if not next(diaIds) then return end
-    return diaIds
+    if not next(diaIds) then return nil, true end
+    return diaIds, true
 end
+
+
+---@param reqBlock questDataGenerator.requirementBlock
+---@return string? diaId
+---@return string? index
+---@return string? actorId
+function this.getReqBlockPrimeDialogueId(reqBlock)
+    local links = {}
+    local mainDiaId
+    local mainDiaIndex
+    local actorId
+    for _, req in pairs(reqBlock) do
+        if req.type == myTypes.requirementType.CustomDialogue then
+            mainDiaId = stringLib.convertDialogueName(req.variable)
+            mainDiaIndex = req.value
+        elseif req.type == myTypes.requirementType.CustomDialogueChoiceLink then
+            links[req.value] = req.variable
+        elseif req.type == myTypes.requirementType.CustomActor then
+            actorId = req.object
+        end
+    end
+
+    if not mainDiaId or not mainDiaIndex then return end
+
+    local function findFirst(depth)
+        if depth <= 0 then return end
+        depth = depth - 1
+
+        if links[mainDiaIndex] then
+            mainDiaIndex = links[mainDiaIndex]
+            findFirst(depth)
+        end
+    end
+    findFirst(10)
+
+    return mainDiaId, mainDiaIndex, actorId ---@diagnostic disable-line: return-type-mismatch
+end
+
+
+---@param diaId string
+---@param index string|integer|nil
+---@return {diaId: string, topicId: string, actorId: string?}[]?
+function this.getQuestDiaPrimeDialogueIds(diaId, index)
+    local questData = dataHandler.getQuestData(diaId)
+    if not questData then return end
+
+    local out = {}
+    local ind = index or this.getFirstIndex(questData)
+    if not ind then return end
+
+    local indexData = questData[tostring(ind)]
+    if not indexData then return end
+
+    for _, reqBlock in pairs(indexData.requirements or {}) do
+        local mainDiaId, mainDiaIndex, actorId = this.getReqBlockPrimeDialogueId(reqBlock)
+        if mainDiaId and mainDiaIndex then
+            table.insert(out, {diaId = mainDiaId, topicId = mainDiaIndex, actorId = actorId})
+        end
+    end
+
+    if not next(out) then return end
+
+    return out
+end
+
 
 
 return this

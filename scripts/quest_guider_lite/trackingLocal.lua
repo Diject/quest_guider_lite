@@ -5,6 +5,7 @@ local types = require('openmw.types')
 local playerRef = require('openmw.self')
 local util = require("openmw.util")
 local async = require("openmw.async")
+local nearby = require("openmw.nearby")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -45,8 +46,6 @@ local lastInteriorMarkers = {}
 
 ---@type table<string, string>
 local exteriorDoorHUDMarkers = {}
----@type table<string, any>
-local exteriorDoors = {}
 
 ---@class questGuider.tracking.markerRecord
 ---@field localMarkerId string|nil
@@ -67,6 +66,7 @@ local exteriorDoors = {}
 ---@field targetCells table<string, string>? parent cell editor name by editor name of cell that have access to the parent
 ---@field pathCells table<string, boolean>?
 ---@field firstEntranceCells table<string, any>?
+---@field doorMarkersDisabled boolean?
 
 ---@type table<string, questGuider.tracking.objectRecord>
 this.markerByObjectId = {}
@@ -190,6 +190,18 @@ function this.addMarker(params)
 
     if objectTrackingData.markers[params.questId] then
         local oldData = objectTrackingData.markers[params.questId]
+
+        local function addHandledReqs(reqs)
+            if not reqs then return end
+
+            local hash = ""
+            for _, r in pairs(reqs) do
+                hash = hash..r.type..tostring(r.operator)..tostring(r.value)..tostring(r.variable)..tostring(r.object)
+            end
+            if not oldData.handledRequirements then oldData.handledRequirements = {} end
+            oldData.handledRequirements[hash] = reqs
+        end
+
         if oldData.actorCount or positionData.actorCount then
             oldData.actorCount = math.max(oldData.actorCount or 0, positionData.actorCount or 0)
         end
@@ -199,13 +211,16 @@ function this.addMarker(params)
         if positionData.parentObject then
             oldData.parentObject = positionData.parentObject
         end
-        if params.reqData and params.reqData.reqDataForHandling then
-            local hash = ""
-            for _, r in pairs(params.reqData.reqDataForHandling) do
-                hash = hash..r.type..tostring(r.operator)..tostring(r.value)..tostring(r.variable)..tostring(r.object)
+        if params.reqData and (params.reqData.reqDataForHandling or params.reqData.reqDataForHandlingArr) then
+            addHandledReqs(params.reqData.reqDataForHandling)
+            if params.reqData.reqDataForHandlingArr then
+                for _, reqs in pairs(params.reqData.reqDataForHandlingArr) do
+                    addHandledReqs(reqs)
+                end
             end
+        elseif params.reqData and params.reqData.data.type == requirementType.CustomActor then
             if not oldData.handledRequirements then oldData.handledRequirements = {} end
-            oldData.handledRequirements[hash] = params.reqData.reqDataForHandling
+            oldData.handledRequirements[""] = {}
         end
         return
     end
@@ -240,7 +255,8 @@ function this.addMarker(params)
             MouseClick = "QGL:proximityMarkerCallback",
         },
         options = {
-            hideDead = params.reqData and (params.reqData.data.type == requirementType.Dead)
+            hideDead = params.reqData and (params.reqData.data.type == requirementType.CustomActor or
+                params.reqData.data.type == requirementType.Dead)
         },
         userData = userData,
     }
@@ -279,7 +295,11 @@ function this.addMarker(params)
             hash = hash..r.type..tostring(r.operator)..tostring(r.value)..tostring(r.variable)..tostring(r.object)
         end
         handledReqs = {[hash] = handledReqs}
+    elseif params.reqData and params.reqData.data.type == requirementType.CustomActor then
+        handledReqs = handledReqs or {}
+        handledReqs[""] = {}
     end
+
     objectTrackingData.markers[params.questId] = {
         id = params.questId,
         index = params.questStage,
@@ -292,9 +312,13 @@ function this.addMarker(params)
     }
 
     local objects = {}
-    objects[objectId] = true
+    if not params.reqData or params.reqData.data.type ~= requirementType.NotActorCell and
+            params.reqData.data.type ~= requirementType.CustomActorCell and
+            params.reqData.data.type ~= requirementType.CustomPCCell then
+        objects[objectId] = true
+    end
 
-    local isItem = itemLib.isItem(objectId)
+    local isItem = not positionData.disableInventoryTracking and itemLib.isItem(objectId)
 
     local markEntrances = #positionData.positions < config.data.tracking.maxPos
 
@@ -312,13 +336,15 @@ function this.addMarker(params)
             end
         end
 
-        if markEntrances and data.position and not data.id then
+        if positionData.foundValidPos and data.notFound then goto continue end
+
+        if markEntrances and (data.position or data.exitPos) and not data.id then
             table.insert(positionalMarkers.positions, {
                 cell = {
                     isExterior = data.id and false or true,
                     id = data.id,
                 },
-                position = data.position,
+                position = data.position or data.exitPos,
             })
         end
 
@@ -366,6 +392,8 @@ function this.addMarker(params)
                 end
             end
         end
+
+        ::continue::
     end
 
     local listOfObjects = tableLib.keys(objects)
@@ -419,7 +447,9 @@ function this.addMarker(params)
                 color = config.data.tracking.colored and objectTrackingData.color or common.colorToArray(config.data.ui.defaultColor),
             },
             objectIds = listOfObjects,
-            itemId = positionData.parentObject
+            itemId = not positionData.disableInventoryTracking and positionData.parentObject or nil,
+            hideDead = params.reqData and (params.reqData.data.type == requirementType.CustomActor or
+                params.reqData.data.type == requirementType.Dead),
         }
         objectMarkerData.hudMarker = proximityTool.addHUDM(hudMarkerParams)
     end
@@ -492,6 +522,8 @@ function this.addMarker(params)
                 temp = false,
                 activeEx = not markEntrances,
                 priority = math.max(0, 100 - (positions and #positions or 0)),
+                alive = params.reqData and (params.reqData.data.type == requirementType.CustomActor or
+                    params.reqData.data.type == requirementType.Dead) or nil
             }
 
             local markerId = advWMap_tracking.addMarker(marker)
@@ -598,13 +630,7 @@ function this.addMarker(params)
 
     this.trackedObjectsByDiaId[params.questId] = qTrackingInfo
 
-    if positionData.itemCount then
-        this.handlePlayerInventory()
-    elseif positionData.actorCount then
-        this.handleDeath(objectId)
-    elseif handledReqs then
-        this.handleTrackingRequirements()
-    end
+    this.handleObjectRequirements(objectId)
 
     local storageData = playerQuests.getQuestStorageData(qName)
     if storageData and storageData.disabled or this.storageData.hideAllMarkers then
@@ -635,6 +661,7 @@ end
 ---@return boolean? changed
 function this.setDisableMarkerState(params)
 
+    ---@type table<string, questGuider.tracking.objectRecord>
     local markerDataHashTable = {}
 
     local hidden = false
@@ -652,7 +679,7 @@ function this.setDisableMarkerState(params)
         for qId, markerData in pairs(objData.markers) do
             if params.questId and qId ~= params.questId then goto continue end
 
-            markerDataHashTable[markerData.data] = true
+            markerDataHashTable[markerData.data] = objData
 
             ::continue::
         end
@@ -663,7 +690,8 @@ function this.setDisableMarkerState(params)
     local changed = false
 
     ---@param markerData questGuider.tracking.markerRecord
-    local function setDisabledState(markerData)
+    ---@param objData questGuider.tracking.objectRecord
+    local function setDisabledState(markerData, objData)
         local disabledState
         local oldState = markerData.disabled
 
@@ -706,8 +734,15 @@ function this.setDisableMarkerState(params)
             disabledState = true
         end
 
+        local doorRes
+        if objData.doorMarkersDisabled then
+            doorRes = false
+        else
+            doorRes = not disabledState
+        end
+
         if markerData.localDoorMarkerId and proximityTool then
-            proximityTool.setVisibility(markerData.localDoorMarkerId, nil, not disabledState)
+            proximityTool.setVisibility(markerData.localDoorMarkerId, nil, doorRes)
         end
         if markerData.localMarkerId and proximityTool then
             proximityTool.setVisibility(markerData.localMarkerId, nil, not disabledState)
@@ -716,7 +751,7 @@ function this.setDisableMarkerState(params)
             proximityTool.setHUDMvisibility(markerData.hudMarker, not disabledState)
         end
         if markerData.advWMapDoorMarker and advWMap_tracking then
-            advWMapIntegration.setMarkerTemplateVisibility(markerData.advWMapDoorMarker, not disabledState)
+            advWMapIntegration.setMarkerTemplateVisibility(markerData.advWMapDoorMarker, doorRes)
         end
         if markerData.advWMapMarker and advWMap_tracking then
             advWMapIntegration.setMarkerTemplateVisibility(markerData.advWMapMarker, not disabledState)
@@ -726,8 +761,8 @@ function this.setDisableMarkerState(params)
         end
     end
 
-    for markerData, _ in pairs(markerDataHashTable) do
-        setDisabledState(markerData)
+    for markerData, objData in pairs(markerDataHashTable) do
+        setDisabledState(markerData, objData)
     end
 
     return changed
@@ -776,7 +811,7 @@ local function checkHandledRequirements(objectId, markerData, protectedState)
     local res = false
 
     for _, reqBlock in pairs(markerData.handledRequirements) do
-        local reqRes = requirementChecker.checkBlock(reqBlock, {threatErrorsAs = true})
+        local reqRes = requirementChecker.checkBlock(reqBlock, {threatErrorsAs = true}, playerRef)
         res = res or reqRes
     end
 
@@ -795,86 +830,12 @@ local function checkHandledRequirements(objectId, markerData, protectedState)
 end
 
 
-function this.handlePlayerInventory()
+function this.handleTrackedRequirements()
     if not this.initialized then return end
     local changed = false
 
     for objId, data in pairs(this.markerByObjectId) do
-        local protected = false
-        for _, markerData in pairs(data.markers) do
-
-            if markerData.handledRequirements then -- and config.data.tracking.hideFinActors
-                local hChanged, hProtected = checkHandledRequirements(objId, markerData, protected)
-                changed = changed or hChanged
-                protected = protected or hProtected
-            end
-
-            if markerData.itemCount then -- and config.data.tracking.hideObtained
-                local palyerItemCount = types.Actor.inventory(playerRef):countOf(markerData.parentObject)
-                if markerData.itemCount <= palyerItemCount then
-                    if markerData.data.disabled ~= true and not protected then
-                        changed = this.setDisableMarkerState{ objectId = objId, questId = markerData.id, value = true } or changed
-                    end
-                else
-                    protected = true
-                    if markerData.data.disabled ~= false then
-                        changed = this.setDisableMarkerState{ objectId = objId, questId = markerData.id, value = false } or changed
-                    end
-                end
-            end
-
-        end
-    end
-
-    if changed and not playerRef.cell.isExterior then
-        this.addMarkersForInteriorCell(playerRef.cell)
-    end
-
-    if changed and playerRef.cell.isExterior then
-        this.updateMarkersForExteriorDoors()
-    end
-
-    if changed then
-        this.updateMarkers()
-    end
-
-    return changed
-end
-
-
----@return boolean? changed
-function this.handleDeath(objectId)
-    if not this.initialized then return end
-    if not objectId then return end
-
-    local objData = this.markerByObjectId[objectId]
-    if not objData then return end
-
-    local changed = false
-
-    local protected = false
-    for _, markerData in pairs(objData.markers) do
-
-        if markerData.handledRequirements and config.data.tracking.hideFinActors then
-            local hChanged, hProtected = checkHandledRequirements(objectId, markerData, protected)
-            changed = changed or hChanged
-            protected = protected or hProtected
-        end
-
-        if markerData.actorCount then
-            local killCount = killCounter.getKillCount(markerData.parentObject or objectId)
-
-            if killCount >= markerData.actorCount then
-                if markerData.data.disabled ~= true and not protected then
-                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true } or changed
-                end
-            else
-                protected = true
-                if markerData.data.disabled ~= false then
-                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false } or changed
-                end
-            end
-        end
+        changed = this.handleObjectRequirements(objId, true) or changed
     end
 
     if changed and not playerRef.cell.isExterior then
@@ -894,30 +855,81 @@ end
 
 
 ---@return boolean?
-function this.handleTrackingRequirements()
+function this.handleObjectRequirements(objectId, withoutUpdate)
     if not this.initialized then return end
+    if not objectId then return end
+
+    local objData = this.markerByObjectId[objectId]
+    if not objData then return end
+
     local changed = false
+
     local protected = false
-
-    for objectId, data in pairs(this.markerByObjectId) do
-        for _, markerData in pairs(data.markers) do
-
+    for _, markerData in pairs(objData.markers) do
+        if markerData.handledRequirements and not protected then
             local hChanged, hProtected = checkHandledRequirements(objectId, markerData, protected)
             changed = changed or hChanged
-            protected = protected or hProtected
+            -- protected = protected or hProtected
+        end
 
+        if markerData.actorCount then
+            local killCount = killCounter.getKillCount(markerData.parentObject or objectId)
+            if killCount >= markerData.actorCount then
+                if markerData.data.disabled ~= true and not protected then
+                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true } or changed
+                end
+            else
+                protected = true
+                if markerData.data.disabled ~= false then
+                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false } or changed
+                end
+            end
+        end
+
+        if markerData.itemCount then
+            local palyerItemCount = types.Actor.inventory(playerRef):countOf(markerData.parentObject)
+            if markerData.itemCount <= palyerItemCount then
+                if markerData.data.disabled ~= true and not protected then
+                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true } or changed
+                end
+            else
+                protected = true
+                if markerData.data.disabled ~= false then
+                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false } or changed
+                end
+            end
         end
     end
 
-    if changed and not playerRef.cell.isExterior then
+    if not withoutUpdate and changed and not playerRef.cell.isExterior then
         this.addMarkersForInteriorCell(playerRef.cell)
     end
 
-    if changed and playerRef.cell.isExterior then
+    if not withoutUpdate and changed and playerRef.cell.isExterior then
         this.updateMarkersForExteriorDoors()
     end
 
+    if not withoutUpdate and changed then
+        this.updateMarkers()
+    end
+
     return changed
+end
+
+
+local handledTrackingStepId = nil
+function this.handleTrackedRequirementsStep()
+    if not this.initialized then return end
+
+    if handledTrackingStepId and not this.markerByObjectId[handledTrackingStepId] then
+        handledTrackingStepId = nil
+    end
+
+    local objId, trData = next(this.markerByObjectId, handledTrackingStepId)
+    handledTrackingStepId = objId
+    if not objId then return end
+
+    this.handleObjectRequirements(objId)
 end
 
 
@@ -1077,14 +1089,16 @@ function this.trackQuest(questId, index)
         this.updateMarkers()
 
     else
-        core.sendGlobalEvent("QGL:trackQuest", {
+        ---@class questGuider.tracking.trackQuest.eventArgument
+        local dt = {
             questId = questId,
             index = index,
             finished = isFinished,
             shouldUpdate = shouldUpdate,
             params = {findCompleted = false, findInLinked = true},
             player = playerRef.object,
-        })
+        }
+        core.sendGlobalEvent("QGL:trackQuest", dt)
     end
 end
 
@@ -1231,16 +1245,14 @@ function this.createMarkersForExteriorDoor(ref)
     local destCell = protectedDoor.destCell(ref)
     if not destCell or destCell.isExterior then return end
 
-    exteriorDoors[ref.id] = ref
-
     if this.storageData.hideAllMarkers then return end
 
     local cellId = destCell.id
 
     local i = -1
     for objId, data in pairs(this.markerByObjectId) do
-        if not data.firstEntranceCells or not data.firstEntranceCells[cellId]
-                or not next(data.markers) or this.getDisabledState{objectId = objId} then
+        if not data.firstEntranceCells or not data.firstEntranceCells[cellId] or data.doorMarkersDisabled or
+                not next(data.markers) or this.getDisabledState{objectId = objId} then
             goto continue
         end
 
@@ -1287,19 +1299,13 @@ function this.updateMarkersForExteriorDoors()
     for _, markerId in pairs(exteriorDoorHUDMarkers) do
         foundOldMarkers = proximityTool.removeHUDM(markerId) or foundOldMarkers
     end
+    exteriorDoorHUDMarkers = {}
     if foundOldMarkers then
         this.updateHUDM()
     end
 
-    for doorId, door in pairs(exteriorDoors) do
-        if not door:isValid() then
-            exteriorDoors[doorId] = nil
-            goto continue
-        end
-
+    for _, door in pairs(nearby.doors) do
         this.createMarkersForExteriorDoor(door)
-
-        ::continue::
     end
 end
 
@@ -1464,6 +1470,74 @@ function this.recreateMarkers()
     async:newUnsavableSimulationTimer(0.1, function ()
         this.updateTemporaryMarkers()
     end)
+end
+
+
+function this.disableDoorMarkersForObject(objId)
+    local objData = this.markerByObjectId[objId]
+    if not objData then return end
+
+    local changed = objData.doorMarkersDisabled ~= true
+    if changed then
+        objData.doorMarkersDisabled = true
+        this.setDisableMarkerState{ objectId = objId, update = true }
+    end
+
+    for diaId, mData in pairs(objData.markers or {}) do
+        for parentId, oDt in pairs((this.trackedObjectsByDiaId[diaId] or {}).objects or {}) do
+            for _, id in pairs(oDt) do
+                if id ~= objId then goto continue end
+
+                local parentData = this.markerByObjectId[parentId]
+                if not parentData then goto continue end
+
+                local valChanged = parentData.doorMarkersDisabled ~= true
+                changed = changed or valChanged
+                if valChanged then
+                    parentData.doorMarkersDisabled = true
+                    this.setDisableMarkerState{ objectId = parentId, update = true }
+                end
+
+                ::continue::
+            end
+        end
+    end
+
+    return changed
+end
+
+
+function this.enableDoorMarkersForObject(objId)
+    local objData = this.markerByObjectId[objId]
+    if not objData then return end
+
+    local changed = objData.doorMarkersDisabled ~= nil
+    if changed then
+        objData.doorMarkersDisabled = nil
+        this.setDisableMarkerState{ objectId = objId, update = true }
+    end
+
+    for diaId, mData in pairs(objData.markers or {}) do
+        for parentId, oDt in pairs((this.trackedObjectsByDiaId[diaId] or {}).objects or {}) do
+            for _, id in pairs(oDt) do
+                if id ~= objId then goto continue end
+
+                local parentData = this.markerByObjectId[parentId]
+                if not parentData then goto continue end
+
+                local valChanged = parentData.doorMarkersDisabled ~= nil
+                changed = changed or valChanged
+                if valChanged then
+                    parentData.doorMarkersDisabled = nil
+                    this.setDisableMarkerState{ objectId = parentId, update = true }
+                end
+
+                ::continue::
+            end
+        end
+    end
+
+    return changed
 end
 
 

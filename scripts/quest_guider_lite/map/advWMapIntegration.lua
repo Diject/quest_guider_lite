@@ -640,12 +640,24 @@ function this.updateDoorMarkers()
 end
 
 
+---@param qNames string[]?
 function this.createDoorGiversMarker(doorRef, qNames)
     if not initialized then return end
     local destCell = protectedDoor.destCell(doorRef)
     if not destCell then return end
 
     local destCellId = destCell.id
+    local hash = doorHash(doorRef, destCellId)
+
+    if this.doorGiversMarkers[hash] then
+        local markerId = this.doorGiversMarkers[hash].mId
+        if trackingInt.isValid(markerId) then
+            trackingInt.removeMarker(markerId)
+        end
+        this.doorGiversMarkers[hash] = nil
+    end
+    if not qNames or #qNames == 0 then return end
+
     local isDiscovered = not interface.getConfig().legend.onlyDiscovered or interface.isDiscovered(destCellId)
 
     local markerId = trackingInt.addMarker{
@@ -663,7 +675,6 @@ function this.createDoorGiversMarker(doorRef, qNames)
     }
     if not markerId then return end
 
-    local hash = doorHash(doorRef, destCellId)
     this.doorGiversMarkers[hash] = {qNames = qNames, mId = markerId}
 end
 

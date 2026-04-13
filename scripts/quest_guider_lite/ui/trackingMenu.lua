@@ -763,7 +763,7 @@ function topicMenuMeta.fillTrackingListContent(self)
         local qName = playerQuests.getQuestNameByDiaId(diaId)
         if not qName or qName == "" then qName = l10n("miscellaneous") end
 
-        if not trackingObjectsByQId[qName] then trackingObjectsByQId[qName] = {} end
+        if not trackingObjectsByQId[qName] then trackingObjectsByQId[qName] = {} end ---@diagnostic disable-line: need-check-nil
         for objId, list in pairs(dt.objects) do
             trackingObjectsByQId[qName][objId] = {list = list, diaId = diaId}
             trackingObjects[objId] = {list = list, diaId = diaId}
@@ -868,13 +868,13 @@ function topicMenuMeta.fillTrackingListContent(self)
                 focusLoss = async:callback(function(e, layout)
                     topicListSBMeta:focusLoss(e)
                     layout.userData.tooltipAttempted = false
-                    tooltip.destroy(layout)
+                    params.tooltipLib.destroy(layout)
                 end),
 
                 mouseMove = async:callback(function(e, layout)
                     topicListSBMeta:mouseMove(e)
 
-                    if not tooltip.isExists(layout) and not layout.userData.tooltipAttempted then
+                    if not params.tooltipLib.isExists(layout) and not layout.userData.tooltipAttempted then
                         layout.userData.tooltipAttempted = true
                         local ttext
                         if dt.diaIds then
@@ -942,12 +942,12 @@ function topicMenuMeta.fillTrackingListContent(self)
                                 }
                             }
 
-                            tooltip.createOrMove(e, layout, tooltipContent)
+                            params.tooltipLib.createOrMove(e, layout, tooltipContent)
                         else
-                            tooltip.createOrMove(e, layout, ui.content{})
+                            params.tooltipLib.createOrMove(e, layout, ui.content{})
                         end
                     else
-                        tooltip.move(e, layout)
+                        params.tooltipLib.move(e, layout)
                     end
                 end),
 
@@ -961,18 +961,31 @@ function topicMenuMeta.fillTrackingListContent(self)
                     end
 
                     if self.params.advWMapMenu then
-                        layout.userData.posClickIndex = (layout.userData.posClickIndex or 0) + 1
                         local poss = self.positions and self.positions[dt.id]
                         if not poss then return end
+
                         ---@type questGuider.quest.getRequirementPositionData.positionData
-                        local pos = poss[layout.userData.posClickIndex]
-                        if not pos then
-                            layout.userData.posClickIndex = 1
+                        local pos
+                        for i = 1, #poss do
+                            layout.userData.posClickIndex = (layout.userData.posClickIndex or 0) + 1
                             pos = poss[layout.userData.posClickIndex]
+
                             if not pos then
-                                return
+                                layout.userData.posClickIndex = 1
+                                pos = poss[layout.userData.posClickIndex]
+                                if not pos then
+                                    break
+                                end
+                            end
+
+                            if pos and pos.notFound ~= true then
+                                break
+                            else
+                                pos = nil
                             end
                         end
+
+                        if not pos then return end
 
                         local cellId = pos.id and pos.id:lower()
                         ---@type AdvancedWorldMap.Menu.Map
@@ -984,9 +997,10 @@ function topicMenuMeta.fillTrackingListContent(self)
                             end
                         end
 
-                        if pos.position then
-                            menu.mapWidget:focusOnWorldPosition(pos.position)
-                            menu.mapWidget:updateMarkers()
+                        local p = pos.position or pos.exitPos
+                        if p then
+                            menu.mapWidget:focusOnWorldPosition(p)
+                            menu.mapWidget:updateMarkers(true)
                         end
                         menu:update()
 

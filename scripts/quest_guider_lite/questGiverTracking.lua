@@ -205,8 +205,10 @@ function this.createQuestGiverMarkerForDoor(ref, player)
 
     local diaIds = {}
 
+    local isGiver = false
     local function checkObj(r)
-        local dIds = questBase.getGiverQuests(r, player)
+        local dIds, isGiv = questBase.getGiverQuests(r, player)
+        isGiver = isGiver or isGiv
         if not dIds then return end
         tableLib.copy(dIds, diaIds)
     end
@@ -231,7 +233,14 @@ function this.createQuestGiverMarkerForDoor(ref, player)
 
     questNames = tableLib.values(questNames, true)
 
-    if #questNames <= 0 then return end
+    if #questNames <= 0 then
+        if isGiver then
+            player:sendEvent("QGL:updateMapMarkerForQuestGivers", {
+                ref = ref,
+            })
+        end
+        return
+    end
 
     ---@type proximityTool.record
     local recordData = {

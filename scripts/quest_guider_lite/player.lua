@@ -7,6 +7,7 @@ local input = require('openmw.input')
 local I = require('openmw.interfaces')
 local util = require('openmw.util')
 local storage = require('openmw.storage')
+local nearby = require("openmw.nearby")
 
 local log = require("scripts.quest_guider_lite.utils.log")
 
@@ -230,6 +231,8 @@ local function fillQuestBoxQuestInfo(params)
         ---@class questGuider.ui.questBoxMeta
         local questBox = menuHandler.getMenu(params.menuId):getQuestScrollBox().userData.questBoxMeta
 
+        if questBox.requestId ~= params.requestId then return end
+
         questBox.questInfo = params.data
         questBox:addTrackButtons()
 
@@ -238,30 +241,35 @@ local function fillQuestBoxQuestInfo(params)
 
         local scrollBoxContent = scrollBox:getContent()
 
+        local isFirst = true
         for contentIndex, dt in pairs(params.data) do
             local element = scrollBoxContent[contentIndex]
             if not element then goto continue end
 
-            element.content:add(
-                nextStagesBlock.create{
-                    data = dt,
-                    size = scrollBox.innnerSize,
-                    fontSize = config.data.ui.fontSize,
-                    hideTrackButtons = params.menuId ~= commonData.journalMenuId,
-                    isQuestListMode = params.menuId ~= commonData.journalMenuId,
-                    parentScrollBoxUserData = questBox:getScrollBox().userData,
-                    updateHeightFunc = function ()
-                        scrollBox:calcContentHeight()
-                        scrollBox:updateContent()
-                    end,
-                    updateFunc = function ()
-                        menuHandler.getMenu(params.menuId):update()
-                    end,
-                    thisElementInContent = function ()
-                        return scrollBox:getContent()[contentIndex].content[#element.content]
-                    end
-                }
-            )
+            if isFirst or dt.next and next(dt.next) then
+                element.content:add(
+                    nextStagesBlock.create{
+                        data = dt,
+                        size = scrollBox.innnerSize,
+                        fontSize = config.data.ui.fontSize,
+                        hideTrackButtons = params.menuId ~= commonData.journalMenuId,
+                        isQuestListMode = params.menuId ~= commonData.journalMenuId,
+                        hideLinkedButtons = not isFirst,
+                        parentScrollBoxUserData = questBox:getScrollBox().userData,
+                        updateHeightFunc = function ()
+                            scrollBox:calcContentHeight()
+                            scrollBox:updateContent()
+                        end,
+                        updateFunc = function ()
+                            menuHandler.getMenu(params.menuId):update()
+                        end,
+                        thisElementInContent = function ()
+                            return scrollBox:getContent()[contentIndex].content[#element.content]
+                        end
+                    }
+                )
+                isFirst = false
+            end
 
             ::continue::
         end
@@ -469,7 +477,7 @@ end
 local function handleTracking()
     if not tracking.initialized then return end
     local updateMarkers = false
-    updateMarkers = tracking.handlePlayerInventory()
+    updateMarkers = tracking.handleTrackedRequirements()
 
     if updateMarkers then
         tracking.updateMarkers()
@@ -622,10 +630,11 @@ end
 
 
 time.runRepeatedly(function()
-    handleTracking()
-end, 5 * time.second + math.random())
+    tracking.handleTrackedRequirementsStep()
+end, 0.75)
 
 local onQuestUpdateTimerStarted = false
+local dialogueMenuActor = nil
 
 return {
     engineHandlers = {
@@ -639,7 +648,16 @@ return {
 
             if not tracking.initialized then return end
             if config.data.tracking.autoTrack then
-                tracking.trackQuest(questId, stage)
+                local name = playerQuests.getQuestNameByDiaId(questId)
+                if name and name ~= "" then
+                    if playerQuests.isHidden(name) then
+                        tracking.removeMarker{ questId = questId, removeLinked = true }
+                    else
+                        realTimer.newTimer(0.01, function ()
+                            tracking.trackQuest(questId, stage)
+                        end)
+                    end
+                end
             end
             if not onQuestUpdateTimerStarted then
                 onQuestUpdateTimerStarted = true
@@ -672,7 +690,17 @@ return {
         UiModeChanged = function (e)
             timeLib.requestTimeUpdate()
             if e.oldMode == "Dialogue" then
+                handleTracking()
                 updateQuestGivers()
+
+                if dialogueMenuActor then
+                    dialogueMenuActor:sendEvent("QGL:checkFollowingPlayer", {player = self.object, requestUpdate = true})
+                    dialogueMenuActor = nil
+                end
+            elseif e.newMode == "Dialogue" then
+                dialogueMenuActor = e.arg
+            elseif e.oldMode == "Container" or e.newMode == "Loading" or e.oldMode == "Interface" then
+                handleTracking()
             end
         end,
 
@@ -794,11 +822,17 @@ return {
 
         ["QGL:registerActorDeath"] = function (data)
             killCounter.registerKill(data.object)
-            tracking.handleDeath(data.object.recordId)
+            if tracking.handleObjectRequirements(data.object.recordId) then
+                handleTracking()
+            end
         end,
 
         ["QGL:createMarkersForDoor"] = function (ref)
             tracking.createMarkersForExteriorDoor(ref)
+        end,
+
+        ["QGL:updateMapMarkerForQuestGivers"] = function (data)
+            advWMapIntegration.createDoorGiversMarker(data.ref, data.questNames)
         end,
 
         ---@param data proximityTool.event.callbackParams
@@ -921,5 +955,37 @@ return {
         ["QGL:requestTimeUpdate"] = function (data)
             timeLib.setGlobalTime(data.day, data.month, data.year)
         end,
+
+        ["QGL:followingPlayerChanged"] = function (data)
+            local actorRecId = data.actor.recordId
+            local obj = data.actor.type.record(actorRecId)
+            local scriptId = obj and obj.mwscript
+
+            local changed
+            if data.isFollowing then
+                changed = tracking.disableDoorMarkersForObject(actorRecId)
+                if scriptId then
+                    changed = tracking.disableDoorMarkersForObject(scriptId) or changed
+                end
+            else
+                changed = tracking.enableDoorMarkersForObject(actorRecId)
+                if scriptId then
+                    changed = tracking.disableDoorMarkersForObject(scriptId) or changed
+                end
+            end
+
+            if changed then
+                tracking.updateTemporaryMarkers()
+                tracking.updateMarkers()
+            end
+
+            if data.requestUpdate then
+                for _, actor in pairs(nearby.actors) do
+                    if actor.recordId ~= actorRecId then
+                        actor:sendEvent("QGL:checkFollowingPlayer", {player = self.object})
+                    end
+                end
+            end
+        end
     },
 }

@@ -4,6 +4,7 @@ local types = require('openmw.types')
 local core = require("openmw.core")
 local playerFunc = types.Player
 local world = include("openmw.world")
+---@module "scripts.quest_guider_lite.core.tes3"
 local tes3 = include("scripts.quest_guider_lite.core.tes3")
 local playerRef = include("openmw.self") or world.players[1] ---@diagnostic disable-line: need-check-nil
 
@@ -17,6 +18,13 @@ local log = require("scripts.quest_guider_lite.utils.log")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
 local getObject = require("scripts.quest_guider_lite.core.getObject")
+
+local dataHandler
+if include("openmw.self") then
+    dataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
+else
+    dataHandler = require("scripts.quest_guider_lite.storage.dataHandler")
+end
 
 local this = {}
 
@@ -63,7 +71,7 @@ local attributeFuncs = {
 }
 
 
----@type table<string, fun(req:questDataGenerator.requirementData, obj:any, mobile:any, ref:tes3reference):boolean?>
+---@type table<string, fun(req:questDataGenerator.requirementData, obj:any, player:any):boolean?>
 local dataFuncs = {
     [reqTypes.requirementType.Journal] = function (req, _, player)
         if not req.variable then return end
@@ -108,15 +116,37 @@ local dataFuncs = {
     end,
 
     [reqTypes.requirementType.Dead] = function (req)
-        if not req.variable then return end
-        local kilCount = killCounter.getKillCount(req.variable)
+        if not req.variable and not req.object then return end
+        local kilCount = killCounter.getKillCount(req.variable or req.object)
         return operator.check(kilCount, req.value, req.operator)
     end,
 
     [reqTypes.requirementType.CustomOnDeath] = function (req)
-        if not req.object then return end
-        local kilCount = killCounter.getKillCount(req.object)
-        return operator.check(kilCount, req.value, req.operator)
+        if not req.object and not req.script then return end
+
+        local kilCount = 0
+        if req.object then
+            kilCount = killCounter.getKillCount(req.object)
+
+        elseif req.script then
+            local scrData = dataHandler.getObjectData(req.script)
+            if scrData and scrData.links then
+                for _, dt in pairs(scrData.links) do
+                    if dt[2] == nil then goto continue end
+
+                    local objDt = this.getObjectData(dt[1])
+                    if not objDt or objDt.type > 2 then goto continue end
+
+                    kilCount = kilCount + killCounter.getKillCount(dt[1])
+
+                    ::continue::
+                end
+            end
+        end
+
+        local res = kilCount > 0 and 1 or 0
+
+        return operator.check(res, req.value, req.operator)
     end,
 
     [reqTypes.requirementType.Item] = function (req, ref)
@@ -127,46 +157,35 @@ local dataFuncs = {
         return operator.check(itemCount, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.CustomGlobal] = function (req)
-        if req.object or not req.variable then return end
-        local globals = world and world.mwscript.getGlobalVariables(world.players[1])
+    [reqTypes.requirementType.CustomGlobal] = function (req, _, player)
+        if not req.variable then return end
+        local globals = world and world.mwscript.getGlobalVariables(player)
         if not globals then return end
-        local value
-        for name, val in pairs(globals) do
-            if name:lower() == req.variable then
-                value = val
-                break
-            end
-        end
+        local value = globals[req.variable]
+
         if not value then return end
         return operator.check(value, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.CustomLocal] = function (req, ref)
+    [reqTypes.requirementType.CustomLocal] = function (req, ref, player)
         if not req.variable or not ref then return end
-        local script = world and world.mwscript.getLocalScript(ref, world.players[1])
+        local script = world and world.mwscript.getLocalScript(ref, player)
         if not script then return end
         local variables = script.variables
 
         if req.script and script.recordId:lower() ~= req.script then return false end
         if req.object and script.object.recordId ~= req.object then return false end
 
-        local value
-        for name, val in pairs(variables) do
-            if name:lower() == req.variable then
-                value = val
-                break
-            end
-        end
+        local value = variables[req.variable]
         if not value then return end
 
         return operator.check(value, req.value, req.operator)
     end,
 
-    [reqTypes.requirementType.CustomNotLocal] = function (req, ref)
+    [reqTypes.requirementType.CustomNotLocal] = function (req, ref, player)
         if not req.variable or not ref then return end
 
-        local script = world and world.mwscript.getLocalScript(ref, world.players[1])
+        local script = world and world.mwscript.getLocalScript(ref, player)
         if not script then return true end
 
         for name, val in pairs(script.variables) do
@@ -195,7 +214,7 @@ local dataFuncs = {
             if res == 1 then break end
         end
 
-        return operator.check(res, ref.value, req.operator)
+        return operator.check(res, req.value, req.operator)
     end,
 
     [reqTypes.requirementType.NPCSameFactionAsPlayer] = function (req, ref, player)
@@ -205,11 +224,11 @@ local dataFuncs = {
         if not factions then return false end
         local res = 0
         for _, faction in pairs(factions) do
-            res = types.NPC.getFactionRank(player or playerRef, faction) and 1 or 0
+            res = types.NPC.getFactionRank(player or playerRef, faction) > 0 and 1 or 0
             if res == 1 then break end
         end
 
-        return operator.check(res, ref.value, req.operator)
+        return operator.check(res, req.value, req.operator)
     end,
 
     [reqTypes.requirementType.ValueFLTV] = function (req, ref, player)
@@ -246,6 +265,10 @@ local dataFuncs = {
     [reqTypes.requirementType.NotActorCell] = function (req, ref)
         if not req.variable or not req.value or not ref then return end
 
+        if req.object and ref.recordId ~= req.object then
+            return false
+        end
+
         local val = string.sub(ref.cell.name, 1, #req.value):lower() ~= req.value and 1 or 0
 
         return operator.check(val, req.value, req.operator)
@@ -253,6 +276,10 @@ local dataFuncs = {
 
     [reqTypes.requirementType.CustomActorCell] = function (req, ref)
         if not req.value or not ref then return end
+
+        if req.object and ref.recordId ~= req.object then
+            return false
+        end
 
         return string.sub(ref.cell.name, 1, #req.value):lower() == req.value and true or false
     end,
@@ -333,16 +360,15 @@ local dataFuncs = {
     end,
 
     [reqTypes.requirementType.NPCSameGenderAsPlayer] = function (req, ref, player)
-        if not req.value or not ref then return end
-        if not types.NPC.objectIsInstance(ref) then return end
+        if not req.value or (not ref and not req.object) then return end
 
-        local record = types.NPC.record(ref)
+        local record = types.NPC.record(ref or req.object)
         if not record then return end
         local playerRecord = types.NPC.record(player or playerRef)
 
         local val = record.isMale == playerRecord.isMale and 1 or 0
 
-        return operator.check(val, ref.value, req.operator)
+        return operator.check(val, req.value, req.operator)
     end,
 
     [reqTypes.requirementType.CustomSkill] = function (req, ref, player)
@@ -391,7 +417,7 @@ local dataFuncs = {
 
         local val = record.race == playerRecord.race and 1 or 0
 
-        return operator.check(val, ref.value, req.operator)
+        return operator.check(val, req.value, req.operator)
     end,
 
     [reqTypes.requirementType.PlayerGender] = function (req, _, player)
@@ -572,6 +598,15 @@ local dataFuncs = {
 
         return operator.check(false, true, req.operator)
     end,
+
+    [reqTypes.requirementType.CustomRace] = function (req, obj)
+        if not req.variable or not obj then return end
+
+        local record = obj.type.record(obj)
+        if not record or not record.race then return end
+
+        return operator.check(record.race, req.variable, req.operator)
+    end
 }
 
 this.dataFuncs = dataFuncs
@@ -591,6 +626,13 @@ function this.check(req, reference, player)
 end
 
 
+local function isReqEssentialForCompleting(req)
+    return req.type == reqTypes.requirementType.CustomGlobal and req.variable == "pcrace" or
+            req.type == reqTypes.requirementType.CustomRace and req.object == "player" or
+            req.type == reqTypes.requirementType.NPCSameGenderAsPlayer and req.object ~= nil
+end
+
+
 ---@class questGuider.requirementChecker.checkForBlock.params
 ---@field reference tes3reference?
 ---@field ignoredTypes table<string, any>?
@@ -603,18 +645,22 @@ end
 ---@param player any?
 ---@return boolean?
 ---@return questDataGenerator.requirementData[]? ignoredRequirements
+---@return boolean? impossibleToComplete
 function this.checkBlock(block, params, player)
     if not params then params = {} end
     if not params.ignoredTypes then params.ignoredTypes = {} end
 
-    -- don't forget to remove when this requirement type will be supported
+    -- TODO: don't forget to remove when this requirement type will be supported
     params.ignoredTypes[reqTypes.requirementType.CustomActor] = true
 
     local pl = player or (world and world.players[1]) or playerRef
 
     local ignoredRequirements = {}
+    local impossibleToComplete = false
     local res = true
     for _, req in pairs(block) do
+        if not dataFuncs[req.type] then goto continue end
+
         if (params.ignoredTypes and params.ignoredTypes[req.type]) or
                 (params.allowedTypes and not params.allowedTypes[req.type]) then
             table.insert(ignoredRequirements, req)
@@ -634,6 +680,9 @@ function this.checkBlock(block, params, player)
         end
 
         local r = this.check(req, ref, pl)
+        if r == false and isReqEssentialForCompleting(req) then
+            impossibleToComplete = true
+        end
         if r == nil and params.threatErrorsAs ~= nil then
             r = params.threatErrorsAs
         end
@@ -645,20 +694,42 @@ function this.checkBlock(block, params, player)
         ::continue::
     end
 
-    return res, ignoredRequirements
+    return res, ignoredRequirements, impossibleToComplete
+end
+
+
+---@param block questDataGenerator.requirementData[]
+---@param params questGuider.requirementChecker.checkForBlock.params
+function this.isBlockCompletionPossible(block, params, player)
+    for _, req in pairs(block) do
+        if isReqEssentialForCompleting(req) then
+            local ref
+            if req.object == "player" then
+                ref = player
+            else
+                ref = params and params.reference
+            end
+            local r = this.check(req, ref, player)
+            if r == false then return false end
+        end
+    end
+
+    return true
 end
 
 
 ---@param reqBlock questDataGenerator.requirementBlock
 ---@param  filter table<string, any>? by requirement type id
+---@param invert boolean?
 ---@return questDataGenerator.requirementBlock?
 ---@return integer count
-function this.getFilterredRequirementBlock(reqBlock, filter)
+function this.getFilterredRequirementBlock(reqBlock, filter, invert)
     local outReqBlock = {}
     local count = 0
     for _, req in pairs(reqBlock) do
         if not filter or filter[req.type] then
-            table.insert(outReqBlock, tableLib.copy(req))
+            local r = not invert and tableLib.copy(req) or reqTypes.invertRequirement(tableLib.copy(req))
+            table.insert(outReqBlock, r)
             count = count + 1
         end
     end

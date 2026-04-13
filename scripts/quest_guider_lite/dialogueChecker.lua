@@ -56,7 +56,7 @@ function this.isDialogueTopicAvailable(ref, diaId, infoId, options)
 
         for _, infoData in ipairs(data) do
             if infoData.id == info.id then
-                local r = requirementChecker.checkBlock(infoData.reqs, checkBlockOptions)
+                local r = requirementChecker.checkBlock(infoData.reqs, checkBlockOptions, playerRef)
 
                 if r then
                     return info.id == infoId, info.id

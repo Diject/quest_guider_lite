@@ -5,12 +5,12 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local utils = require("scripts.quest_guider_lite.utils.common")
 local tes3 = require("scripts.quest_guider_lite.core.tes3")
 local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
+local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 
 local maxDepth = 8
 
 local this = {}
 
-this.findExitPosCache = {}
 
 ---@param cell tes3cell
 ---@return tes3vector3|nil outPos
@@ -33,8 +33,11 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
     end
     checked[cell.id] = math.min(checked[cell.id] or depth, depth)
 
-    if depth == 1 and this.findExitPosCache[cell.id] then
-        return table.unpack(this.findExitPosCache[cell.id]) ---@diagnostic disable-line: redundant-return-value
+    if depth == 1 then
+        local cacheData = cacheLib.get("findExitPosCache", cell.id)
+        if cacheData then
+            return table.unpack(cacheData) ---@diagnostic disable-line: redundant-return-value
+        end
     end
 
     local bestResult = nil
@@ -106,7 +109,7 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
         end
 
         if depth == 1 then
-            this.findExitPosCache[cell.id] = {table.unpack(bestResult)}
+            cacheLib.set("findExitPosCache", cell.id, {table.unpack(bestResult)})
         end
 
         return table.unpack(bestResult) ---@diagnostic disable-line: redundant-return-value
