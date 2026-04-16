@@ -11,9 +11,9 @@ function this.getCellData(cell)
 			or cell.region or ""
 		local cellName = cell.displayName or cell.name or ""
 		if not cellName or cellName == "" then
-			name = string.format("%s (%d, %d)", cellName, cell.gridX, cell.gridY)
-		else
 			name = string.format("%s (%d, %d)", region, cell.gridX, cell.gridY)
+		else
+			name = string.format("%s (%d, %d)", cellName, cell.gridX, cell.gridY)
 		end
 	else
 		name = cell.displayName or cell.name or "???"
