@@ -454,4 +454,18 @@ function this.getTopicData(topicId, player)
 end
 
 
+---@param diaId string
+---@param infoId string
+function this.getDialogueInfo(diaId, infoId)
+    local dia = core.dialogue.topic.records[diaId] or core.dialogue.greeting.records[diaId]
+    if not dia then return end
+
+    for _, info in pairs(dia.infos) do
+        if info.id == infoId then
+            return info
+        end
+    end
+end
+
+
 return this

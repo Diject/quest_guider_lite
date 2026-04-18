@@ -171,6 +171,7 @@ journalMeta.selectQuest = function (self, qName)
         showReqsForAll = self.params.showReqsForAll,
         hideStageText = self.params.hideStageText,
         showOnlyFirst = self.params.showOnlyFirst,
+        showReqDiaEntryText = self.params.showReqDiaEntryText,
         questName = selectedLayout.userData.questName,
         size = self.questInfoPanelSize,
         userData = {
@@ -511,6 +512,7 @@ end
 ---@field showReqsForAll boolean?
 ---@field hideStageText boolean?
 ---@field showOnlyFirst boolean?
+---@field showReqDiaEntryText boolean?
 ---@field createTopicMenuFunc function?
 ---@field createTrackingMenuFunc function?
 ---@field onClose function?

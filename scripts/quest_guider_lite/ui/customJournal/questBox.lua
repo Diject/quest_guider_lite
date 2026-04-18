@@ -11,11 +11,13 @@ local log = require("scripts.quest_guider_lite.utils.log")
 local config = require("scripts.quest_guider_lite.configLib")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local questBase = require("scripts.quest_guider_lite.questBase")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local common = require('scripts.quest_guider_lite.common')
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
+local getObject = require("scripts.quest_guider_lite.core.getObject")
 
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -167,11 +169,60 @@ function questBoxMeta._fillJournal(self, content, params)
         if params.showOnlyFirst and addedDiaIds[qInfo.diaId] then return end
 
         local text = self.params.hideStageText and "" or playerQuests.getJournalText(qInfo.diaId, qInfo.index)
-        if not text then goto continue end
+
+        local linkedTexts = {}
+        if params.showReqDiaEntryText then
+            local primeDiaData = questBase.getQuestDiaPrimeDialogueIds(qInfo.diaId, qInfo.index)
+            local checkedInfos = {}
+            for _, dt in pairs(primeDiaData or {}) do
+                if not checkedInfos[dt.topicId] then
+                    local diaInfo = playerQuests.getDialogueInfo(dt.diaId, dt.topicId)
+                    if diaInfo then
+                        local diaText = diaInfo.text or ""
+                        local actorName
+                        if dt.actorId then
+                            local actor = getObject(dt.actorId)
+                            if actor then
+                                actorName = actor.name
+                            end
+                        end
+                        actorName = actorName or l10n("dialogueDefaultActorName")
+
+                        if not linkedTexts[diaText] then
+                            linkedTexts[diaText] = {[actorName] = true}
+                        else
+                            linkedTexts[diaText][actorName] = true
+                        end
+                    end
+
+                    checkedInfos[dt.topicId] = true
+                end
+            end
+        end
+
+        if not text and not next(linkedTexts) then goto continue end
+
+        text = text or ""
 
         local topicLinkStrs = stringLib.findTextLinks(text)
 
         text = stringLib.removeSpecialCharactersFromJournalText(text)
+
+        if next(linkedTexts) then
+            local tt = {}
+            for t, actors in pairs(linkedTexts) do
+                local actorNamesArr = tableLib.keys(actors)
+                table.insert(tt, string.format("#%s%s#%s: %s",
+                        config.data.ui.objectColor:asHex(),
+                        table.concat(actorNamesArr, ", "),
+                        config.data.ui.defaultColor:asHex(),
+                        t
+                    )
+                )
+            end
+
+            text = string.format("%s\n\n\n%s", table.concat(tt, "\n\n"), text or "")
+        end
 
         if self.params.showReqsForAll or not addedDiaIds[qInfo.diaId] then
             addedDiaIds[qInfo.diaId] = true
@@ -372,7 +423,6 @@ function questBoxMeta._fillJournal(self, content, params)
                     content = ui.content {
                         interval(4, 1),
                         {
-                            template = templates.textNormal,
                             type = ui.TYPE.Text,
                             userData = {
                                 defaultTextColor = config.data.ui.defaultColor,
@@ -467,6 +517,7 @@ end
 ---@field playerQuestData questGuider.playerQuest.storageQuestData
 ---@field isQuestList boolean?
 ---@field hideStageText boolean?
+---@field showReqDiaEntryText boolean?
 ---@field showReqsForAll boolean?
 ---@field showOnlyFirst boolean?
 ---@field updateFunc function

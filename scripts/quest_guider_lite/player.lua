@@ -342,6 +342,7 @@ local function buildAllQuestsMenu()
         questList = dialogues,
         isQuestList = true,
         showReqsForAll = true,
+        showReqDiaEntryText = true,
     }
 end
 
@@ -449,6 +450,7 @@ local function giverMarkerClick(userData)
         showReqsForAll = true,
         showOnlyFirst = true,
         hideStageText = true,
+        showReqDiaEntryText = true,
     })
 end
 

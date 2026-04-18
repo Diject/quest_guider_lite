@@ -187,6 +187,7 @@ showQuestByTrackingMenuBtn: ">>"
 mapUpdateQuestDataMessage: "To access the map, update the quest data."
 andMorePattern: "and %d more"
 or: "or"
+dialogueDefaultActorName: "???"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."
