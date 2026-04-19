@@ -204,6 +204,7 @@ function this.init()
             if storageQuestData then
                 storageQuestData.finished = storageQuestData.finished or q.finished
                 storageQuestData.timestamp = core.getGameTime()
+                storageQuestData.globalTime = timeLib.getGlobalTimestamp()
                 table.insert(storageQuestData.list, {
                     diaId = q.id,
                     index = q.stage,
@@ -357,13 +358,28 @@ end
 ---@param diaId string
 ---@param index integer
 ---@return string?
+---@return string? topicId
 function this.getJournalText(diaId, index)
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
     for _, info in pairs(dia.infos) do
         if info.questStage == index then
-            return info.text
+            return info.text, info.id
+        end
+    end
+end
+
+
+---@param diaId string
+---@param topicId string
+function this.getJournalTopic(diaId, topicId)
+    local dia = core.dialogue.journal.records[diaId]
+    if not dia then return end
+
+    for _, info in pairs(dia.infos) do
+        if info.id == topicId then
+            return info
         end
     end
 end
@@ -465,6 +481,78 @@ function this.getDialogueInfo(diaId, infoId)
             return info
         end
     end
+end
+
+
+---@param qName string
+---@return questGuider.playerQuest.storageQuestData?
+---@return table<string, string>? topicTexts
+function this.getAndUpdateJournalQuestData(qName)
+    if core.API_REVISION < 93 then return this.getQuestStorageData(qName) end
+
+    local qData = this.getQuestDataByName(qName)
+    if not qData then return end
+
+    local diaIds = {}
+    for _, diaDt in pairs(qData.records) do
+        diaIds[diaDt.id] = true
+    end
+
+    local storData
+    local texts = {}
+    local added = {}
+
+    local pos = 1
+    for i, entry in ipairs(playerFunc.journal(playerRef).journalTextEntries) do
+        if not diaIds[entry.questId or ""] then goto continue end
+
+        storData = storData or this.getQuestStorageData(qName)
+        if not storData then
+            ---@type questGuider.playerQuest.storageQuestData
+            local dt = initStorageQuestData(qName)
+            if not dt then return end
+            dt.timestamp = dateLib.getTimestampByDate(entry.day)
+            storData = dt
+        end
+
+        texts[entry.id] = entry.text
+
+        local topic = this.getJournalTopic(entry.questId, entry.id)
+        if not topic then return storData, texts end
+
+        local index = topic.questStage
+
+        local storRec = storData.list[pos]
+        if index and (not storRec or storRec.diaId ~= entry.questId or storRec.index ~= index) then
+            local timestamp = dateLib.getTimestampByDate(entry.day) + i
+
+            ---@type questGuider.playerQuest.storageQuestInfo
+            local dt = {
+                diaId = entry.questId,
+                index = index,
+                timestamp = timestamp,
+            }
+
+            table.insert(storData.list, pos, dt)
+            for j = pos + 1, #storData.list do
+                local nxt = storData.list[j]
+                if nxt and nxt.diaId == dt.diaId and nxt.index == dt.index then
+                    dt.timestamp = nxt.timestamp
+                    dt.globalTime = nxt.globalTime
+                    dt.cellData = nxt.cellData
+
+                    table.remove(storData.list, j)
+                    break
+                end
+            end
+        end
+
+        pos = pos + 1
+
+        ::continue::
+    end
+-- require("scripts.quest_guider_lite.utils.log")(storData)
+    return storData, texts
 end
 
 

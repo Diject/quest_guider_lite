@@ -161,14 +161,27 @@ function questBoxMeta._fillJournal(self, content, params)
     ---@type table<string, boolean>
     local addedDiaIds = {}
 
+    local playerQuestDataList, topicTexts = playerQuests.getAndUpdateJournalQuestData(params.questName or "")
+    playerQuestDataList = playerQuestDataList and playerQuestDataList.list or params.playerQuestData.list
+
     local contentIndex = 2
     local function addElement(i)
-        local qInfo = params.playerQuestData.list[i]
+        local qInfo = playerQuestDataList[i]
         if not qInfo then goto continue end
 
         if params.showOnlyFirst and addedDiaIds[qInfo.diaId] then return end
 
-        local text = self.params.hideStageText and "" or playerQuests.getJournalText(qInfo.diaId, qInfo.index)
+        local text = self.params.hideStageText and "" or nil
+        if not text then
+            local t, id = playerQuests.getJournalText(qInfo.diaId, qInfo.index)
+            if id and topicTexts then
+                local tt = topicTexts[id]
+                if tt then
+                    t = tt
+                end
+            end
+            text = t
+        end
 
         local linkedTexts = {}
         if params.showReqDiaEntryText then
@@ -455,11 +468,11 @@ function questBoxMeta._fillJournal(self, content, params)
     end
 
     if self.params.isQuestList then
-        for i = 1, #params.playerQuestData.list do
+        for i = 1, #playerQuestDataList do
             addElement(i)
         end
     else
-        for i = #params.playerQuestData.list, 1, -1 do
+        for i = #playerQuestDataList, 1, -1 do
             addElement(i)
         end
     end
