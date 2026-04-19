@@ -366,7 +366,6 @@ function questBoxMeta._fillJournal(self, content, params)
                 {
                     type = ui.TYPE.Widget,
                     props = {
-                        autoSize = false,
                         size = util.vector2(textElemSize.x, params.fontSize * 1.25),
                     },
                     content = ui.content {
@@ -577,7 +576,6 @@ function this.create(params)
         },
         content = ui.content {
             {
-                template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
                     text = uiUtils.colorize(params.questName, meta.parent.textFilter,
@@ -611,9 +609,7 @@ function this.create(params)
             {
                 type = ui.TYPE.Widget,
                 props = {
-                    autoSize = false,
                     size = checkBoxBlockSize,
-                    horizontal = true,
                 },
                 content = ui.content {
                     {

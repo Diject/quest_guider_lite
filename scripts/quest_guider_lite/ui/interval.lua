@@ -3,7 +3,7 @@ local util = require('openmw.util')
 
 return function (x, y)
     return {
-        Type = ui.TYPE.Widget,
+        type = ui.TYPE.Widget,
         props = {
             size = util.vector2(x or 2, y or 2),
         },

@@ -569,7 +569,6 @@ local function create(params)
     }
 
     meta.trackedButtonLayout = {
-        template = templates.textNormal,
         type = ui.TYPE.Text,
         props = {
             text = l10n("tracking"),
@@ -680,7 +679,6 @@ local function create(params)
                 },
                 content = ui.content {
                     {
-                        template = templates.textNormal,
                         type = ui.TYPE.Text,
                         props = {
                             text = l10n("topics"),
@@ -705,7 +703,6 @@ local function create(params)
                     meta.trackedButtonLayout,
                     interval(params.fontSize * 3, 0),
                     {
-                        template = templates.textNormal,
                         type = ui.TYPE.Text,
                         props = {
                             text = l10n("close"),
@@ -742,7 +739,6 @@ local function create(params)
     searchBar = {
         type = ui.TYPE.Container,
         props = {
-            autoSize = false,
             size = util.vector2(questListSize.x, params.fontSize)
         },
         content = ui.content {

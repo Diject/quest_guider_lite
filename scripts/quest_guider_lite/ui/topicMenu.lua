@@ -413,7 +413,6 @@ topicMenuMeta.selectTopic = function (self, topicId)
         {
             type = ui.TYPE.Widget,
             props = {
-                autoSize = false,
             },
             content = ui.content{},
         },
@@ -741,7 +740,6 @@ local function create(params)
                 }
             },
             {
-                template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
                     text = params.headerName and params.headerName or l10n("topics"),
@@ -753,7 +751,6 @@ local function create(params)
                 },
             },
             {
-                template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
                     text = l10n("close"),
@@ -781,7 +778,6 @@ local function create(params)
     searchBar = {
         type = ui.TYPE.Widget,
         props = {
-            autoSize = false,
             size = util.vector2(topictListSize.x, params.fontSize + 10)
         },
         content = ui.content {
@@ -854,7 +850,6 @@ local function create(params)
     local nextPrevBlock = {
         type = ui.TYPE.Widget,
         props = {
-            autoSize = false,
             size = util.vector2(topictListSize.x, params.fontSize + 6 + params.fontSize * 0.5)
         },
         content = ui.content {

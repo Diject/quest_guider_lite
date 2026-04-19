@@ -433,9 +433,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
             objInfoContent = {
                 type = ui.TYPE.Widget,
                 props = {
-                    autoSize = false,
                     size = util.vector2(sbSize.x, params.fontSize * 1.5),
-                    arrange = ui.ALIGNMENT.Center,
                 },
                 content = ui.content {
                     {
@@ -449,7 +447,6 @@ topicMenuMeta.selectTracked = function (self, trackedId)
                         },
                         content = ui.content {
                             {
-                                template = templates.textNormal,
                                 type = ui.TYPE.Text,
                                 props = {
                                     text = uiUtils.colorize(objName, self.textFilter,
@@ -1169,7 +1166,6 @@ function this.createContent(params)
                 }
             },
             {
-                template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
                     text = params.headerName and params.headerName or l10n("tracking"),
@@ -1181,7 +1177,6 @@ function this.createContent(params)
                 },
             },
             {
-                template = templates.textNormal,
                 type = ui.TYPE.Text,
                 props = {
                     text = l10n("close"),
@@ -1210,7 +1205,6 @@ function this.createContent(params)
     searchBar = {
         type = ui.TYPE.Widget,
         props = {
-            autoSize = false,
             size = util.vector2(trackingListSize.x, params.fontSize + 10)
         },
         content = ui.content {
@@ -1282,7 +1276,6 @@ function this.createContent(params)
     local mapBtnBlock = {
         type = ui.TYPE.Widget,
         props = {
-            autoSize = false,
             size = util.vector2(trackingListSize.x, params.fontSize * 2)
         },
         content = ui.content {
@@ -1322,8 +1315,6 @@ function this.createContent(params)
     local bottomBtns = {
         type = ui.TYPE.Widget,
         props = {
-            autoSize = false,
-            horizontal = true,
             size = bottomBtnsSize,
         },
         content = ui.content {

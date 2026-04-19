@@ -140,7 +140,6 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             header = {
                 type = ui.TYPE.Widget,
                 props = {
-                    autoSize = false,
                     size = util.vector2(self.params.size.x, params.fontSize * 1.2)
                 },
                 content = ui.content {

@@ -414,7 +414,6 @@ return function(params)
         template = params.withoutBorders ~= true and templates.box or nil,
         type = ui.TYPE.Widget,
         props = {
-            autoSize = false,
             size = params.size,
             position = params.position,
         },
