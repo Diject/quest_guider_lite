@@ -16,6 +16,7 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
+local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
@@ -541,6 +542,7 @@ local function create(params)
 
     function meta.close()
         if params.onClose then params.onClose() end
+        cacheLib.clear("hasPhrase")
         if not meta.menu or not meta.menu.layout then return end
         meta.menu:destroy()
         menuHandler.unregisterMenu(params.menuId)

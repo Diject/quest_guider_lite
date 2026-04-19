@@ -313,4 +313,66 @@ function this.removeColorMarkers(text)
 end
 
 
+---Colorize text using positions from findPhrases result
+---@param text string original text (not lowercased)
+---@param phrasePositions table<string, hasPhrasePosition[]> result from stringLib.findPhrases
+---@param color string|nil color for highlights, e.g. "#FF0000"
+---@param defaultColor string|nil default text color
+---@return string colorized text
+function this.colorizeFromPhrasePositions(text, phrasePositions, color, defaultColor)
+    if not phrasePositions then return text end
+
+    color = color or "#000000"
+    defaultColor = defaultColor or ("#" .. config.data.ui.defaultColor:asHex())
+
+    -- Collect all positions into a flat list
+    local allPositions = {}
+    for _, positions in pairs(phrasePositions) do
+        for _, pos in ipairs(positions) do
+            table.insert(allPositions, pos)
+        end
+    end
+
+    if #allPositions == 0 then return text end
+
+    -- Sort by start position
+    table.sort(allPositions, function(a, b)
+        return a.startPos < b.startPos
+    end)
+
+    -- Filter overlapping matches (keep first)
+    local filtered = {}
+    local lastEnd = 0
+    for _, pos in ipairs(allPositions) do
+        if pos.startPos > lastEnd then
+            table.insert(filtered, pos)
+            lastEnd = pos.endPos
+        end
+    end
+
+    -- Build result string
+    local result = {}
+    local lastIdx = 1
+
+    for _, pos in ipairs(filtered) do
+        -- Add text before this match
+        if pos.startPos > lastIdx then
+            table.insert(result, text:sub(lastIdx, pos.startPos - 1))
+        end
+        -- Add colored match
+        table.insert(result, color)
+        table.insert(result, text:sub(pos.startPos, pos.endPos))
+        table.insert(result, defaultColor)
+        lastIdx = pos.endPos + 1
+    end
+
+    -- Add remaining text
+    if lastIdx <= #text then
+        table.insert(result, text:sub(lastIdx))
+    end
+
+    return table.concat(result)
+end
+
+
 return this

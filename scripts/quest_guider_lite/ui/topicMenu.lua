@@ -15,6 +15,7 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
+local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
@@ -169,6 +170,14 @@ topicMenuMeta.selectTopic = function (self, topicId)
     local endIndex = #topic.entries
     local nestedTopics = {}
 
+    local topicData = {}
+    for _, topic in pairs(playerQuests.getTopicList() or {}) do
+        topicData[topic.name or ""] = {
+            topic = topic
+        }
+    end
+    local topicList = tableLib.keys(topicData)
+
     local function updateTopicText(topicInfoContent, loadMore)
         ---@type questGuider.ui.scrollBox
         local topicSBMeta = self:getTopicScrollBox().userData.scrollBoxMeta
@@ -193,7 +202,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
         local actorNames = {}
 
-        local textLinks = {}
+        -- local textLinks = {}
 
         local newText = ""
 
@@ -215,12 +224,21 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 local entry = topic.entries[i]
                 if not entry then goto continue end
 
-                local topicLinkStrs = stringLib.findTextLinks(entry.text)
-                for _, str in pairs(topicLinkStrs) do
-                    textLinks[str] = true
+                local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
+
+                local topicPoss = config.data.journal.fuzzyTopicMatching and stringLib.findPhrases(entryText, topicList) or
+                    stringLib.findPhrasesExact(entryText, topicList)
+
+                local linkColor = "#"..config.data.ui.linkColor:asHex()
+                local defaultColor = "#"..config.data.ui.defaultColor:asHex()
+                entryText = uiUtils.colorizeFromPhrasePositions(entryText, topicPoss, linkColor, defaultColor)
+
+                for id, _ in pairs(topicPoss) do
+                    if not nestedTopics[id] and topicData[id] then
+                        nestedTopics[id] = topicData[id]
+                    end
                 end
 
-                local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
                 table.insert(actorNames, entry.actor)
                 newText = string.format("%s\t\t____ID_%s____: \"%s\"\n\n",
                     newText,
@@ -232,47 +250,6 @@ topicMenuMeta.selectTopic = function (self, topicId)
             end
 
             endIndex = util.clamp(endIndex - config.data.journal.maxTopicEntriesInTopicMenu, 0, #topic.entries)
-
-            if next(textLinks) then
-                for str, _ in pairs(textLinks) do
-                    for _, tp in pairs(playerQuests.getTopicList()) do
-
-                        if not nestedTopics[tp.id] then
-                            for _, name in pairs(actorNames) do
-                                if stringLib.fuzzyTopicSearch(tp.id, stringLib.utf8_lower(name)) then
-                                    if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
-                                end
-                            end
-                        end
-
-                        if (not nestedTopics[tp.id] or not nestedTopics[tp.id].patterns[str])
-                                and stringLib.fuzzyTopicSearch(str, tp.id) then
-                            if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
-                            nestedTopics[tp.id].patterns[str] = true
-                        end
-
-                    end
-                end
-            else
-                local textLower = stringLib.utf8_lower(newText)
-                for _, tp in pairs(playerQuests.getTopicList()) do
-
-                    if not nestedTopics[tp.id] then
-                        for _, name in pairs(actorNames) do
-                            if stringLib.fuzzyTopicSearch(tp.id, stringLib.utf8_lower(name)) then
-                                if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
-                            end
-                        end
-                    end
-
-                    if (not nestedTopics[tp.id] or not nestedTopics[tp.id].patterns[tp.name])
-                            and stringLib.hasPhrase(textLower, tp.id) then
-                        if not nestedTopics[tp.id] then nestedTopics[tp.id] = {topic = tp, nameLen = stringLib.length(tp.id), patterns = {}} end
-                        nestedTopics[tp.id].patterns[tp.name] = true
-                    end
-
-                end
-            end
         end
 
         local newTextHeight = uiUtils.getTextHeight(newText, params.fontSize, headerSize.x, config.data.journal.textHeightMulRecord, 1, true)
@@ -291,20 +268,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
         if next(nestedTopics) then
 
-            local nestedTopicsList = tableLib.values(nestedTopics, function (a, b)
-                return (a.nameLen > b.nameLen)
-            end)
-
-            local patColor = "#"..config.data.ui.linkColor:asHex()
-            local patterns = {}
-            for _, topicData in ipairs(nestedTopicsList) do
-                for pattern, _ in pairs(topicData.patterns) do
-                    patterns[pattern] = {pattern = pattern, color = patColor}
-                end
-            end
-
-            newText = uiUtils.colorizeNestedMulti(newText, tableLib.values(patterns),
-                    "#"..config.data.ui.defaultColor:asHex())
+            local nestedTopicsList = tableLib.values(nestedTopics)
 
             table.sort(nestedTopicsList, function (a, b)
                 return a.topic.id < b.topic.id
@@ -659,6 +623,7 @@ local function create(params)
 
     function meta.close()
         if params.onClose then params.onClose() end
+        cacheLib.clear("hasPhrase")
         if not meta.menu or not meta.menu.layout then return end
         meta.menu:destroy()
         menuHandler.unregisterMenu(params.menuId)

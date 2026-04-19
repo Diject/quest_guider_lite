@@ -247,6 +247,7 @@ I.Settings.registerGroup{
         numberSetting{key = "journal.listRelativeSize", name = "questListRelativeSize", description = "questListRelativeSizeDescription", integer = false, min = 5, max = 50, default = config.default.journal.listRelativeSize},
         boolSetting{key = "journal.trackedColorMarks", name = "colorFlags", description = "colorFlagsDescription", default = config.default.journal.trackedColorMarks},
         boolSetting{key = "journal.ssqnIcons", name = "ssqnIcons", description = "ssqnIconsDescription", default = config.default.journal.ssqnIcons},
+        boolSetting{key = "journal.fuzzyTopicMatching", name = "fuzzyTopicMatching", description = "fuzzyTopicMatchingDescription", default = config.default.journal.fuzzyTopicMatching},
         numberSetting{key = "journal.maxTopicEntriesInTopicMenu", name = "maxTopicEntriesPerLoadInTopicMenu", description = "maxTopicEntriesPerLoadInTopicMenuDescription", integer = true, min = 1, default = config.default.journal.maxTopicEntriesInTopicMenu},
         numberSetting{key = "journal.maxTopicEntriesInJournal", name = "maxTopicEntriesInJournal", description = "maxTopicEntriesInJournalDescription", integer = true, min = 0, default = config.default.journal.maxTopicEntriesInJournal},
         numberSetting{key = "journal.mouseScrollAmount", name = "mouseScrollAmount", description = "mouseScrollAmountDescription", integer = true, min = 1, max = 200, default = config.default.journal.mouseScrollAmount},

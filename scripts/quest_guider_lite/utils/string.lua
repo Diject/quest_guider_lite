@@ -2,6 +2,7 @@
 local core = require("openmw.core")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local commonData = require("scripts.quest_guider_lite.common")
+local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 
 local l10n = core.l10n(commonData.l10nKey)
 
@@ -71,17 +72,255 @@ end
 
 ---@param text string
 ---@param phrase string
+---@param threshold number|nil optional threshold for Levenshtein distance
 ---@return boolean
-function this.hasPhrase(text, phrase)
-    local escapedPhrase = phrase:gsub("([%(%)%.%%%+%-%*%?%[%^%$])", "%%%1")
+function this.hasPhrase(text, phrase, threshold)
+    local textLower = this.utf8_lower(text)
+    local phraseLower = this.utf8_lower(phrase)
 
-    local pattern = "%f[%w]" .. escapedPhrase .. "%f[^%w]"
-
-    if text:find(pattern) then
+    if textLower:find(phraseLower, 1, true) then
         return true
-    else
+    end
+
+    local phraseWords = this.utf8_splitWords(phraseLower)
+    local textWords = this.utf8_splitWords(textLower)
+
+    local phraseWordCount = #phraseWords
+    local textWordCount = #textWords
+
+    if phraseWordCount == 0 then
         return false
     end
+
+    if textWordCount < phraseWordCount then
+        return false
+    end
+
+    local phraseJoined = table.concat(phraseWords, " ")
+    local phraseLen = this.length(phraseJoined)
+
+    if not threshold then
+        threshold = phraseLen > 5 and math.min(3, 1 + math.floor((phraseLen - 6) / 10)) or 0
+    end
+
+    local phraseByteLen = #phraseJoined
+
+    for i = 1, textWordCount - phraseWordCount + 1 do
+        local windowText
+        if phraseWordCount == 1 then
+            windowText = textWords[i]
+        else
+            local windowWords = {}
+            for j = i, i + phraseWordCount - 1 do
+                windowWords[j - i + 1] = textWords[j]
+            end
+            windowText = table.concat(windowWords, " ")
+        end
+
+        local windowByteLen = #windowText
+        if math.abs(windowByteLen - phraseByteLen) <= threshold then
+            local dist = levenshtein.utf8_levenshtein_bounded(windowText, phraseJoined, threshold)
+            if dist <= threshold then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+
+---@param textWord string
+---@param phraseWord string
+---@param suffixFuzzyLen number how many ending characters to check with fuzzy matching
+---@param maxDist number max allowed distance (for early termination)
+---@return number distance (0 = exact, math.huge = no match)
+local function matchWordWithEndingFuzzy(textWord, phraseWord, suffixFuzzyLen, maxDist)
+    local phraseLen = this.length(phraseWord)
+    local textLen = this.length(textWord)
+
+    if textWord == phraseWord then
+        return 0
+    end
+
+    if math.abs(textLen - phraseLen) > maxDist then
+        return math.huge
+    end
+
+    local exactMatchLen = math.max(0, phraseLen - suffixFuzzyLen)
+
+    if exactMatchLen > 0 then
+        local phraseSplitByte = utf8.offset(phraseWord, exactMatchLen + 1) or (#phraseWord + 1)
+        local phrasePrefix = phraseWord:sub(1, phraseSplitByte - 1)
+
+        local _, prefixEnd = textWord:find(phrasePrefix, 1, true)
+        if prefixEnd ~= phraseSplitByte - 1 then
+            return math.huge
+        end
+
+        local phraseSuffix = phraseWord:sub(phraseSplitByte)
+        local textSuffix = textWord:sub(prefixEnd + 1)
+
+        if #phraseSuffix == 0 and #textSuffix == 0 then
+            return 0
+        end
+
+        return levenshtein.utf8_levenshtein_bounded(textSuffix, phraseSuffix, maxDist)
+    end
+
+    return levenshtein.utf8_levenshtein_bounded(textWord, phraseWord, maxDist)
+end
+
+
+---@param textWords string[]
+---@param startIdx number
+---@param phraseWords string[]
+---@param suffixFuzzyLen number
+---@param totalThreshold number total threshold for the entire phrase
+---@return number totalDistance (0 = all exact, math.huge = no match)
+local function matchPhraseWords(textWords, startIdx, phraseWords, suffixFuzzyLen, totalThreshold)
+    local totalDist = 0
+
+    for i, phraseWord in ipairs(phraseWords) do
+        local textWord = textWords[startIdx + i - 1]
+        local dist = matchWordWithEndingFuzzy(textWord, phraseWord, suffixFuzzyLen, totalThreshold - totalDist)
+
+        if dist == math.huge then
+            return math.huge
+        end
+
+        totalDist = totalDist + dist
+        if totalDist > totalThreshold then
+            return math.huge
+        end
+    end
+
+    return totalDist
+end
+
+
+---@class hasPhrasePosition
+---@field startPos number byte position start
+---@field endPos number byte position end
+
+---@param text string
+---@param phrases string[]
+---@param threshold number|nil optional total threshold for Levenshtein distance for entire phrase
+---@param suffixFuzzyLen number|nil how many ending characters to check with fuzzy matching (default 3)
+---@return table<string, hasPhrasePosition[]> map of phrase to list of positions
+function this.findPhrases(text, phrases, threshold, suffixFuzzyLen)
+    local cachedVal = cacheLib.get("hasPhrase", text)
+    if cachedVal then
+        return cachedVal
+    end
+
+    local results = {}
+    if not phrases or #phrases == 0 then
+        return results
+    end
+
+    suffixFuzzyLen = suffixFuzzyLen or 3
+
+    local textLower = this.utf8_lower(text)
+
+    local textWords = {}
+    local wordPositions = {}
+    local wordPattern = "[^%s%p%c]+"
+
+    for word, endPos in textLower:gmatch("(" .. wordPattern .. ")()") do
+        local startPos = endPos - #word
+        table.insert(textWords, word)
+        table.insert(wordPositions, {startPos, endPos - 1})
+    end
+
+    local textWordCount = #textWords
+
+    for _, phrase in ipairs(phrases) do
+        local phraseLower = this.utf8_lower(phrase)
+        local phraseWords = this.utf8_splitWords(phraseLower)
+        local wordCount = #phraseWords
+
+        if wordCount > 0 and wordCount <= textWordCount then
+            local totalPhraseLen = 0
+            for _, w in ipairs(phraseWords) do
+                totalPhraseLen = totalPhraseLen + this.length(w)
+            end
+
+            local phraseThreshold = threshold
+            if not phraseThreshold then
+                phraseThreshold = totalPhraseLen > 4 and math.min(4, 1 + math.floor((totalPhraseLen - 4) / 5)) or 1
+            end
+
+            local matches = {}
+
+            local hasValue = false
+            for i = 1, textWordCount - wordCount + 1 do
+                local dist = matchPhraseWords(
+                    textWords, i, phraseWords, suffixFuzzyLen, phraseThreshold
+                )
+
+                if dist <= phraseThreshold then
+                    table.insert(matches, {
+                        startPos = wordPositions[i][1],
+                        endPos = wordPositions[i + wordCount - 1][2]
+                    })
+                    hasValue = true
+                end
+            end
+
+            if hasValue then
+                results[phrase] = matches
+            end
+        end
+    end
+
+    cacheLib.set("hasPhrase", text, results)
+
+    return results
+end
+
+
+---@param text string
+---@param phrases string[]
+---@return table<string, hasPhrasePosition[]> map of phrase to list of positions
+function this.findPhrasesExact(text, phrases)
+    local cachedVal = cacheLib.get("hasPhrase", text)
+    if cachedVal then
+        return cachedVal
+    end
+
+    local results = {}
+    if not phrases or #phrases == 0 then
+        return results
+    end
+
+    local textLower = this.utf8_lower(text)
+
+    for _, phrase in ipairs(phrases) do
+        local phraseLower = this.utf8_lower(phrase)
+        local startPos = 1
+
+        while true do
+            local foundStart, foundEnd = textLower:find(phraseLower, startPos, true)
+            if not foundStart then
+                break
+            end
+
+            if not results[phrase] then
+                results[phrase] = {}
+            end
+            table.insert(results[phrase], {
+                startPos = foundStart,
+                endPos = foundEnd
+            })
+
+            startPos = foundStart + 1
+        end
+    end
+
+    cacheLib.set("hasPhrase", text, results)
+
+    return results
 end
 
 
@@ -104,12 +343,8 @@ end
 
 function this.utf8_splitWords(str)
     local words = {}
-    local pattern = "[%wа-яА-ЯёЁąćęłńóśźżĄĆĘŁŃÓŚŹŻčďěňřšťůžČĎĚŇŘŠŤŮŽäöüßÄÖÜéèêëÉÈÊËàâæçîïôœùûüÿÀÂÆÇÎÏÔŒÙÛÜŸ]+"
-    for word in str:gmatch(pattern) do
+    for word in str:gmatch("[^%s%p%c]+") do
         table.insert(words, word)
-    end
-    if #words == 0 and str ~= "" then
-        table.insert(words, str)
     end
     return words
 end
@@ -177,46 +412,27 @@ end
 
 
 function this.utf8_sub(s, start, len)
-    local i = 1
-    local byte_start, byte_end
-    for p, c in utf8.codes(s) do
-        if i == start then
-            byte_start = p
-        end
-        if i == start + len then
-            byte_end = p - 1
-            break
-        end
-        i = i + 1
+    local byte_start = utf8.offset(s, start) or 1
+    local byte_end
+    if len then
+        local next_pos = utf8.offset(s, start + len)
+        byte_end = next_pos and (next_pos - 1) or #s
+    else
+        byte_end = #s
     end
-    byte_start = byte_start or 1
-    byte_end = byte_end or #s
     return s:sub(byte_start, byte_end)
 end
 
 
-function this.isWordChar(c)
-    return c:match("[%wа-яА-ЯёЁąćęłńóśźżĄĆĘŁŃÓŚŹŻčďěňřšťůžČĎĚŇŘŠŤŮŽäöüßÄÖÜéèêëÉÈÊËàâæçîïôœùûüÿÀÂÆÇÎÏÔŒÙÛÜŸ]")
+local separatorPattern = "[%s%p%c]"
+
+function this.isSeparator(c)
+    return c:match(separatorPattern) ~= nil
 end
 
 
----@param pattern string should be lowercase
----@return boolean
-function this.fuzzyTopicSearch(text, pattern, threshold)
-    if not threshold then
-        local len = this.length(pattern)
-
-        threshold = len > 3 and math.min(5, 1 + len / 5) or 0
-    end
-
-    local text_lower = this.utf8_lower(text)
-
-    local dist = levenshtein.utf8_levenshtein(text, pattern) or math.huge
-    if dist <= threshold then
-        return true
-    end
-
-    return false
+function this.isWordChar(c)
+    return not this.isSeparator(c)
 end
 
 

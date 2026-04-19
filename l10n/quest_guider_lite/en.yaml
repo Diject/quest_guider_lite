@@ -130,6 +130,9 @@ untrackObjectsKeyDescription: "Key to untrack objects of the selected quest in t
 toggleTopTopicsKey: "Toggle top topics / load more entries"
 toggleTopTopicsKeyDescription: "Key to toggle the display of topics of the most recent entry for the selected quest in the journal menu. Or key to load more entries in the topic menu."
 
+fuzzyTopicMatching: "Fuzzy topic matching"
+fuzzyTopicMatchingDescription: "When enabled, the mod will use fuzzy string matching to recognize topics in the quest text. This can help identify topics that are similar but not identical to the topic names, but may reduce performance and cause false positives."
+
 pinned: "Pinned"
 hidden: "Hidden"
 finished: "Finished"

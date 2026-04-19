@@ -75,6 +75,7 @@ this.default = {
         mapByDefault = true,
         useGlobalDate = true,
         firstInitMenu = true,
+        fuzzyTopicMatching = false,
     },
     ui = {
         fontSize = 20,

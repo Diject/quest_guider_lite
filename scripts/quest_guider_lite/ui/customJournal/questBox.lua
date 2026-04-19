@@ -164,6 +164,14 @@ function questBoxMeta._fillJournal(self, content, params)
     local playerQuestDataList, topicTexts = playerQuests.getAndUpdateJournalQuestData(params.questName or "")
     playerQuestDataList = playerQuestDataList and playerQuestDataList.list or params.playerQuestData.list
 
+    local topicData = {}
+    for _, topic in pairs(playerQuests.getTopicList() or {}) do
+        topicData[topic.name or ""] = {
+            topic = topic
+        }
+    end
+    local topicList = tableLib.keys(topicData)
+
     local contentIndex = 2
     local function addElement(i)
         local qInfo = playerQuestDataList[i]
@@ -217,8 +225,6 @@ function questBoxMeta._fillJournal(self, content, params)
 
         text = text or ""
 
-        local topicLinkStrs = stringLib.findTextLinks(text)
-
         text = stringLib.removeSpecialCharactersFromJournalText(text)
 
         if next(linkedTexts) then
@@ -255,28 +261,20 @@ function questBoxMeta._fillJournal(self, content, params)
         local height = uiUtils.getTextHeight(text, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, 1, true)
         local textElemSize = util.vector2(self.scrollBoxContentSize.x, height)
 
-        local topicData = {}
+        local topicPoss = config.data.journal.fuzzyTopicMatching and stringLib.findPhrases(text, topicList) or
+            stringLib.findPhrasesExact(text, topicList)
+
         local linkColor = "#"..config.data.ui.linkColor:asHex()
-        if next(topicLinkStrs) then
-            for _, str in pairs(topicLinkStrs) do
-                for topicId, topic in pairs(playerQuests.getTopicList()) do
-                    if stringLib.fuzzyTopicSearch(str, topic.id) then
-                        table.insert(topicData, {topic = topic, pattern = str, color = linkColor, patternLen = stringLib.length(str)})
-                    end
-                end
-            end
-        else
-            for topicId, topic in pairs(playerQuests.getTopicList()) do
-                if stringLib.hasPhrase(stringLib.utf8_lower(text), topic.id) then
-                    table.insert(topicData, {topic = topic, pattern = topic.name, color = linkColor, patternLen = stringLib.length(topic.name)})
-                end
+        local defaultColor = "#"..config.data.ui.defaultColor:asHex()
+        text = uiUtils.colorizeFromPhrasePositions(text, topicPoss, linkColor, defaultColor)
+
+        for id, dt in pairs(topicPoss) do
+            if topicData[id] then
+                dt.topic = topicData[id].topic ---@diagnostic disable-line: inject-field
+            else
+                topicPoss[id] = nil
             end
         end
-
-        table.sort(topicData, function (a, b)
-            return a.patternLen > b.patternLen
-        end)
-        text = uiUtils.colorizeNestedMulti(text, topicData, "#"..config.data.ui.defaultColor:asHex())
 
         local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize,
             filter = self.parent.textFilter}
@@ -298,8 +296,8 @@ function questBoxMeta._fillJournal(self, content, params)
 
             if withTopics then
                 local topics = {}
-                for _, data in pairs(topicData) do
-                    topics[data.topic.id] = data.topic
+                for _, data in pairs(topicPoss) do
+                    topics[data.topic.id] = data.topic ---@diagnostic disable-line: undefined-field
                 end
 
                 newText = newText.."\n\n\n"
@@ -354,7 +352,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
         if not self.toggleTopTopicsFunc then
             self.toggleTopTopicsFunc = function ()
-                if not (tracking.initialized and not self.params.isQuestList and next(topicData)
+                if not (tracking.initialized and not self.params.isQuestList and next(topicPoss)
                         and config.data.journal.maxTopicEntriesInJournal > 0) then return end
 
                 toggleTopics()
@@ -372,7 +370,7 @@ function questBoxMeta._fillJournal(self, content, params)
             userData = {
                 contentIndex = contentIndex,
                 info = qInfo,
-                topicData = topicData,
+                topicData = topicPoss,
             },
             content = ui.content {
                 interval(0, params.fontSize),
@@ -393,7 +391,7 @@ function questBoxMeta._fillJournal(self, content, params)
                             },
                             userData = {
                                 defaultTextColor = config.data.ui.dateColor,
-                                topicData = topicData,
+                                topicData = topicPoss,
                             },
                             events = {
                                 mouseMove = async:callback(function(coord, layout)
@@ -412,7 +410,7 @@ function questBoxMeta._fillJournal(self, content, params)
                         button{
                             text = l10n("topics"),
                             textSize = self.params.fontSize * 0.8,
-                            visible = tracking.initialized and not self.params.isQuestList and next(topicData)
+                            visible = tracking.initialized and not self.params.isQuestList and next(topicPoss)
                                 and config.data.journal.maxTopicEntriesInJournal > 0 and true or false,
                             position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, params.fontSize * 1.25 * 0.5),
                             anchor = util.vector2(1, 0.5),
@@ -438,7 +436,7 @@ function questBoxMeta._fillJournal(self, content, params)
                             type = ui.TYPE.Text,
                             userData = {
                                 defaultTextColor = config.data.ui.defaultColor,
-                                topicData = topicData,
+                                topicData = topicPoss,
                                 text = text,
                                 withTopics = false,
                                 changeEntryBlockTextFunc = changeEntryBlockText,
@@ -493,7 +491,7 @@ function questBoxMeta:updateColors()
     local mainFlex = scrollBoxElem:getMainFlex()
 
     local header = mainFlex.content[1]
-    if not header or not header.content[1] then return end
+    if not header or not header.content or not header.content[1] then return end
 
     header.content[1].props.text = uiUtils.removeColorMarkers(header.content[1].props.text)
     if self.parent.textFilter ~= "" then
