@@ -599,6 +599,65 @@ local dataFuncs = {
         return operator.check(false, true, req.operator)
     end,
 
+    -- In the current version, only checks the availability of the current dialogue topic or topics that unlock the current one
+    [reqTypes.requirementType.CustomActor] = function (req, ref, player)
+        if not req.variable or not req.object then return end
+        if core.API_REVISION < 93 then return true end
+
+        if ref and req.object ~= ref.recordId then
+            return false
+        end
+
+        if req.variable:find("greeting", 1, true) then
+            return true
+        end
+
+        local diaObjectDt = dataHandler.getObjectData(req.variable)
+        if not diaObjectDt then return true end
+
+        if not diaObjectDt.links or not next(diaObjectDt.links) then
+            return true
+        end
+
+        local playerTopics = playerQuests.getTopicList(player or playerRef)
+
+        local dialogueId = stringLib.convertDialogueName(req.variable)
+        if playerTopics[dialogueId] then
+            return true
+        end
+
+        local checkedObjects = {}
+
+        for _, link in pairs(diaObjectDt.links) do
+            local id = link[1]
+            if checkedObjects[id] then goto continue end
+            checkedObjects[id] = true
+
+            local linkDt = dataHandler.getObjectData(id)
+            if not linkDt or linkDt.type ~= 6 or not linkDt.links or not next(linkDt.links) then goto continue end
+
+            for _, l in pairs(linkDt.links) do
+                local lId = l[1]
+                if checkedObjects[lId] then goto continue end
+                checkedObjects[lId] = true
+
+                local lDt = dataHandler.getObjectData(lId)
+                if not lDt or lDt.type ~= 3 then goto continue end
+
+                local dId = stringLib.convertDialogueName(lId)
+                if playerTopics[dId] then
+                    return true
+                end
+
+                ::continue::
+            end
+
+            ::continue::
+        end
+
+        return false
+    end,
+
     [reqTypes.requirementType.CustomRace] = function (req, obj)
         if not req.variable or not obj then return end
 
@@ -639,6 +698,7 @@ end
 ---@field allowedTypes table<string, any>?
 ---@field typeTruthTable table<string, boolean>?
 ---@field threatErrorsAs boolean?
+---@field handleCustomActorReq boolean?
 
 ---@param block questDataGenerator.requirementData[]
 ---@param params questGuider.requirementChecker.checkForBlock.params
@@ -650,8 +710,9 @@ function this.checkBlock(block, params, player)
     if not params then params = {} end
     if not params.ignoredTypes then params.ignoredTypes = {} end
 
-    -- TODO: don't forget to remove when this requirement type will be supported
-    params.ignoredTypes[reqTypes.requirementType.CustomActor] = true
+    if params.handleCustomActorReq ~= true then
+        params.ignoredTypes[reqTypes.requirementType.CustomActor] = true
+    end
 
     local pl = player or (world and world.players[1]) or playerRef
 
