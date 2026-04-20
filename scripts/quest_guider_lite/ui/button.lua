@@ -82,8 +82,13 @@ local mouseMove = async:callback(function(coord, layout)
         layout.userData.parentScrollBoxUserData.inFocus = true
     end
 
-    if not layout.userData.params.tooltipContent then return end
-    tooltip.createOrMove(coord, layout, layout.userData.params.tooltipContent)
+    local params = layout.userData.params
+    if params.mouseMove then
+        params.mouseMove(layout)
+    end
+
+    if not params.tooltipContent then return end
+    tooltip.createOrMove(coord, layout, params.tooltipContent)
 end)
 
 
@@ -101,6 +106,7 @@ end)
 ---@field event fun(layout : any)?
 ---@field mousePress fun(layout : any)?
 ---@field mouseRelease fun(layout : any)?
+---@field mouseMove fun(layout : any)?
 ---@field tooltipContent any?
 ---@field relativePosition any? util.vector2
 ---@field position any? util.vector2

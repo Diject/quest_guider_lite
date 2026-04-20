@@ -282,6 +282,57 @@ function questBoxMeta._fillJournal(self, content, params)
         local element
 
 
+        local topicsText
+        local function getTopicsText()
+            if topicsText ~= nil then return topicsText end
+
+            local topics = {}
+            for _, data in pairs(topicPoss) do
+                topics[data.topic.id] = data.topic ---@diagnostic disable-line: undefined-field
+            end
+
+            local t = ""
+            local firstLine = true
+            for _, topic in pairs(topics) do
+                local topicText = string.format("%s#%s%s#%s:\n",
+                    firstLine and "" or "\n\n",
+                    config.data.ui.linkColor:asHex(),
+                    topic.name,
+                    config.data.ui.defaultColor:asHex()
+                )
+                firstLine = false
+
+                local entryCount = #topic.entries
+                local startIndex = math.max(1, entryCount - config.data.journal.maxTopicEntriesInJournal + 1)
+                local endIndex = entryCount
+
+                if startIndex ~= 1 then
+                    topicText = string.format("%s\n%s",
+                        topicText,
+                        l10n("ellipsis")
+                    )
+                end
+
+                for j = startIndex, endIndex do
+                    local entry = topic.entries[j]
+                    local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
+                    topicText = string.format("%s\n\t#%s%s#%s: \"%s\"",
+                        topicText,
+                        config.data.ui.objectColor:asHex(),
+                        entry.actor,
+                        config.data.ui.defaultColor:asHex(),
+                        entryText
+                    )
+                end
+
+                t = t..topicText
+            end
+
+            topicsText = t ~= "" and t or false
+
+            return topicsText
+        end
+
         local function changeEntryBlockText(toggle)
             local textElem = element.content[3].content[2]
             local withTopics
@@ -295,37 +346,9 @@ function questBoxMeta._fillJournal(self, content, params)
                 "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
 
             if withTopics then
-                local topics = {}
-                for _, data in pairs(topicPoss) do
-                    topics[data.topic.id] = data.topic ---@diagnostic disable-line: undefined-field
-                end
-
-                newText = newText.."\n\n\n"
-                for _, topic in pairs(topics) do
-                    local topicText = string.format("#%s%s#%s:\n\n", config.data.ui.linkColor:asHex(),
-                        topic.name, config.data.ui.defaultColor:asHex())
-
-                    local entryCount = #topic.entries
-                    local startIndex = math.max(1, entryCount - config.data.journal.maxTopicEntriesInJournal + 1)
-                    local endIndex = entryCount
-
-                    if startIndex ~= 1 then
-                        topicText = string.format("%s%s\n\n", topicText, l10n("ellipsis"))
-                    end
-
-                    for j = startIndex, endIndex do
-                        local entry = topic.entries[j]
-                        local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
-                        topicText = string.format("%s\t#%s%s#%s: \"%s\"\n\n",
-                            topicText,
-                            config.data.ui.objectColor:asHex(),
-                            entry.actor,
-                            config.data.ui.defaultColor:asHex(),
-                            entryText
-                        )
-                    end
-
-                    newText = newText..topicText
+                local t = getTopicsText()
+                if t then
+                    newText = string.format("%s\n\n\n%s\n", newText, t)
                 end
             end
 
@@ -358,8 +381,77 @@ function questBoxMeta._fillJournal(self, content, params)
                 toggleTopics()
                 self:update()
             end
-         end
+        end
 
+
+        local topicsBtnTooltipContent
+        local topicsBtn = button{
+            text = l10n("topics"),
+            textSize = self.params.fontSize * 0.8,
+            visible = tracking.initialized and not self.params.isQuestList and next(topicPoss)
+                and config.data.journal.maxTopicEntriesInJournal > 0 and true or false,
+            position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, params.fontSize * 1.25 * 0.5),
+            anchor = util.vector2(1, 0.5),
+            parentScrollBoxUserData = self:getScrollBox().userData,
+            mouseMove = function (layout)
+                if topicsBtnTooltipContent ~= nil then return end
+
+                local t = getTopicsText()
+                if not t then topicsBtnTooltipContent = false end
+
+                local screenSize = uiUtils.getScaledScreenSize()
+                local w = math.floor(screenSize.x * 0.5)
+                local paddingW = math.floor(screenSize.x * 0.025)
+                local paddingH = math.floor(screenSize.y * 0.025)
+
+                topicsBtnTooltipContent = ui.content{
+                    {
+                        type = ui.TYPE.Flex,
+                        props = {
+                            autoSize = true,
+                            horizontal = false,
+                        },
+                        content = ui.content{
+                            interval(0, paddingH),
+                            {
+                                type = ui.TYPE.Flex,
+                                props = {
+                                    autoSize = true,
+                                    horizontal = true,
+                                },
+                                content = ui.content{
+                                    interval(paddingW, 0),
+                                    {
+                                        type = ui.TYPE.TextEdit,
+                                        props = {
+                                            text = t,
+                                            textColor = config.data.ui.defaultColor,
+                                            size = util.vector2(w, 0),
+                                            textSize = config.data.ui.fontSize,
+                                            multiline = true,
+                                            wordWrap = true,
+                                            readOnly = true,
+                                            autoSize = true,
+                                            textAlignH = ui.ALIGNMENT.Center,
+                                        }
+                                    },
+                                    interval(paddingW, 0),
+                                }
+                            },
+                            interval(0, paddingH),
+                        }
+                    },
+                }
+
+                layout.userData.params.tooltipContent = topicsBtnTooltipContent
+            end,
+            event = function (layout)
+                toggleTopics()
+            end,
+            updateFunc = function ()
+                self.params.updateFunc()
+            end
+        }
 
         element = {
             type = ui.TYPE.Flex,
@@ -407,21 +499,7 @@ function questBoxMeta._fillJournal(self, content, params)
                                 end),
                             },
                         },
-                        button{
-                            text = l10n("topics"),
-                            textSize = self.params.fontSize * 0.8,
-                            visible = tracking.initialized and not self.params.isQuestList and next(topicPoss)
-                                and config.data.journal.maxTopicEntriesInJournal > 0 and true or false,
-                            position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, params.fontSize * 1.25 * 0.5),
-                            anchor = util.vector2(1, 0.5),
-                            parentScrollBoxUserData = self:getScrollBox().userData,
-                            event = function (layout)
-                                toggleTopics()
-                            end,
-                            updateFunc = function ()
-                                self.params.updateFunc()
-                            end
-                        }
+                        topicsBtn,
                     }
                 },
                 {
