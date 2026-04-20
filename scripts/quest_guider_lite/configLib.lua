@@ -4,11 +4,12 @@ local core = require("openmw.core")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local commonData = require("scripts.quest_guider_lite.common")
+local configData = require("scripts.quest_guider_lite.config")
 
 
 local this = {}
 
-this.data = require("scripts.quest_guider_lite.config").data
+this.data = configData.data
 
 this.storageSections = {
     storage.playerSection(commonData.configJournalSectionName),
@@ -41,11 +42,9 @@ for _, section in pairs(this.storageSections) do
         else
             this.loadFromStorage(section)
         end
-        core.sendGlobalEvent("QGL:updateConfigData", this.data)
     end))
 
     this.loadFromStorage(section)
-    core.sendGlobalEvent("QGL:updateConfigData", this.data)
 end
 
 
@@ -61,5 +60,8 @@ end
 function this.getValue(str)
     return tableLib.getValueByPath(this.data, str)
 end
+
+
+this.getTrackingConfigData = configData.getTrackingConfigData
 
 return this

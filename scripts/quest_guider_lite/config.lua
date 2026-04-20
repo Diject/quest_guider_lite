@@ -112,4 +112,15 @@ this.default = {
 ---@class questGuider.config
 this.data = tableLib.deepcopy(this.default)
 
+
+function this.getTrackingConfigData()
+    return {
+        journal = {
+            objectNames = this.data.journal.objectNames,
+        },
+        tracking = this.data.tracking
+    }
+end
+
+
 return this

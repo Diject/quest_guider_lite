@@ -1097,6 +1097,7 @@ function this.trackQuest(questId, index)
             shouldUpdate = shouldUpdate,
             params = {findCompleted = false, findInLinked = true},
             player = playerRef.object,
+            config = config.getTrackingConfigData(),
         }
         core.sendGlobalEvent("QGL:trackQuest", dt)
     end
@@ -1112,6 +1113,7 @@ function this.trackObject(params)
         diaId = params.diaId,
         objectId = params.objectId,
         index = params.index,
+        config = config.getTrackingConfigData(),
         player = playerRef.object,
     })
 end

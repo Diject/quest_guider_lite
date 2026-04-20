@@ -514,6 +514,7 @@ function this.init()
                 objectIds = objectIds,
                 advWMapMode = true,
                 player = playerRef.object,
+                config = config.getTrackingConfigData(),
             })
 
             content:add{

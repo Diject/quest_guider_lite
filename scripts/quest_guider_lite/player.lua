@@ -15,6 +15,7 @@ local commonData = require("scripts.quest_guider_lite.common")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
+local cacheLib  = require("scripts.quest_guider_lite.utils.cache")
 
 local config = require("scripts.quest_guider_lite.configLib")
 
@@ -647,6 +648,7 @@ return {
                 advWMapIntegration.updateDoorMarkers()
             end)
             core.sendGlobalEvent("QGL:clearCache")
+            cacheLib.clear()
 
             if not tracking.initialized then return end
             if config.data.tracking.autoTrack then
@@ -732,6 +734,21 @@ return {
 
             local recordId, markerId, markerGroupId
             if createProximityMarkers then
+                if data.type == "object" then
+                    data.recordData.description = {stringLib.getValueEnumString(
+                        data.questNames,
+                        config.data.journal.objectNames,
+                        l10n("starts").." %s"), l10n("clickForInfo")
+                    }
+                    data.recordData.proximity = config.data.tracking.questGiverProximity * 69.99
+                elseif data.type == "door" then
+                    data.recordData.description = {stringLib.getValueEnumString(
+                        data.questNames,
+                        config.data.journal.objectNames,
+                        l10n("doorGiverMessage")), l10n("clickForInfo")
+                    }
+                end
+
                 recordId, markerId, markerGroupId = tracking.addTrackingMarker(data.recordData, data.markerData)
                 if tracking.storageData.hideAllMarkers and recordId then
                     tracking.setProximityMarkerVisibility{recordId = recordId, value = false}
@@ -740,7 +757,11 @@ return {
 
             local hudMarkerId
             if data.hudMarkerData and createHUDMarkers then
-                hudMarkerId = tracking.addHUDMarker(data.hudMarkerData)
+                data.hudMarkerData.params.raytracing = config.data.tracking.hudMarkers.rayTracing
+                data.hudMarkerData.params.range = config.data.tracking.hudMarkers.range * 3.2808
+                data.hudMarkerData.params.opacity = config.data.tracking.hudMarkers.opacity * 0.01
+                data.hudMarkerData.params.color = commonData.colorToArray(config.data.ui.defaultColor)
+
                 if tracking.storageData.hideAllMarkers and hudMarkerId then
                     tracking.setHUDMarkerVisibility{markerId = hudMarkerId, value = false}
                 end

@@ -1494,6 +1494,7 @@ function this.createMenu(params)
         objectIds = objectIds,
         menuId = meta.params.menuId,
         player = playerRef.object,
+        config = config.getTrackingConfigData(),
     })
 
     return meta

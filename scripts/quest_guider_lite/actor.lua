@@ -1,6 +1,7 @@
 local core = require('openmw.core')
 local self = require('openmw.self')
 local I = require("openmw.interfaces")
+local nearby = require("openmw.nearby")
 
 
 local function isFollowingPlayer(playerRef)
@@ -41,6 +42,9 @@ return {
     },
     eventHandlers = {
         Died = function()
+            for _, pl in pairs(nearby.players) do
+                pl:sendEvent("QGL:registerActorDeath", {object = self})
+            end
             core.sendGlobalEvent("QGL:registerActorDeath", {object = self})
         end,
         ["QGL:checkFollowingPlayer"] = checkFollowingPlayer,

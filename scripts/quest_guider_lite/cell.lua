@@ -231,8 +231,6 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells, dep
 end
 
 
-local findNearestDoorCache = {}
-
 ---@param cell tes3cell?
 ---@param position tes3vector3
 ---@return any?
@@ -242,8 +240,9 @@ function this.findNearestDoor(position, cell)
         if not cell then return end
     end
     local hashVal = string.format("%d_%d_%d_%s", math.floor(position.x), math.floor(position.y), math.floor(position.z), cell.id)
-    if findNearestDoorCache[hashVal] then
-        return findNearestDoorCache[hashVal]
+    local cachedVal = cacheLib.get("findNearestDoor", hashVal)
+    if cachedVal then
+        return cachedVal
     end
     local nearestDoor
     local nearestdist = math.huge
@@ -285,7 +284,7 @@ function this.findNearestDoor(position, cell)
         end
     end
 
-    findNearestDoorCache[hashVal] = nearestDoor
+    cacheLib.set("findNearestDoor", hashVal, nearestDoor)
     return nearestDoor
 end
 

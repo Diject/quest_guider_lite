@@ -4,8 +4,6 @@ local types = require('openmw.types')
 local time = require('openmw_aux.time')
 local core = require("openmw.core")
 
-local config = require("scripts.quest_guider_lite.config")
-
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local cacheLib = require("scripts.quest_guider_lite.utils.cache")
@@ -22,6 +20,7 @@ local killCounter = require("scripts.quest_guider_lite.killCounter")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 local playerQuests = require('scripts.quest_guider_lite.playerQuests')
 local myTypes = require("scripts.quest_guider_lite.types")
+local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 
 local l10n = core.l10n(common.l10nKey)
 
@@ -37,13 +36,25 @@ local l10n = core.l10n(common.l10nKey)
 
 
 local function onInit()
+    if not localStorage.isPlayerStorageReady() then
+        localStorage.initPlayerStorage()
+    end
+    killCounter.initByStorageData(localStorage.data)
     -- dataHandler.init()
     -- testing.descriptionLines()
 end
 
-local function onLoad()
+local function onLoad(data)
+    localStorage.initPlayerStorage(data)
+    killCounter.initByStorageData(localStorage.data)
     -- dataHandler.init()
     -- testing.printRandomQuestList()
+end
+
+local function onSave()
+    local data = {}
+    localStorage.save(data)
+    return data
 end
 
 
@@ -64,7 +75,7 @@ local function onObjectActive(ref)
     async:newUnsavableSimulationTimer(0.2, function ()
         local dataReady = dataHandler.isReady()
 
-        if dataReady and (ref.type == types.NPC or ref.type == types.Creature) and config.data.tracking.questGivers then
+        if dataReady and (ref.type == types.NPC or ref.type == types.Creature) then
             for _, pl in pairs(world.players) do
                 questGivers.createQuestGiverMarker(ref, pl)
             end
@@ -73,7 +84,7 @@ local function onObjectActive(ref)
             if ref.cell.isExterior then
                 sendPlayerEvent("QGL:createMarkersForDoor", ref)
             end
-            if dataReady and config.data.tracking.questGivers then
+            if dataReady then
                 for _, pl in pairs(world.players) do
                     questGivers.createQuestGiverMarkerForDoor(ref, pl)
                 end
@@ -185,6 +196,7 @@ end
 ---@field player any
 ---@field protectedActors table<string, any>?
 ---@field checkRequirements boolean?
+---@field config table
 
 ---@param params questGuider.main.addMarkersForQuestParams
 local function addMarkersForQuest(params)
@@ -213,7 +225,7 @@ local function addMarkersForQuest(params)
             goto continue
         end
 
-        local requirementData = questLib.getDescriptionDataFromDataBlock(reqDataBlock, params.diaId)
+        local requirementData = questLib.getDescriptionDataFromDataBlock(reqDataBlock, params.diaId, params.config)
         if not requirementData then goto continue end
 
         local hasJournalReq = false
@@ -270,7 +282,7 @@ local function addMarkersForQuest(params)
 end
 
 
----@param params {menuId : string, useCurrentIndex : boolean?, data: table<string, {diaId : string, index : integer, contentIndex : integer}>, player : any, requestId : string}
+---@param params {menuId : string, useCurrentIndex : boolean?, data: table<string, {diaId : string, index : integer, contentIndex : integer}>, player : any, requestId : string, config: table}
 local function fillQuestBoxQuestInfo(params)
     local player = params.player or world.players[1]
     ---@type table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock>
@@ -320,7 +332,7 @@ local function fillQuestBoxQuestInfo(params)
             arr.index = tonumber(index)
 
             for i, reqDataBlock in pairs(indexData.requirements or {}) do
-                local requirementData, linkedQuests = questLib.getDescriptionDataFromDataBlock(reqDataBlock, diaInfo.diaId)
+                local requirementData, linkedQuests = questLib.getDescriptionDataFromDataBlock(reqDataBlock, diaInfo.diaId, params.config)
                 if not requirementData then goto continue end
 
                 if linkedQuests then
@@ -494,6 +506,7 @@ return {
     engineHandlers = {
         onInit = onInit,
         onLoad = onLoad,
+        onSave = onSave,
         onObjectActive = onObjectActive,
     },
     eventHandlers = {
@@ -555,7 +568,7 @@ return {
 
                 for _, indexStr in pairs(questNextIndexes) do
                     local objs = addMarkersForQuest{questData = questData, diaId = data.questId, diaIndex = indexStr, player = player,
-                        protectedActors = protectedFinActors}
+                        protectedActors = protectedFinActors, config = data.config}
                     tableLib.copy(objs, objects)
                 end
                 data.shouldUpdate = true
@@ -563,7 +576,7 @@ return {
 
             if linkedIndexData then
                 for qId, dt in pairs(linkedIndexData) do
-                    if not config.data.tracking.autoTrackOneEntryDialogues then
+                    if not data.config.tracking.autoTrackOneEntryDialogues then
                         local indexes = questLib.getIndexes(dt.qData) or {}
                         if #indexes <= 1 then goto continue end
                     end
@@ -582,7 +595,8 @@ return {
                         diaId = qId,
                         diaIndex = dt.index,
                         priority = -100,
-                        checkRequirements = not (config.data.tracking.autoTrackSideBranches or isValidLinkedToTrack),
+                        checkRequirements = not (data.config.tracking.autoTrackSideBranches or isValidLinkedToTrack),
+                        config = data.config,
                         player = player
                     }
                     tableLib.copy(objs, objects)
@@ -601,7 +615,8 @@ return {
 
         ["QGL:trackObject"] = function (data)
             local player = data.player or world.players[1]
-            local objects = addMarkersForQuest{diaId = data.diaId, diaIndex = data.index, objectId = data.objectId, player = player}
+            local objects = addMarkersForQuest{diaId = data.diaId, diaIndex = data.index, objectId = data.objectId,
+                config = data.config, player = player}
             showTrackingMessage(player, objects)
             updateQuestMenu(player)
         end,
@@ -612,7 +627,7 @@ return {
 
             local positionsByObjectId = {}
             for _, id in pairs(objIds or {}) do
-                local positions = questLib.getPositions(id, {findLinks = true, includeLinks = true})
+                local positions = questLib.getPositions(id, {findLinks = true, includeLinks = true, customConfig = data.config})
                 if not positions then goto continue end
 
                 cellLib.fillDistanceToPlayer(positions, player)
@@ -653,15 +668,6 @@ return {
 
         ["QGL:registerActorDeath"] = function (data)
             killCounter.registerKill(data.object)
-            sendPlayerEvent("QGL:registerActorDeath", data)
-        end,
-
-        ["QGL:updateKillCounter"] = function (data)
-            killCounter.init(data)
-        end,
-
-        ["QGL:updateConfigData"] = function (data)
-            tableLib.applyChanges(config.data, data)
         end,
 
         ["QGL:setScaledScreenSize"] = function (data)

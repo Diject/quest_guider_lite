@@ -15,8 +15,6 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
 local cellLib = require("scripts.quest_guider_lite.cell")
 
-local config = require("scripts.quest_guider_lite.config")
-
 local l10n = require('openmw.core').l10n(commonInfo.l10nKey)
 
 
@@ -97,8 +95,8 @@ function this.createQuestGiverMarker(ref, player)
         iconRatio = 2,
         iconColor = commonInfo.defaultColorData,
         nameColor = commonInfo.defaultColorData,
-        description = {stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("starts").." %s"), l10n("clickForInfo")},
-        proximity = config.data.tracking.questGiverProximity * 69.99,
+        description = "",
+        proximity = 0,
         priority = -100,
         temporary = true,
         options = {hideDead = true},
@@ -114,7 +112,7 @@ function this.createQuestGiverMarker(ref, player)
 
     ---@type proximityTool.hudm?
     local hudMarkerParams
-    if config.data.tracking.hudMarkers.enabled then
+    do
         local scale = 1.5 * this.scaledScreenSize.y / 1080
         hudMarkerParams = {
             modName = commonInfo.modName,
@@ -123,14 +121,14 @@ function this.createQuestGiverMarker(ref, player)
                 icon = commonInfo.hudExclamationMarkPath,
                 screenOffset = util.vector2(7 * scale, 0),
                 scale = scale,
-                raytracing = config.data.tracking.hudMarkers.rayTracing,
-                range = config.data.tracking.hudMarkers.range * 3.2808,
-                opacity = config.data.tracking.hudMarkers.opacity * 0.01,
+                raytracing = false,
+                range = 1,
+                opacity = 0,
                 offsetMult = 1,
                 offset = util.vector3(0, 0, 25),
                 -- boundingBoxCenter = true,
                 -- bonusSize = 0,
-                color = commonInfo.colorToArray(config.data.ui.defaultColor),
+                -- color = commonInfo.colorToArray(config.data.ui.defaultColor),
             },
             objectIds = {recordId},
             hideDead = true,
@@ -248,7 +246,7 @@ function this.createQuestGiverMarkerForDoor(ref, player)
         icon = commonInfo.doorExclMarkPath,
         iconColor = commonInfo.defaultColorData,
         nameColor = commonInfo.defaultColorData,
-        description = {stringLib.getValueEnumString(questNames, config.data.journal.objectNames, l10n("doorGiverMessage")), l10n("clickForInfo")},
+        description = "",
         proximity = 400,
         priority = 0,
         userData = {

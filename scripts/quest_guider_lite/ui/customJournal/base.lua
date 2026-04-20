@@ -198,7 +198,8 @@ journalMeta.selectQuest = function (self, qName)
         menuId = self.params.menuId,
         useCurrentIndex = self.params.isQuestList,
         player = playerRef.object,
-        requestId = questBoxMeta.requestId
+        requestId = questBoxMeta.requestId,
+        config = config.getTrackingConfigData()
     })
 end
 
