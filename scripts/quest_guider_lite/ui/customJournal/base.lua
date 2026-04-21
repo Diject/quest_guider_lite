@@ -41,7 +41,7 @@ journalMeta.menu = nil
 
 
 journalMeta.getQuestList = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[3]
+    return self.menu.layout.content[2].content[1].content[1].content[4]
 end
 
 journalMeta.getQuestMain = function (self)
@@ -502,6 +502,13 @@ function journalMeta:updateTrackedButtonVisibility()
 end
 
 
+---@param questList string[]
+function journalMeta:loadQuestList(questList)
+    self.storageTypeQuestData = playerQuests.generateStorageQuestDataByDiaIdList(questList or {})
+    self:fillQuestsContent()
+end
+
+
 ---@class questGuider.ui.customJournal.params
 ---@field menuId string?
 ---@field size any
@@ -515,6 +522,8 @@ end
 ---@field hideStageText boolean?
 ---@field showOnlyFirst boolean?
 ---@field showReqDiaEntryText boolean?
+---@field allowNearbyMode boolean?
+---@field nearbyModeDefault boolean?
 ---@field createTopicMenuFunc function?
 ---@field createTrackingMenuFunc function?
 ---@field onClose function?
@@ -551,7 +560,9 @@ local function create(params)
 
     meta.textFilter = ""
 
-    meta.storageTypeQuestData = params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList)
+
+    meta.storageTypeQuestData = meta.params.allowNearbyMode and localStorage.data.nearbyQuestsCheckBox and {} or
+        (params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList))
 
 
     local questInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
@@ -828,6 +839,7 @@ local function create(params)
         props = {
             autoSize = true,
             horizontal = true,
+            arrange = ui.ALIGNMENT.Center,
         },
         content = ui.content {
             checkBox{
@@ -836,6 +848,7 @@ local function create(params)
                 end,
                 checked = localStorage.data.finishedCheckBox and true or false,
                 text = l10n("finished"),
+                anchor = util.vector2(0.5, 0.5),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
@@ -851,6 +864,7 @@ local function create(params)
                 end,
                 checked = localStorage.data.hiddenCheckBox and true or false,
                 text = l10n("hidden"),
+                anchor = util.vector2(0.5, 0.5),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
@@ -862,11 +876,49 @@ local function create(params)
         }
     }
 
+    local checkBoxesSecondLine
+    if meta.params.allowNearbyMode then
+        checkBoxesSecondLine = {
+            type = ui.TYPE.Flex,
+            props = {
+                autoSize = true,
+                horizontal = true,
+                arrange = ui.ALIGNMENT.Center,
+                align = ui.ALIGNMENT.End,
+            },
+            content = ui.content {
+                checkBox{
+                    updateFunc = function ()
+                        meta:update()
+                    end,
+                    checked = (localStorage.data.nearbyQuestsCheckBox and params.nearbyModeDefault == nil or
+                        params.nearbyModeDefault == true) and true or false,
+                    text = l10n("nearby"),
+                    anchor = util.vector2(1, 0.5),
+                    textSize = params.fontSize or 18,
+                    event = function (checked, layout)
+                        localStorage.data.nearbyQuestsCheckBox = checked
+                        if checked then
+                            core.sendGlobalEvent("QGL:getQuestsNearby", { menuId = params.menuId, player = playerRef.object })
+                        else
+                            meta:loadQuestList(params.questList or {})
+                            meta:update()
+                        end
+                    end
+                },
+            }
+        }
+    else
+        checkBoxesSecondLine = interval(0, 0)
+    end
+
     local questsContent = ui.content{}
 
+    local questListBoxYOffset = questListSize.y - params.fontSize * 2 - 13 -
+        (meta.params.allowNearbyMode and params.fontSize or 0)
     local questListBox = scrollBox{
         updateFunc = updateFunc,
-        size = util.vector2(questListSize.x - 2, questListSize.y - params.fontSize * 2 - 13),
+        size = util.vector2(questListSize.x - 2, questListBoxYOffset),
         scrollAmount = params.size.y / 5,
         contentHeight = 0,
         autoOptimize = true,
@@ -883,6 +935,7 @@ local function create(params)
         content = ui.content {
             searchBar,
             checkBoxes,
+            checkBoxesSecondLine,
             questListBox,
         }
     }
@@ -1047,6 +1100,12 @@ local function create(params)
             meta:selectNextPreviousInList(1)
         end
         meta:update()
+    end
+
+
+    if meta.params.allowNearbyMode and (params.nearbyModeDefault == true or
+            params.nearbyModeDefault == nil and localStorage.data.nearbyQuestsCheckBox) then
+        core.sendGlobalEvent("QGL:getQuestsNearby", { menuId = params.menuId, player = playerRef.object })
     end
 
 

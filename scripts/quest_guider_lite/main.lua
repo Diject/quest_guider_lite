@@ -21,6 +21,7 @@ local requirementChecker = require("scripts.quest_guider_lite.requirementChecker
 local playerQuests = require('scripts.quest_guider_lite.playerQuests')
 local myTypes = require("scripts.quest_guider_lite.types")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
+local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
 
 local l10n = core.l10n(common.l10nKey)
 
@@ -664,6 +665,56 @@ return {
 
         ["QGL:fillQuestBoxQuestInfo"] = function (data)
             fillQuestBoxQuestInfo(data)
+        end,
+
+        ["QGL:getQuestsNearby"] = function (data)
+            local pl = data.player
+            local cell = pl.cell
+
+            local objectIds = {}
+            local function processCell(c, depth)
+                depth = depth - 1
+
+                for _, obj in pairs(c:getAll(types.NPC)) do
+                    objectIds[obj.recordId] = true
+                end
+
+                if depth <= 0 then return end
+                for _, obj in pairs(c:getAll(types.Door)) do
+                    if types.Door.isTeleport(obj) then
+                        local cc = protectedDoor.destCell(obj)
+                        if cc and cc.id then
+                            processCell(cc, depth)
+                        end
+                    end
+                end
+            end
+
+            if cell.isExterior then
+                for i = -1, 1 do
+                    for j = -1, 1 do
+                        local c = world.getExteriorCell(cell.gridX + i, cell.gridY + j)
+                        if c then
+                            processCell(c, 2)
+                        end
+                    end
+                end
+            else
+                processCell(cell, 2)
+            end
+
+            local diaIds = {}
+            for objId, _ in pairs(objectIds) do
+                local dt = questLib.getObjectData(objId)
+                if dt and dt.starts then
+                    for _, diaId in pairs(dt.starts) do
+                        diaIds[diaId] = true
+                    end
+                end
+            end
+
+            data.diaIds = tableLib.keys(diaIds)
+            pl:sendEvent("QGL:questsNearby", data)
         end,
 
         ["QGL:registerActorDeath"] = function (data)

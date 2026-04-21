@@ -136,6 +136,7 @@ fuzzyTopicMatchingDescription: "When enabled, the mod will use fuzzy string matc
 pinned: "Pinned"
 hidden: "Hidden"
 finished: "Finished"
+nearby: "Nearby"
 pinnedLabel: "!"
 finishedLabel: "F"
 hiddenLabel: "H"

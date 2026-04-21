@@ -344,6 +344,7 @@ local function buildAllQuestsMenu()
         isQuestList = true,
         showReqsForAll = true,
         showReqDiaEntryText = true,
+        allowNearbyMode = true,
     }
 end
 
@@ -452,6 +453,8 @@ local function giverMarkerClick(userData)
         showOnlyFirst = true,
         hideStageText = true,
         showReqDiaEntryText = true,
+        allowNearbyMode = true,
+        nearbyModeDefault = false,
     })
 end
 
@@ -1009,6 +1012,18 @@ return {
                     end
                 end
             end
+        end,
+
+        ["QGL:questsNearby"] = function (data)
+            local menuId = data.menuId
+            if not menuId then return end
+
+            ---@type questGuider.ui.customJournal
+            local menu = menuHandler.getMenu(data.menuId)
+            if not menu then return end
+
+            menu:loadQuestList(data.diaIds)
+            menu:update()
         end
     },
 }
