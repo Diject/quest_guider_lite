@@ -24,6 +24,7 @@ local log = require("scripts.quest_guider_lite.utils.log")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local button = require("scripts.quest_guider_lite.ui.button")
+local buttonBlock = require("scripts.quest_guider_lite.ui.buttonBlock")
 local mapMenu = require("scripts.quest_guider_lite.ui.mapMenu")
 
 local l10n = core.l10n(consts.l10nKey)
@@ -84,7 +85,8 @@ function nextStagesMeta.updateObjectElements(self)
 end
 
 
-function nextStagesMeta._fill(self, nextBtnsFlexContent)
+---@param nextBtnsMeta questGuider.ui.buttonBlockMeta
+function nextStagesMeta._fill(self, nextBtnsMeta)
     local params = self.params
 
     local nextStageData = self.data
@@ -345,11 +347,13 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
     end
 
     local function resetColorOfButtons(flex)
-        for _, elem in pairs(flex.content) do
+        local meta = flex.userData.meta
+
+        for _, elem in pairs(meta.buttons) do
             ---@type questGuider.ui.buttonMeta
-            local meta = elem.userData and elem.userData.meta
-            if meta then
-                local textElem = meta:getButtonTextElement()
+            local m = elem.userData and elem.userData.meta
+            if m then
+                local textElem = m:getButtonTextElement()
                 if textElem then
                     textElem.props.textColor = config.data.ui.defaultColor
                 end
@@ -364,96 +368,100 @@ function nextStagesMeta._fill(self, nextBtnsFlexContent)
             for _, nextData in ipairs(diaData) do
                 if not params.isQuestListMode and curentIndex >= nextData.index then goto continue end
 
-                nextBtnsFlexContent:add(interval(12, params.fontSize + 8))
-                nextBtnsFlexContent:add(
-                    button{
-                        text = string.format(format, tostring(nextData.index)),
-                        textSize = params.fontSize,
-                        parentScrollBoxUserData = self.params.parentScrollBoxUserData,
-                        updateFunc = params.updateFunc,
-                        tooltipContent = ui.content{
+                nextBtnsMeta:add{
+                    text = string.format(format, tostring(nextData.index)),
+                    textSize = params.fontSize,
+                    parentScrollBoxUserData = self.params.parentScrollBoxUserData,
+                    updateFunc = params.updateFunc,
+                    tooltipContent = ui.content{
+                        {
+                            type = ui.TYPE.Text,
+                            props = {
+                                text = string.format(l10n("idIndexShort"), diaId, nextData.index),
+                                textColor = config.data.ui.defaultColor,
+                                autoSize = true,
+                                textSize = params.fontSize or 18,
+                                multiline = false,
+                                wordWrap = false,
+                            },
+                        },
+                    },
+                    event = function (layout)
+                        local variantBtnFlex = self:getHeaderVariantBtnsFlex()
+
+                        local variantBtnBlockFlex = buttonBlock.new{
+                            width = params.size.x - stringLib.length(l10n("variantsColon")) * config.data.journal.textHeightMulRecord * config.data.ui.fontSize,
+                            anchor = util.vector2(0, 0),
+                            customWidthMul = 0.5,
+                            updateFunc = params.updateFunc,
+                        }
+                        local variantBtnBlockMeta = variantBtnBlockFlex.userData.meta
+
+                        variantBtnFlex.content = ui.content{
                             {
                                 type = ui.TYPE.Text,
                                 props = {
-                                    text = string.format(l10n("idIndexShort"), diaId, nextData.index),
+                                    text = l10n("variantsColon"),
                                     textColor = config.data.ui.defaultColor,
                                     autoSize = true,
                                     textSize = params.fontSize or 18,
+                                    anchor = util.vector2(0, 0.5),
                                     multiline = false,
                                     wordWrap = false,
                                 },
                             },
-                        },
-                        event = function (layout)
-                            local variantBtnFlex = self:getHeaderVariantBtnsFlex()
-                            variantBtnFlex.content = ui.content{
-                                {
-                                    type = ui.TYPE.Text,
-                                    props = {
-                                        text = l10n("variantsColon"),
-                                        textColor = config.data.ui.defaultColor,
-                                        autoSize = true,
-                                        textSize = params.fontSize or 18,
-                                        anchor = util.vector2(0, 0.5),
-                                        multiline = false,
-                                        wordWrap = false,
-                                    },
-                                },
-                            }
-                            local reqFlex = self:getRequirementsFlex()
-                            reqFlex.content = ui.content{}
-                            local posFlex = self:getObjectsFlex()
-                            posFlex.content = ui.content{}
+                            variantBtnBlockFlex,
+                        }
+                        local reqFlex = self:getRequirementsFlex()
+                        reqFlex.content = ui.content{}
+                        local posFlex = self:getObjectsFlex()
+                        posFlex.content = ui.content{}
 
-                            ---@type questGuider.ui.buttonMeta
-                            local btnMeta = layout.userData.meta
-                            local btn = btnMeta:getButtonTextElement()
-                            if btn then
-                                resetColorOfButtons(self:getHeaderNextBtnsFlex())
-                                btn.props.textColor = config.data.ui.selectionColor
-                            end
+                        ---@type questGuider.ui.buttonMeta
+                        local btnMeta = layout.userData.meta
+                        local btn = btnMeta:getButtonTextElement()
+                        if btn then
+                            resetColorOfButtons(self:getHeaderNextBtnsFlex())
+                            btn.props.textColor = config.data.ui.selectionColor
+                        end
 
-                            for i, reqs in ipairs(nextData.requirements) do
-                                variantBtnFlex.content:add(interval(12, 0))
-                                variantBtnFlex.content:add(
-                                    button{
-                                        text = string.format("-%d-", i),
-                                        textSize = params.fontSize,
-                                        anchor = util.vector2(0, 0.5),
-                                        parentScrollBoxUserData = self.params.parentScrollBoxUserData,
-                                        updateFunc = params.updateFunc,
-                                        event = function (layout)
-                                            local reqFlex = self:getRequirementsFlex()
-                                            reqFlex.content = ui.content{
-                                                interval(0, self.params.fontSize / 2)
-                                            }
-                                            local posFlex = self:getObjectsFlex()
-                                            posFlex.content = ui.content{
-                                                interval(0, self.params.fontSize / 2)
-                                            }
-
-                                            ---@type questGuider.ui.buttonMeta
-                                            local btnMeta = layout.userData.meta
-                                            local btn = btnMeta:getButtonTextElement()
-                                            if btn then
-                                                resetColorOfButtons(self:getHeaderVariantBtnsFlex())
-                                                btn.props.textColor = config.data.ui.selectionColor
-                                            end
-
-                                            addObjectPositionInfo(posFlex.content, reqs, diaId, nextData.index)
-                                            addRequirements(reqFlex.content, reqs)
-
-                                            params.updateHeightFunc()
-                                        end,
+                        for i, reqs in ipairs(nextData.requirements) do
+                            variantBtnBlockMeta:add{
+                                text = string.format("-%d-", i),
+                                textSize = params.fontSize,
+                                anchor = util.vector2(0, 0.5),
+                                parentScrollBoxUserData = self.params.parentScrollBoxUserData,
+                                updateFunc = params.updateFunc,
+                                event = function (layout)
+                                    local reqFlex = self:getRequirementsFlex()
+                                    reqFlex.content = ui.content{
+                                        interval(0, self.params.fontSize / 2)
                                     }
-                                )
-                            end
+                                    local posFlex = self:getObjectsFlex()
+                                    posFlex.content = ui.content{
+                                        interval(0, self.params.fontSize / 2)
+                                    }
 
-                            params.updateHeightFunc()
-                            self:update()
-                        end,
-                    }
-                )
+                                    ---@type questGuider.ui.buttonMeta
+                                    local btnMeta = layout.userData.meta
+                                    local btn = btnMeta:getButtonTextElement()
+                                    if btn then
+                                        resetColorOfButtons(self:getHeaderVariantBtnsFlex().content[2])
+                                        btn.props.textColor = config.data.ui.selectionColor
+                                    end
+
+                                    addObjectPositionInfo(posFlex.content, reqs, diaId, nextData.index)
+                                    addRequirements(reqFlex.content, reqs)
+
+                                    params.updateHeightFunc()
+                                end,
+                            }
+                        end
+
+                        params.updateHeightFunc()
+                        self:update()
+                    end
+                }
 
                 ::continue::
             end
@@ -494,16 +502,15 @@ function this.create(params)
     meta.data = params.data
     meta.params = params
 
-    local nextBtnsFlex = {
-        type = ui.TYPE.Flex,
-        props = {
-            autoSize = true,
-            horizontal = true,
-            anchor = util.vector2(0, 0.5),
-        },
-        content = ui.content{}
+    local nextBtnsFlex = buttonBlock.new{
+        width = params.size.x - stringLib.length(l10n("nextColon")) * config.data.journal.textHeightMulRecord * config.data.ui.fontSize,
+        anchor = util.vector2(0, 0),
+        customWidthMul = 0.5,
+        updateFunc = params.updateFunc,
     }
-    meta:_fill(nextBtnsFlex.content)
+    local nextBtnsMeta = nextBtnsFlex.userData.meta
+
+    meta:_fill(nextBtnsMeta)
 
     local header = {
         type = ui.TYPE.Flex,
