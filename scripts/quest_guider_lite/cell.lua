@@ -28,7 +28,7 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
         table.insert(cellPath, tes3.getCellData(cell))
     end
 
-    if (checked[cell.id] and checked[cell.id] < depth) or depth > maxDepth then
+    if not cell.id or (checked[cell.id] and checked[cell.id] < depth) or depth > maxDepth then
         return nil, nil, nil, nil, checked, depth
     end
     checked[cell.id] = math.min(checked[cell.id] or depth, depth)
@@ -48,7 +48,7 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
         local destCell = protectedDoor.destCell(door)
         local destPos = protectedDoor.destPosition(door)
 
-        if not destCell or not destPos then goto continue end
+        if not destCell or not destPos or not destCell.id then goto continue end
 
         if checked[destCell.id] and checked[destCell.id] < depth + 1 then goto continue end
 
@@ -89,7 +89,7 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
                     local door = this.findNearestDoor(drData.marker.position, drData.cell)
                     local doorDestCell = door and protectedDoor.destCell(door)
 
-                    if doorDestCell then
+                    if doorDestCell and doorDestCell.id then
                         if doorDestCell.id == drData.dCId then
                             drData.pos = door.position or drData.marker.position
                         else
@@ -125,7 +125,7 @@ end
 ---@return table<string, {cell : tes3cell, depth : integer}>?
 ---@return boolean? hasExitToExterior
 function this.findReachableCellsByNode(node, cells, depth, mDepth, blackList)
-    if not node.cell then return end
+    if not node.cell or not node.cell.id then return end
     if not cells then cells = {} end
     if not depth then depth = 1 end
     if blackList and blackList[node.cell.id] then return cells, false end
@@ -170,14 +170,14 @@ function this.findReachableCellsByNode(node, cells, depth, mDepth, blackList)
     return cells, hasExitToExterior
 end
 
-local findExitPositionsCache = {}
 
 ---@param cell tes3cell
 ---@return {pos : tes3vector3, depth : number}[]?
 ---@return table<string, tes3cell>?
----@return table<string, tes3cell>? entranceCells
+---@return table<string, integer>? entranceCells
 ---@return number? lowestDepth
 function this.findExitPositions(cell, checked, res, resCells, entranceCells, depth)
+    if not cell.id then return end
     if not checked then checked = {} end
     if not entranceCells then entranceCells = {} end
     if not res then res = {} end
@@ -195,8 +195,9 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells, dep
         return
     end
 
-    if findExitPositionsCache[cell.id] then
-        return table.unpack(findExitPositionsCache[cell.id]) ---@diagnostic disable-line: redundant-return-value
+    local cachedVal = cacheLib.get("findExitPositions", cell.id)
+    if cachedVal then
+        return table.unpack(cachedVal) ---@diagnostic disable-line: redundant-return-value
     end
 
     checked[cell.id] = depth
@@ -207,7 +208,7 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells, dep
         local destCell = protectedDoor.destCell(door)
         local destPos = protectedDoor.destPosition(door)
 
-        if not destCell or not destPos then goto continue end
+        if not destCell or not destPos or not destCell.id then goto continue end
 
         if destCell.isExterior then
             table.insert(res, {pos = utils.copyVector3(destPos), depth = depth})
@@ -225,7 +226,7 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells, dep
     end
 
     if depth == 0 then
-        findExitPositionsCache[cell.id] = {res, resCells, entranceCells, lowestDepth}
+        cacheLib.set("findExitPositions", cell.id, {res, resCells, entranceCells, lowestDepth})
     end
     return res, resCells, entranceCells, lowestDepth
 end
@@ -237,7 +238,7 @@ end
 function this.findNearestDoor(position, cell)
     if not cell then
         cell = tes3.getCell{position = position}
-        if not cell then return end
+        if not cell or not cell.id then return end
     end
     local hashVal = string.format("%d_%d_%d_%s", math.floor(position.x), math.floor(position.y), math.floor(position.z), cell.id)
     local cachedVal = cacheLib.get("findNearestDoor", hashVal)
@@ -296,7 +297,13 @@ function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked, 
     if not namePath then namePath = {} end
 
     local cellId = cell.id
-    if checked[cellId] and checked[cellId].distance <= distance then return checked end
+    if not cellId or checked[cellId] and checked[cellId].distance <= distance then return checked end
+
+    local hashVal = string.format("%s_%d_%d", cellId, math.floor(pos.x), math.floor(pos.y))
+    local cachedVal = cacheLib.get("getInteriorCellApproxDistancesToPos", hashVal)
+    if cachedVal then
+        return cachedVal
+    end
 
     table.insert(namePath, tes3.getCellData(cell).name)
 
@@ -330,6 +337,7 @@ function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked, 
         ::continue::
     end
 
+    cacheLib.set("getInteriorCellApproxDistancesToPos", hashVal, checked)
     return checked
 end
 

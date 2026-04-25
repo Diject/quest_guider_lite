@@ -22,6 +22,7 @@ local playerQuests = require('scripts.quest_guider_lite.playerQuests')
 local myTypes = require("scripts.quest_guider_lite.types")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
+local cellAdvLib = require("scripts.quest_guider_lite.map.cell")
 
 local l10n = core.l10n(common.l10nKey)
 
@@ -437,10 +438,14 @@ local function fillQuestBoxQuestInfo(params)
     end
 
     for _, dt in pairs(objectPositions) do
-        cellLib.fillDistanceToPlayer(dt.positions, player)
+        if cellAdvLib.isReady() then
+            cellAdvLib.fillDistanceToPlayer(dt.positions, player)
+        else
+            cellLib.fillDistanceToPlayer(dt.positions, player)
+        end
 
         table.sort(dt.positions, function (a, b)
-            return a.distanceToPlayer < b.distanceToPlayer
+            return (a.distanceToPlayer or math.huge) < (b.distanceToPlayer or math.huge)
         end)
     end
 
@@ -631,10 +636,14 @@ return {
                 local positions = questLib.getPositions(id, {findLinks = true, includeLinks = true, customConfig = data.config})
                 if not positions then goto continue end
 
-                cellLib.fillDistanceToPlayer(positions, player)
+                if cellAdvLib.isReady() then
+                    cellAdvLib.fillDistanceToPlayer(positions, player)
+                else
+                    cellLib.fillDistanceToPlayer(positions, player)
+                end
 
                 table.sort(positions, function (a, b)
-                    return a.distanceToPlayer < b.distanceToPlayer
+                    return (a.distanceToPlayer or math.huge) < (b.distanceToPlayer or math.huge)
                 end)
 
                 positionsByObjectId[id] = positions

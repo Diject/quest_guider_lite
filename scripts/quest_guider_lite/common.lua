@@ -120,10 +120,29 @@ this.messageBoxMenuId = "__QGL:MessageBox__"
 this.firstInitMenuId = "__QGL:FirstInit__"
 
 this.exteriorCellLabel = "Esm3ExteriorCell:"
+this.exteriorCellIdFormat = "Esm3ExteriorCell:%d:%d"
 
 
 function this.colorToArray(color)
     return {color.r, color.g, color.b, color.a}
 end
+
+
+function this.getGridCoordinates(pos)
+    local gridX = math.floor(pos.x / 8192)
+    local gridY = math.floor(pos.y / 8192)
+    return gridX, gridY
+end
+
+
+function this.getExCellIdByPos(pos)
+    return this.exteriorCellIdFormat:format(this.getGridCoordinates(pos))
+end
+
+
+function this.getExCellIdByGrid(gridX, gridY)
+    return this.exteriorCellIdFormat:format(gridX, gridY)
+end
+
 
 return this
