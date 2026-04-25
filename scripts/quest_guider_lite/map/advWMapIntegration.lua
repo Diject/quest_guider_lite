@@ -42,7 +42,7 @@ this.targetCells = {}
 this.pathCells = {}
 ---@type table<string, table<string, table<string, string>>> by cellId, doorHash, templateId = advWMapMarkerId
 this.doorMarkers = {}
----@type table<string, {qNames: string[], mId: string}> by doorHash
+---@type table<string, table<string, {qNames: string[], mId: string}>> by cellId, by doorHash
 this.doorGiversMarkers = {}
 ---@type string
 this.doorGiversTemplate = nil
@@ -347,11 +347,15 @@ function this.init()
         local userData = e.marker:getUserData()
         if not userData or not userData.hash then return end
 
-        local doorMarkerData = this.doorGiversMarkers[userData.hash]
+        local cellId = e.marker._parent.cellId or commonInfo.getExCellIdByPos(e.marker._params.pos)
+        local doorGiverCellData = this.doorGiversMarkers[cellId]
+        if not doorGiverCellData then return end
+
+        local doorMarkerData = doorGiverCellData[userData.hash]
         if not doorMarkerData then return end
 
         if not trackingInt.isValid(doorMarkerData.mId) then
-            this.doorGiversMarkers[userData.hash] = nil
+            doorGiverCellData[userData.hash] = nil
             trackingInt.removeMarker(doorMarkerData.mId)
             return
         end
@@ -648,14 +652,17 @@ function this.createDoorGiversMarker(doorRef, qNames)
     if not destCell then return end
 
     local destCellId = destCell.id
+    local cellId = doorRef.cell.id or ""
     local hash = doorHash(doorRef, destCellId)
 
-    if this.doorGiversMarkers[hash] then
-        local markerId = this.doorGiversMarkers[hash].mId
+    local doorGiverCellData = this.doorGiversMarkers[cellId]
+
+    if doorGiverCellData and doorGiverCellData[hash] then
+        local markerId = doorGiverCellData[hash].mId
         if trackingInt.isValid(markerId) then
             trackingInt.removeMarker(markerId)
         end
-        this.doorGiversMarkers[hash] = nil
+        doorGiverCellData[hash] = nil
     end
     if not qNames or #qNames == 0 then return end
 
@@ -664,7 +671,7 @@ function this.createDoorGiversMarker(doorRef, qNames)
     local markerId = trackingInt.addMarker{
         template = this.doorGiversTemplate,
         positions = {{pos = doorRef.position, id = not doorRef.cell.isExterior and doorRef.cell.id or nil}},
-        short = true,
+        temp = true,
         priority = -100,
         isVisibleFn = not isDiscovered and function (markerDt)
             local discovered = interface.isDiscovered(destCellId)
@@ -676,7 +683,38 @@ function this.createDoorGiversMarker(doorRef, qNames)
     }
     if not markerId then return end
 
-    this.doorGiversMarkers[hash] = {qNames = qNames, mId = markerId}
+    local dt = {qNames = qNames, mId = markerId}
+    this.doorGiversMarkers[cellId] = this.doorGiversMarkers[cellId] or {}
+    this.doorGiversMarkers[cellId][hash] = dt
+end
+
+
+function this.removeInvalidDoorGiverMarkers()
+    if not initialized then return end
+
+    local validCellIds = {}
+    local playerCell = playerRef.cell
+    if playerCell.isExterior then
+        for i = -1, 1 do
+            for j = -1, 1 do
+                local cellId = commonInfo.getExCellIdByGrid(playerCell.gridX + i, playerCell.gridY + j)
+                validCellIds[cellId] = true
+            end
+        end
+    else
+        validCellIds[playerCell.id] = true
+    end
+
+    for cellId, doorData in pairs(this.doorGiversMarkers) do
+        if not validCellIds[cellId] then
+            for _, dt in pairs(doorData) do
+                if trackingInt.isValid(dt.mId) then
+                    trackingInt.removeMarker(dt.mId)
+                end
+            end
+            this.doorGiversMarkers[cellId] = nil
+        end
+    end
 end
 
 

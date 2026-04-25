@@ -709,6 +709,10 @@ return {
             elseif e.oldMode == "Container" or e.newMode == "Loading" or e.oldMode == "Interface" then
                 handleTracking()
             end
+
+            if e.oldMode == "Loading" then
+                advWMapIntegration.removeInvalidDoorGiverMarkers()
+            end
         end,
 
         ["QGL:addMarker"] = function(data)
