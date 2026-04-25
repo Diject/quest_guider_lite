@@ -6,9 +6,8 @@ local log = require("scripts.quest_guider_lite.utils.log")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local cellLib = require("scripts.quest_guider_lite.cell")
+local cellAdvLib = require("scripts.quest_guider_lite.map.cell")
 local cacheLib = require("scripts.quest_guider_lite.utils.cache")
-
-local config = require("scripts.quest_guider_lite.config")
 
 local myTypes = require("scripts.quest_guider_lite.types")
 local descriptionLines = require("scripts.quest_guider_lite.descriptionLines")
@@ -59,6 +58,12 @@ local filterForHandledReqBlock = {
 local filterForDeadReqs = {
     [myTypes.requirementType.Dead] = true,
     [myTypes.requirementType.CustomOnDeath] = true,
+}
+
+local cellRequirementTypes = {
+    [myTypes.requirementType.NotActorCell] = true,
+    [myTypes.requirementType.CustomActorCell] = true,
+    [myTypes.requirementType.CustomPCCell] = true,
 }
 
 
@@ -193,7 +198,11 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
         return table.unpack(cachedVal) ---@diagnostic disable-line: redundant-return-value
     end
 
-    local configData = customConfig or config.data
+    local configData = customConfig
+    if not configData then
+        log("Error: config data is required for getDescriptionDataFromDataBlock")
+        return
+    end
     ---@type table<string, {index: integer, qData: questDataGenerator.questData}>?
     local linkedQuests
 
@@ -264,12 +273,15 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
             reqOut.reqDataForHandling = reqBlockForHandling
         elseif requirement.type == myTypes.requirementType.CustomActor then
             local blockCopy = tableLib.copy(reqBlock)
-            table.insert(blockCopy, {
-                type = myTypes.requirementType.Dead,
-                operator = myTypes.operator.value.Equal,
-                value = 0,
-                object = requirement.object,
-            })
+            local objData = dataHandler.getObjectData(requirement.object)
+            if objData and (objData.total or 0) < 2 then
+                table.insert(blockCopy, {
+                    type = myTypes.requirementType.Dead,
+                    operator = myTypes.operator.value.Equal,
+                    value = 0,
+                    object = requirement.object,
+                })
+            end
             reqOut.reqDataForHandling = requirementChecker.getFilterredRequirementBlock(blockCopy, filterForHandledReqBlock)
         elseif requirement.type == myTypes.requirementType.Journal then
 
@@ -292,12 +304,15 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                             reqOut.reqDataForHandlingArr = reqOut.reqDataForHandlingArr or {}
                             reqOut.reqDataForHandlingArr[id] = reqOut.reqDataForHandlingArr[id] or {}
                             if giverDt.type <= 2 then
-                                table.insert(reqOut.reqDataForHandlingArr[id], {
-                                    type = myTypes.requirementType.Dead,
-                                    operator = myTypes.operator.value.Equal,
-                                    value = 0,
-                                    object = giverId,
-                                })
+                                local objData = dataHandler.getObjectData(requirement.object)
+                                if objData and (objData.total or 0) < 2 then
+                                    table.insert(reqOut.reqDataForHandlingArr[id], {
+                                        type = myTypes.requirementType.Dead,
+                                        operator = myTypes.operator.value.Equal,
+                                        value = 0,
+                                        object = giverId,
+                                    })
+                                end
                             end
                             table.insert(reqOut.reqDataForHandlingArr[id], {
                                 type = myTypes.requirementType.Journal,
@@ -369,15 +384,18 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                     environment.valueObj = obj
                     goto done
                 end
-                local cell = tes.getCell{id = value}
-                if cell then
-                    environment.valueObj = cell
-                    goto done
-                end
-                local exCell = tes.getCell{name = value}
-                if exCell then
-                    environment.valueObj = exCell
-                    goto done
+
+                if cellRequirementTypes[requirement.type] then
+                    local cell = tes.getCell{id = value}
+                    if cell then
+                        environment.valueObj = cell
+                        goto done
+                    end
+                    local exCell = tes.getCell{name = value}
+                    if exCell then
+                        environment.valueObj = exCell
+                        goto done
+                    end
                 end
                 -- local faction = tes3.getFaction(value)
                 -- if faction then
@@ -400,15 +418,18 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                     environment.variableObj = obj
                     goto done
                 end
-                local cell = tes.getCell{id = variable}
-                if cell then
-                    environment.variableObj = cell
-                    goto done
-                end
-                local exCell = tes.getCell{name = value}
-                if exCell then
-                    environment.variableObj = exCell
-                    goto done
+
+                if cellRequirementTypes[requirement.type] then
+                    local cell = tes.getCell{id = variable}
+                    if cell then
+                        environment.variableObj = cell
+                        goto done
+                    end
+                    local exCell = tes.getCell{name = value}
+                    if exCell then
+                        environment.variableObj = exCell
+                        goto done
+                    end
                 end
                 -- local faction = tes3.getFaction(variable)
                 -- if faction then
@@ -834,6 +855,20 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
         return false
     end
 
+    local useAdvCell = cellAdvLib.isReady()
+    local findExitPosFunc
+    local findExitPositionsFunc
+    local findNearestDoorFunc
+    if useAdvCell then
+        findExitPosFunc = cellAdvLib.findExitPos
+        findExitPositionsFunc = cellAdvLib.findExitPositions
+        findNearestDoorFunc = cellAdvLib.findNearestDoor
+    else
+        findExitPosFunc = cellLib.findExitPos
+        findExitPositionsFunc = cellLib.findExitPositions
+        findNearestDoorFunc = cellLib.findNearestDoor
+    end
+
     for i, posDt in ipairs(objData.positions) do
         local x = posDt.pos[1]
         local y = posDt.pos[2]
@@ -843,7 +878,7 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
             if not checkRestrictions(posDt.name) then goto continue end
 
             local cell = tes.getCell{id = posDt.name}
-            if cell then
+            if cell and cell.id then
                 local notFoundFlag = getNotFoundFlag(cell)
 
                 local newPosData = tableLib.copy(posDt)
@@ -854,17 +889,17 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
                     newPosData.type = 1
                 end
 
-                local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+                local exCellPos, doorPath, cellPath, isExterior, checkedCells = findExitPosFunc(useAdvCell and cell.id or cell)
 
                 if exCellPos then
 
                     local exits = {}
                     local firstEntranceCellIds = {}
-                    local exitPositions, _, entranceCells, lowestDepth = cellLib.findExitPositions(cell)
+                    local exitPositions, _, entranceCells, lowestDepth = findExitPositionsFunc(useAdvCell and cell.id or cell)
                     if exitPositions then
                         for _, pDt in pairs(exitPositions) do
                             if pDt.depth <= lowestDepth + 2 then
-                                local nearestDoor = cellLib.findNearestDoor(pDt.pos)
+                                local nearestDoor = findNearestDoorFunc(pDt.pos)
                                 if nearestDoor then
                                     table.insert(exits, nearestDoor.position)
                                 else
@@ -932,8 +967,24 @@ end
 
 
 local function addCellData(cell, id, arr, configData)
+    if not cell.id then return end
+
+    local useAdvCell = cellAdvLib.isReady()
+    local findExitPosFunc
+    local findExitPositionsFunc
+    local findNearestDoorFunc
+    if useAdvCell then
+        findExitPosFunc = cellAdvLib.findExitPos
+        findExitPositionsFunc = cellAdvLib.findExitPositions
+        findNearestDoorFunc = cellAdvLib.findNearestDoor
+    else
+        findExitPosFunc = cellLib.findExitPos
+        findExitPositionsFunc = cellLib.findExitPositions
+        findNearestDoorFunc = cellLib.findNearestDoor
+    end
+
     if not cell.isExterior then
-        local exCellPos, doorPath, cellPath, isExterior, checkedCells = cellLib.findExitPos(cell)
+        local exCellPos, doorPath, cellPath, isExterior, checkedCells = findExitPosFunc(useAdvCell and cell.id or cell)
 
         if exCellPos then
 
@@ -947,11 +998,11 @@ local function addCellData(cell, id, arr, configData)
 
             local exits = {}
             local firstEntranceCellIds = {}
-            local exitPositions, _, entranceCells, lowestDepth = cellLib.findExitPositions(cell)
+            local exitPositions, _, entranceCells, lowestDepth = findExitPositionsFunc(useAdvCell and cell.id or cell)
             if exitPositions then
                 for _, pDt in pairs(exitPositions) do
                     if pDt.depth <= lowestDepth + 1 then
-                        local nearestDoor = cellLib.findNearestDoor(pDt.pos)
+                        local nearestDoor = findNearestDoorFunc(pDt.pos)
                         if nearestDoor then
                             table.insert(exits, nearestDoor.position)
                         else
@@ -1098,7 +1149,11 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
         return table.unpack(cachedVal) ---@diagnostic disable-line: redundant-return-value
     end
 
-    local configData = customConfig or config.data
+    local configData = customConfig
+    if not configData then
+        log("Error: no config data provided for getRequirementPositionData")
+        return
+    end
     local trackingConfig = configData.tracking
 
     if requirement.type == myTypes.requirementType.CustomDialogue or
@@ -1245,16 +1300,18 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
                     goto continue
                 end
 
-                local cell = tes.getCell{id = value}
-                if cell then
-                    cells[cell] = value
-                    goto continue
-                end
+                if cellRequirementTypes[req.type] then
+                    local cell = tes.getCell{id = value}
+                    if cell then
+                        cells[cell] = value
+                        goto continue
+                    end
 
-                local exCell = tes.getCell{name = value}
-                if exCell then
-                    cells[exCell] = value
-                    goto continue
+                    local exCell = tes.getCell{name = value}
+                    if exCell then
+                        cells[exCell] = value
+                        goto continue
+                    end
                 end
 
                 if string.sub(value, 1, 6) == "#dia: " then
@@ -1398,27 +1455,34 @@ function this.getPositions(objectId, params)
     if objectId == "" then return {} end
     if not params then params = {} end
 
-    local configData = params.customConfig or config.data
+    local configData = params.customConfig
+    if not configData then
+        log("Error: no config data provided for getPositions")
+        return
+    end
 
     local trackingConfig = configData.tracking
 
     ---@type questGuider.quest.getRequirementPositionData.positionData[]
     local positions = {}
 
-    local cell = tes.getCell{id = objectId}
-    if cell then
-        addCellData(cell, objectId, positions, configData)
-        return positions
-    end
-
-    local exCell = tes.getCell{name = objectId}
-    if exCell then
-        addCellData(exCell, objectId, positions, configData)
-        return positions
-    end
-
     local objectData = this.getObjectData(objectId)
-    if not objectData then return end
+
+    if not objectData then
+        local cell = tes.getCell{id = objectId}
+        if cell then
+            addCellData(cell, objectId, positions, configData)
+            return positions
+        end
+
+        local exCell = tes.getCell{name = objectId}
+        if exCell then
+            addCellData(exCell, objectId, positions, configData)
+            return positions
+        end
+
+        return
+    end
 
     local object = tes.getObject(objectId)
     addPosData(positions, objectData, nil, configData, object)
@@ -1443,9 +1507,10 @@ this.checkConditionsForQuest = questBase.checkConditionsForQuest
 
 ---@param objData questDataGenerator.objectInfo
 ---@param maxNames integer
+---@param configData table
 ---@return string[]
-function this.getObjectPositionDescription(objData, maxNames)
-    local approxEnabled = config.data.tracking.approx.enabled
+function this.getObjectPositionDescription(objData, maxNames, configData)
+    local approxEnabled = configData.tracking.approx.enabled
 
     local descriptions = {}
     for _, posDt in pairs(objData.positions) do
