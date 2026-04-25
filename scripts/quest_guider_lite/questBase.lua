@@ -256,8 +256,10 @@ end
 ---@param questIndex integer|string
 ---@param ref any?
 ---@param player any?
+---@param params {handleCustomActorReq: boolean?}?
 ---@return boolean?
-function this.checkConditionsForQuest(questId, questIndex, ref, player)
+function this.checkConditionsForQuest(questId, questIndex, ref, player, params)
+    params = params or {}
     local questData = dataHandler.getQuestData(questId)
     if not questData then return end
 
@@ -309,36 +311,10 @@ function this.checkConditionsForQuest(questId, questIndex, ref, player)
                 ignoredTypes = ignoredTypes,
                 threatErrorsAs = true,
                 reference = ref,
+                handleCustomActorReq = params.handleCustomActorReq,
             }, player)
 
             if ret then return true end
-
-            -- if ret then
-            --     local foundDiaReq = false
-            --     for _, req in pairs(reqBlock) do
-            --         if req.type == myTypes.requirementType.CustomDialogue then
-            --             foundDiaReq = true
-            --             local diaId = stringLib.convertDialogueName(req.variable)
-            --             local infoId = req.value
-
-            --             local checkerRes = dialogueChecker.isDialogueTopicAvailable(ref, diaId, infoId, {
-            --                 skipDisposition = true,
-            --                 checkBlockOptions = {
-            --                     ignoredTypes = ignoredTypes,
-            --                     typeTruthTable = truthTable,
-            --                     threatErrorsAs = false,
-            --                 }
-            --             })
-
-            --             if checkerRes then return true end
-            --             break
-            --         end
-            --     end
-
-            --     if not foundDiaReq then
-            --         return true
-            --     end
-            -- end
         end
 
     end
@@ -440,35 +416,42 @@ end
 ---@return table<string, boolean>?
 ---@return boolean? isGiver
 function this.getGiverQuests(object, player)
-    local objectData = dataHandler.getObjectData(object.recordId)
-    if not objectData or not objectData.starts then return end
-
     local diaIds = {}
 
-    for _, diaId in pairs(objectData.starts) do
-        local diaIdLower = diaId:lower()
+    local function checkId(id)
+        if not id then return end
 
-        if not this.getQuestMainDialogueIdsMap(diaIdLower)[diaIdLower] then goto continue end
+        local objectData = dataHandler.getObjectData(id)
+        if not objectData or not objectData.starts then return end
 
-        if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
+        for _, diaId in pairs(objectData.starts) do
+            local diaIdLower = diaId:lower()
 
-        local questData = dataHandler.getQuestData(diaIdLower)
-        if not questData or not questData.name then goto continue end
+            if not this.getQuestMainDialogueIdsMap(diaIdLower)[diaIdLower] then goto continue end
 
-        for _, linkId in pairs(questData.links or {}) do
-            if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then goto continue end
+            if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
+
+            local questData = dataHandler.getQuestData(diaIdLower)
+            if not questData or not questData.name then goto continue end
+
+            for _, linkId in pairs(questData.links or {}) do
+                if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then goto continue end
+            end
+
+            local firstIndexStr = this.getFirstIndex(questData)
+            if not firstIndexStr then goto continue end
+            if not this.checkConditionsForQuest(diaIdLower, firstIndexStr, object, player, {handleCustomActorReq = true}) then
+                goto continue
+            end
+
+            diaIds[diaId] = true
+
+            ::continue::
         end
-
-        local firstIndexStr = this.getFirstIndex(questData)
-        if not firstIndexStr then goto continue end
-        if not this.checkConditionsForQuest(diaIdLower, firstIndexStr, object, player) then
-            goto continue
-        end
-
-        diaIds[diaId] = true
-
-        ::continue::
     end
+
+    checkId(object.recordId)
+    checkId(object.mwscript)
 
     if not next(diaIds) then return nil, true end
     return diaIds, true
