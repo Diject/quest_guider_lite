@@ -49,9 +49,8 @@ end
 
 
 function this.isMapImageExists()
-    if this.data.mapInfo and this.data.mapInfo.file then
-        local mapImagePath = "questData/"..this.data.mapInfo.file
-        return vfs.fileExists(mapImagePath)
+    if this.data.mapInfo and this.data.mapInfo.version <= 3 then
+        return true
     end
     return false
 end

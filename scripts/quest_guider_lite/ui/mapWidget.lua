@@ -74,6 +74,19 @@ function mapWidgetMeta:getRelativePositionByWorldPosition(worldPos)
 end
 
 
+function mapWidgetMeta:getAbsolutePositionByWorldPosition(worldPos, ignoreNorthAngle)
+    local cellSize = self.mapInfo.cellSize or 8192
+    local cellX = worldPos.x / cellSize
+    local cellY = worldPos.y / cellSize
+    local x = (cellX - self.mapInfo.gridX.min) * self.mapInfo.pixelsPerCell
+    local y = (self.mapInfo.gridY.max - cellY) * self.mapInfo.pixelsPerCell
+
+    local pos = util.vector2(x, y)
+
+    return pos * self.zoom
+end
+
+
 local function clampAndCenterPosition(pos, mapSize, mainSize)
     local newX, newY
 
@@ -101,6 +114,13 @@ function mapWidgetMeta:setZoom(zoom)
     local oldSize = util.vector2(self.mapInfo.width * oldZoom, self.mapInfo.height * oldZoom)
 
     zoom = util.clamp(zoom, self.minZoom, self.maxZoom)
+
+    local textureVersion = self.mapInfo.version or 0
+    if textureVersion == 2 or textureVersion == 3 then
+        local tileSize = self.mapInfo.tileSize or (self.mapInfo.pixelsPerCell * 16)
+        local newTileSize = math.floor(tileSize * zoom + 0.5)
+        zoom = newTileSize / tileSize
+    end
 
     local newSize = util.vector2(self.mapInfo.width * zoom, self.mapInfo.height * zoom)
     local oldPos = widget.props.position
@@ -343,6 +363,16 @@ function mapWidgetMeta:createCityNames()
 end
 
 
+local function getMapBackgroundColor(self)
+    if self.mapInfo and self.mapInfo.bColor then
+        local bCol = self.mapInfo.bColor
+        return util.color.rgb(bCol[1] or 1, bCol[2] or 1, bCol[3] or 1)
+    else
+        return commonData.mapWaterColor
+    end
+end
+
+
 ---@type {name : string, count : integer, posX : number, posY : number}[]?
 this.cityInfo = nil
 
@@ -361,21 +391,15 @@ this.cityInfo = nil
 function this.new(params)
     if not playerDataHandler.data.mapInfo then return end
 
-    if not mapTexture then
-        local mapImagePath = "questData/"..playerDataHandler.data.mapInfo.file
-
-        if not vfs.fileExists(mapImagePath) then return end
-
-        mapTexture = ui.texture{ path = mapImagePath }
-    end
+    local textureVersion = playerDataHandler.data.mapInfo.version or 0
 
     params.fontSize = params.fontSize or 18
 
     ---@class questGuider.ui.mapWidgetMeta
     local meta = setmetatable({}, mapWidgetMeta)
 
+    meta.mapInfo = playerDataHandler.data.mapInfo
     meta.params = params
-    meta.mapTexture = mapTexture
     meta.mapInfo = playerDataHandler.data.mapInfo
 
     meta.zoom = 1
@@ -385,6 +409,84 @@ function this.new(params)
     meta.update = function(self)
         params.updateFunc()
     end
+
+    meta.displayMapSize = meta.displayMapSize or util.vector2(meta.mapInfo.width, meta.mapInfo.height)
+
+    local mapTextureLayout
+    if textureVersion == 1 then
+        local mapImagePath = "questData/"..playerDataHandler.data.mapInfo.file
+
+        if not vfs.fileExists(mapImagePath) then return end
+
+        mapTexture = ui.texture{ path = mapImagePath }
+
+        mapTextureLayout = {
+            type = ui.TYPE.Image,
+            props = {
+                resource = mapTexture,
+                relativeSize = util.vector2(1, 1),
+            }
+        }
+
+    elseif textureVersion == 2 or textureVersion == 3 then
+
+        local minGridX = meta.mapInfo.gridX.min
+        local maxGridX = meta.mapInfo.gridX.max
+        local minGridY = meta.mapInfo.gridY.min
+        local maxGridY = meta.mapInfo.gridY.max
+
+        mapTextureLayout = {
+            type = ui.TYPE.Widget,
+            props = {
+                position = util.vector2(0, 0),
+                relativeSize = util.vector2(1, 1),
+            },
+            userData = {},
+            content = ui.content{}
+        }
+
+        local function getWorldMapTextureV2(x, y)
+            local path = "questData/"..string.format("(%d,%d).png", x, y)
+            if not vfs.fileExists(path) then return end
+
+            local texture = ui.texture{ path = path }
+            return texture
+        end
+
+        local mapWidth = (maxGridX - minGridX + 1) * meta.mapInfo.pixelsPerCell
+        local mapHeight = (maxGridY - minGridY + 1) * meta.mapInfo.pixelsPerCell
+
+        local tileSize = meta.mapInfo.tileSize or (meta.mapInfo.pixelsPerCell * 16)
+        local tileGridSize = tileSize / meta.mapInfo.pixelsPerCell
+
+        local gridTileMinX = math.floor(minGridX / tileGridSize)
+        local gridTileMaxX = math.floor(maxGridX / tileGridSize)
+        local gridTileMinY = math.floor(minGridY / tileGridSize)
+        local gridTileMaxY = math.floor(maxGridY / tileGridSize)
+
+        for tx = gridTileMinX, gridTileMaxX do
+            for ty = gridTileMinY, gridTileMaxY do
+                local texture = getWorldMapTextureV2(tx, ty)
+                if texture then
+                    local offPixelsX = (tx * tileGridSize - minGridX) * meta.mapInfo.pixelsPerCell
+                    local offPixelsY = (maxGridY - (ty * tileGridSize + tileGridSize - 1)) * meta.mapInfo.pixelsPerCell
+
+                    mapTextureLayout.content:add{
+                        type = ui.TYPE.Image,
+                        props = {
+                            resource = texture,
+                            relativePosition = util.vector2(offPixelsX / mapWidth, offPixelsY / mapHeight),
+                            relativeSize = util.vector2((tileSize + 1) / mapWidth, (tileSize + 1) / mapHeight),
+                            anchor = util.vector2(0, 0)
+                        }
+                    }
+                end
+            end
+        end
+    else
+        return
+    end
+
 
     local main
     main = {
@@ -461,24 +563,18 @@ function this.new(params)
                 props = {
                     resource = commonData.whiteTexture,
                     relativeSize = util.vector2(1, 1),
-                    color = commonData.mapWaterColor,
+                    color = getMapBackgroundColor(meta),
                 }
             },
             {
                 type = ui.TYPE.Widget,
                 props = {
                     position = util.vector2(0, 0),
-                    size = util.vector2(meta.mapInfo.width, meta.mapInfo.height),
+                    size = meta.displayMapSize,
                 },
                 userData = {},
                 content = ui.content {
-                    {
-                        type = ui.TYPE.Image,
-                        props = {
-                            resource = meta.mapTexture,
-                            relativeSize = util.vector2(1, 1),
-                        }
-                    },
+                    mapTextureLayout,
                     -- for city and region names
                     {
                         type = ui.TYPE.Widget,
