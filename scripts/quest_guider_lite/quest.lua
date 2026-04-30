@@ -16,7 +16,6 @@ local otherTypes = require("scripts.quest_guider_lite.types.other")
 local dataHandler = require("scripts.quest_guider_lite.storage.dataHandler")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
-local dialogueChecker = require("scripts.quest_guider_lite.dialogueChecker")
 
 local tes = require("scripts.quest_guider_lite.core.tes3")
 local questBase = require("scripts.quest_guider_lite.questBase")
@@ -66,6 +65,17 @@ local cellRequirementTypes = {
     [myTypes.requirementType.CustomPCCell] = true,
 }
 
+local forbiddenCells = {
+    ["toddtest"] = true,
+    ["t_test_hf"] = true,
+    ["t_test_hr"] = true,
+    ["t_test_pc"] = true,
+    ["t_test_pi"] = true,
+    ["t_test_shotn"] = true,
+    ["t_test_skyskiff"] = true,
+    ["t_test_tr"] = true,
+    ["t_test_wolli"] = true,
+}
 
 
 ---@param questId string
@@ -879,6 +889,8 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
 
             local cell = tes.getCell{id = posDt.name}
             if cell and cell.id then
+                if forbiddenCells[cell.id] or cell.id:find("t_test") then goto continue end
+
                 local notFoundFlag = getNotFoundFlag(cell)
 
                 local newPosData = tableLib.copy(posDt)
@@ -915,7 +927,7 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
                     end
 
                     foundValidPos = foundValidPos or not notFoundFlag
-                    table.insert(arr, {id = posDt.name, position = util.vector3(x, y, z), entrances = exits,  firstEntranceCellIds = firstEntranceCellIds,
+                    table.insert(arr, {id = cell.id, position = util.vector3(x, y, z), entrances = exits,  firstEntranceCellIds = firstEntranceCellIds,
                         exitPos = exCellPos, isExitEx = isExterior, doorPath = doorPath, cellPath = cellPath, rawData = newPosData, notFound = notFoundFlag})
 
                 else
@@ -933,7 +945,7 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
                     end
 
                     foundValidPos = foundValidPos or not notFoundFlag
-                    table.insert(arr, {description = descr or posDt.name, id = posDt.name, position = util.vector3(x, y, z), rawData = newPosData, notFound = notFoundFlag})
+                    table.insert(arr, {description = descr or posDt.name, id = cell.id, position = util.vector3(x, y, z), rawData = newPosData, notFound = notFoundFlag})
                 end
             end
         elseif posDt.grid then

@@ -212,6 +212,8 @@ local function addMarkersForQuest(params)
 
     local objects = {}
 
+    local shouldAddObjectMarker = params.objectId and true or false
+
     for i, reqDataBlock in pairs(indexData.requirements or {}) do
 
         if params.checkRequirements and not requirementChecker.checkBlock(reqDataBlock, {
@@ -266,6 +268,9 @@ local function addMarkersForQuest(params)
 
                 params.player:sendEvent("QGL:addMarker", eventParams)
 
+                shouldAddObjectMarker = false
+                -- objects[objId] = posData.name
+
                 ::continue::
             end
 
@@ -273,6 +278,36 @@ local function addMarkersForQuest(params)
         end
 
         ::continue::
+    end
+
+    -- Since available objects for tracking are formed differently than in this function,
+    -- for manual markers it is sometimes necessary to create the required data separately.
+    if shouldAddObjectMarker then
+        ---@type questDataGenerator.requirementData
+        local tempReq = {
+            operator = 48,
+            type = "TEMP",
+            object = params.objectId
+        }
+
+        local dt = questLib.getRequirementPositionData(tempReq, params.config, params.diaId)
+
+        if dt and dt[params.objectId] then
+            local posData = dt[params.objectId]
+            ---@type questGuider.tracking.addMarker
+            local eventParams = {
+                questId = params.diaId,
+                objectId = params.objectId,
+                objectName = posData.name,
+                positionData = posData,
+                questData = questData,
+                questStage = params.diaIndex,
+                reqData = nil,
+                priority = params.priority,
+            }
+
+            params.player:sendEvent("QGL:addMarker", eventParams)
+        end
     end
 
     -- Removed:
@@ -456,7 +491,7 @@ end
 
 
 local function showTrackingMessage(player, objects)
-    if tableLib.size(objects) > 0 then
+    if next(objects) then
         local names = {}
         for id, name in pairs(objects) do
             if name and name ~= "" then
@@ -494,7 +529,7 @@ end
 return {
     interfaceName = common.interfaceName,
     interface = {
-        version = 5,
+        version = 6,
         getQuestsData = function ()
             return dataHandler.quests or {}
         end,
@@ -506,7 +541,6 @@ return {
         end,
         questLib = questLib,
         requirementChecker = requirementChecker,
-        dialogueChecker = require("scripts.quest_guider_lite.dialogueChecker"),
         types = require("scripts.quest_guider_lite.types"),
     },
     engineHandlers = {

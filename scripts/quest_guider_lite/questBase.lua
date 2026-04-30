@@ -2,7 +2,6 @@ local include = require("scripts.quest_guider_lite.utils.include")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
-local dialogueChecker = require("scripts.quest_guider_lite.dialogueChecker")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local myTypes = require("scripts.quest_guider_lite.types")
@@ -345,7 +344,7 @@ function this.getQuestMainDialogueIdsMap(diaId)
     local questDias = {}
 
     local function addDia(id, qDt)
-        local indexes = this.getIndexes(qDt)
+        local indexes = this.getIndexes(qDt) or {}
         local indCnt = #indexes
 
         table.insert(questDias, {id = id, qd = qDt, ind = indexes, indCnt = indCnt})
@@ -354,8 +353,6 @@ function this.getQuestMainDialogueIdsMap(diaId)
     addDia(diaIdLower, questData)
 
     for _, link in pairs(questData.links) do
-        if questDias[link] then goto continue end
-
         local linkDt = dataHandler.getQuestData(link)
         if not linkDt then goto continue end
 
@@ -364,8 +361,8 @@ function this.getQuestMainDialogueIdsMap(diaId)
         ::continue::
     end
 
-    local linkCount = #questDias
-    if linkCount == 1 then
+    local diaCount = #questDias
+    if diaCount == 1 then
         out[questDias[1].id] = questDias[1].qd
         cacheLib.set("mainDiaIds", diaId, out)
         return out
@@ -376,11 +373,23 @@ function this.getQuestMainDialogueIdsMap(diaId)
     end)
 
     local hasFinished = false
-    local firstStageCount = questDias[1].indCnt
-    for i = linkCount, 1, -1 do
+    local firstStageCount
+
+    for i, dt in ipairs(questDias) do
+        local first = dt.qd[tostring(dt.ind[1] or "")]
+        if first and first.restart and dt.indCnt > 1 then
+            out[dt.id] = dt.qd
+        else
+            firstStageCount = firstStageCount or dt.indCnt
+        end
+    end
+
+    firstStageCount = firstStageCount or 0
+
+    for i = diaCount, 1, -1 do
         local dt = questDias[i]
         if dt then
-            if dt.indCnt * 2 <= firstStageCount then
+            if dt.indCnt * 2 <= firstStageCount or dt.indCnt <= 1 then
                 questDias[i] = nil
             else
                 hasFinished = dt.qd.hasFinished or hasFinished
@@ -388,8 +397,8 @@ function this.getQuestMainDialogueIdsMap(diaId)
         end
     end
 
-    linkCount = #questDias
-    if linkCount == 1 then
+    diaCount = #questDias
+    if diaCount == 1 then
         out[questDias[1].id] = questDias[1].qd
         cacheLib.set("mainDiaIds", diaId, out)
         return out
