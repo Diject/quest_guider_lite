@@ -174,8 +174,8 @@ scrollBoxMeta.updateContent = function (self, strict)
     local startPos = -mainFlex.props.position.y
     local endPos = startPos + self.innnerSize.y
 
-    if strict and (self.loadedContentTop or 0) < startPos and
-            (self.loadedContentBottom or 0) > endPos then
+    if strict and (self.loadedContentTop or 0) <= startPos and
+            (self.loadedContentBottom or 0) >= endPos then
         return
     end
 
@@ -190,14 +190,15 @@ scrollBoxMeta.updateContent = function (self, strict)
     local topFreeHeight = 0
     local bottomFreeHeight = 0
     local height = 0
+    local processedAll = true
     startPos = startPos - padding
     endPos = endPos + padding
     for i, elem in ipairs(content) do
         local eh = uiUtils.getElementHeight(elem)
         local h = eh + height
 
-        if startPos <= h then
-            if endPos >= height then
+        if startPos < h then
+            if endPos > height then
                 mainFlex.content:add(elem)
                 if elem.events and elem.events.focusLoss then
                     self._ignoreEvents = true
@@ -206,6 +207,7 @@ scrollBoxMeta.updateContent = function (self, strict)
                 end
                 bottomFreeHeight = h
             else
+                processedAll = false
                 break
             end
         else
@@ -214,16 +216,20 @@ scrollBoxMeta.updateContent = function (self, strict)
         height = h
     end
 
+    if bottomFreeHeight == 0 then
+        bottomFreeHeight = topFreeHeight
+    end
+
     mainFlex.content:add{
         type = ui.TYPE.Widget,
         props = {
-            size = util.vector2(0, self.params.contentHeight - bottomFreeHeight)
+            size = util.vector2(0, math.max(0, self.params.contentHeight - bottomFreeHeight))
         }
     }
     mainFlex.content[1].props.size = util.vector2(0, topFreeHeight)
 
-    self.loadedContentTop = topFreeHeight ---@diagnostic disable-line: inject-field
-    self.loadedContentBottom = bottomFreeHeight ---@diagnostic disable-line: inject-field
+    self.loadedContentTop = (topFreeHeight == 0) and -math.huge or topFreeHeight ---@diagnostic disable-line: inject-field
+    self.loadedContentBottom = processedAll and math.huge or bottomFreeHeight ---@diagnostic disable-line: inject-field
 end
 
 
@@ -459,8 +465,9 @@ return function(params)
         anchor = util.vector2(1, 0),
         icon = iconUp,
         iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
-        alpha = 0.8,
+        alpha = 0.7,
         parentScrollBoxUserData = contentData.userData,
+        useDefaultBtnTemplate = true,
         updateFunc = params.updateFunc,
         event = function (layout)
             if not lockEvent then
@@ -481,8 +488,9 @@ return function(params)
         anchor = util.vector2(1, 1),
         icon = iconDown,
         iconSize = util.vector2(config.data.ui.scrollArrowSize, config.data.ui.scrollArrowSize),
-        alpha = 0.8,
+        alpha = 0.7,
         parentScrollBoxUserData = contentData.userData,
+        useDefaultBtnTemplate = true,
         updateFunc = params.updateFunc,
         event = function (layout)
             if not lockEvent then

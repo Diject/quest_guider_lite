@@ -53,15 +53,15 @@ this.default = {
         overrideJournal = false,
         menuKey = "H",
         objectNames = 3,
-        widthProportional = 80, -- %
+        widthProportional = 75, -- %
         heightProportional = 70, -- %
         width = 1100,
         height = 700,
         position = { -- %
-            x = 10,
-            y = 10,
+            x = 12,
+            y = 15,
         },
-        listRelativeSize = 30, -- %
+        listRelativeSize = 25, -- %
         trackedColorMarks = true,
         maxColorMarks = 10,
         textHeightMul = 0.5, -- deprecated
@@ -76,6 +76,9 @@ this.default = {
         useGlobalDate = true,
         firstInitMenu = true,
         fuzzyTopicMatching = false,
+        bottomInfoText = {
+            enabled = true,
+        },
     },
     ui = {
         fontSize = 20,
@@ -89,6 +92,7 @@ this.default = {
         objectColor = commonData.objectColor,
         scrollArrowSize = 16,
         headerBackgroundAlpha = 50,
+        tooltipDelay = 1, -- local
     },
     input = {
         gamepadJournalScroll = true,

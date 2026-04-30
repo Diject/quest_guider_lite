@@ -21,6 +21,7 @@ local borderTextures = {
 }
 
 return {
+    textures = borderTextures,
     thin = function ()
         return {
                 type = ui.TYPE.Image,

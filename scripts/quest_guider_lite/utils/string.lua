@@ -130,14 +130,16 @@ function this.hasPhrase(text, phrase, threshold)
 end
 
 
----@param textWord string
----@param phraseWord string
+---@param textWordDt {[1]: string, [2]:integer}
+---@param phraseWordDt {[1]: string, [2]:integer}
 ---@param suffixFuzzyLen number how many ending characters to check with fuzzy matching
 ---@param maxDist number max allowed distance (for early termination)
 ---@return number distance (0 = exact, math.huge = no match)
-local function matchWordWithEndingFuzzy(textWord, phraseWord, suffixFuzzyLen, maxDist)
-    local phraseLen = this.length(phraseWord)
-    local textLen = this.length(textWord)
+local function matchWordWithEndingFuzzy(textWordDt, phraseWordDt, suffixFuzzyLen, maxDist)
+    local phraseLen = phraseWordDt[2]
+    local textLen = textWordDt[2]
+    local textWord = textWordDt[1]
+    local phraseWord = phraseWordDt[1]
 
     if textWord == phraseWord then
         return 0
@@ -147,7 +149,7 @@ local function matchWordWithEndingFuzzy(textWord, phraseWord, suffixFuzzyLen, ma
         return math.huge
     end
 
-    local exactMatchLen = math.max(0, phraseLen - suffixFuzzyLen)
+    local exactMatchLen = math.max(4, phraseLen - suffixFuzzyLen)
 
     if exactMatchLen > 0 then
         local phraseSplitByte = utf8.offset(phraseWord, exactMatchLen + 1) or (#phraseWord + 1)
@@ -165,25 +167,30 @@ local function matchWordWithEndingFuzzy(textWord, phraseWord, suffixFuzzyLen, ma
             return 0
         end
 
-        return levenshtein.utf8_levenshtein_bounded(textSuffix, phraseSuffix, maxDist)
+        return levenshtein.utf8_levenshtein_short(textSuffix, phraseSuffix)
     end
 
-    return levenshtein.utf8_levenshtein_bounded(textWord, phraseWord, maxDist)
+    return levenshtein.utf8_levenshtein_short(textWord, phraseWord)
 end
 
 
----@param textWords string[]
+---@param textWords {[1]: string, [2]:integer}[]
 ---@param startIdx number
----@param phraseWords string[]
+---@param phraseWords {[1]: string, [2]:integer}[]
 ---@param suffixFuzzyLen number
 ---@param totalThreshold number total threshold for the entire phrase
 ---@return number totalDistance (0 = all exact, math.huge = no match)
 local function matchPhraseWords(textWords, startIdx, phraseWords, suffixFuzzyLen, totalThreshold)
     local totalDist = 0
 
-    for i, phraseWord in ipairs(phraseWords) do
-        local textWord = textWords[startIdx + i - 1]
-        local dist = matchWordWithEndingFuzzy(textWord, phraseWord, suffixFuzzyLen, totalThreshold - totalDist)
+    for i, phraseWordDt in ipairs(phraseWords) do
+        local textWordDt = textWords[startIdx + i - 1]
+
+        local thr = totalThreshold - totalDist
+        if math.abs(textWordDt[2] - phraseWordDt[2]) > thr then
+            return math.huge
+        end
+        local dist = matchWordWithEndingFuzzy(textWordDt, phraseWordDt, suffixFuzzyLen, thr)
 
         if dist == math.huge then
             return math.huge
@@ -225,46 +232,65 @@ function this.findPhrases(text, phrases, threshold, suffixFuzzyLen)
 
     local textWords = {}
     local wordPositions = {}
-    local wordPattern = "[^%s%p%c]+"
+    local usedWords = {}
 
-    for word, endPos in textLower:gmatch("(" .. wordPattern .. ")()") do
+    for word, endPos in textLower:gmatch("([^%s%p%c]+)()") do
         local startPos = endPos - #word
-        table.insert(textWords, word)
+        table.insert(textWords, {word, this.length(word)})
         table.insert(wordPositions, {startPos, endPos - 1})
     end
 
     local textWordCount = #textWords
 
     for _, phrase in ipairs(phrases) do
-        local phraseLower = this.utf8_lower(phrase)
-        local phraseWords = this.utf8_splitWords(phraseLower)
+        local phraseWords = {}
+        for word in phrase:gmatch("[^%s%p%c]+") do
+            table.insert(phraseWords, {word, this.length(word)})
+        end
         local wordCount = #phraseWords
 
         if wordCount > 0 and wordCount <= textWordCount then
-            local totalPhraseLen = 0
-            for _, w in ipairs(phraseWords) do
-                totalPhraseLen = totalPhraseLen + this.length(w)
-            end
 
             local phraseThreshold = threshold
-            if not phraseThreshold then
-                phraseThreshold = totalPhraseLen > 4 and math.min(4, 1 + math.floor((totalPhraseLen - 4) / 5)) or 1
+            if not threshold then
+                local totalPhraseLen = this.length(phrase)
+                if totalPhraseLen <= 3 then
+                    phraseThreshold = 0
+                    suffixFuzzyLen = 0
+                else
+                    phraseThreshold = totalPhraseLen > 4 and math.min(4, 2 + math.floor((totalPhraseLen - 4) / 8)) or 2
+                    suffixFuzzyLen = math.min(3, phraseThreshold)
+                    suffixFuzzyLen = 3
+                end
             end
 
             local matches = {}
 
             local hasValue = false
             for i = 1, textWordCount - wordCount + 1 do
-                local dist = matchPhraseWords(
-                    textWords, i, phraseWords, suffixFuzzyLen, phraseThreshold
-                )
+                local canMatch = true
+                for w = 0, wordCount - 1 do
+                    if usedWords[i + w] then
+                        canMatch = false
+                        break
+                    end
+                end
 
-                if dist <= phraseThreshold then
-                    table.insert(matches, {
-                        startPos = wordPositions[i][1],
-                        endPos = wordPositions[i + wordCount - 1][2]
-                    })
-                    hasValue = true
+                if canMatch then
+                    local dist = matchPhraseWords(
+                        textWords, i, phraseWords, suffixFuzzyLen, phraseThreshold
+                    )
+
+                    if dist <= phraseThreshold then
+                        table.insert(matches, {
+                            startPos = wordPositions[i][1],
+                            endPos = wordPositions[i + wordCount - 1][2]
+                        })
+                        hasValue = true
+                        for w = 0, wordCount - 1 do
+                            usedWords[i + w] = true
+                        end
+                    end
                 end
             end
 
@@ -296,23 +322,35 @@ function this.findPhrasesExact(text, phrases)
 
     local textLower = this.utf8_lower(text)
 
+    local usedRanges = {}
+    local function isOverlapping(startPos, endPos)
+        for _, range in ipairs(usedRanges) do
+            if not (endPos < range.startPos or startPos > range.endPos) then
+                return true
+            end
+        end
+        return false
+    end
+
     for _, phrase in ipairs(phrases) do
-        local phraseLower = this.utf8_lower(phrase)
         local startPos = 1
 
         while true do
-            local foundStart, foundEnd = textLower:find(phraseLower, startPos, true)
+            local foundStart, foundEnd = textLower:find(phrase, startPos, true)
             if not foundStart then
                 break
             end
 
-            if not results[phrase] then
-                results[phrase] = {}
+            if not isOverlapping(foundStart, foundEnd) then
+                if not results[phrase] then
+                    results[phrase] = {}
+                end
+                table.insert(results[phrase], {
+                    startPos = foundStart,
+                    endPos = foundEnd
+                })
+                table.insert(usedRanges, {startPos = foundStart, endPos = foundEnd})
             end
-            table.insert(results[phrase], {
-                startPos = foundStart,
-                endPos = foundEnd
-            })
 
             startPos = foundStart + 1
         end
@@ -479,6 +517,16 @@ function this.getBeforeComma(str)
     local pos = string.find(str, ",")
     if pos then
         return string.sub(str, 1, pos - 1)
+    else
+        return str
+    end
+end
+
+
+function this.getAfterComma(str)
+    local pos = string.find(str, ", ")
+    if pos then
+        return string.sub(str, pos + 2, #str)
     else
         return str
     end

@@ -15,6 +15,9 @@ local questBase = require("scripts.quest_guider_lite.questBase")
 local commonInfo = require("scripts.quest_guider_lite.common")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local protectedDoor = require("scripts.quest_guider_lite.helpers.protectedDoor")
+local menuHandler = require("scripts.quest_guider_lite.menuHandler")
+local realTimer = require("scripts.quest_guider_lite.realTimer")
+local getObject = require("scripts.quest_guider_lite.core.getObject")
 
 local trackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu")
 
@@ -875,6 +878,83 @@ function this.unregisterTemplate(templateId)
 end
 
 
+
+---@param positions questGuider.quest.getRequirementPositionData.positionData[]
+function this.markObjectTemp(objId, positions)
+    if not interface or interface.version < 12 then return end
+
+    local map = interface.openMapMenu(false)
+    if map then
+        ---@type questGuider.quest.getRequirementPositionData.positionData
+        local pos = positions[1]
+        if not pos then return end
+
+        local cellId = pos.id and pos.id:lower()
+
+        if map.mapWidget.cellId ~= cellId then
+            map:updateMapWidgetCell(cellId)
+        end
+
+        if cellId then
+            if not map:isWidgetActive("AdvancedWorldMap:Search") then
+                map:openWidget("AdvancedWorldMap:Search")
+            end
+
+            ---@diagnostic disable-next-line: undefined-field
+            if not map.userData or not map.userData.advWMapSearch then
+                return
+            end
+
+            ---@diagnostic disable-next-line: undefined-field
+            map.userData.advWMapSearch(stringLib.getAfterComma(cellId), {showUnrevealed = true, searchAllLocations = true})
+        end
+
+        local p = pos.position or pos.exitPos
+        if p then
+            if trackingInt and this.trackingLib and not this.trackingLib.getTrackedObjectData(objId) then
+                local obj = getObject(objId)
+                trackingInt.addMarker{
+                    template = {
+                        path = commonInfo.mapMarkerPath,
+                        size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
+                        anchor = util.vector2(0.5, 1),
+                        color = config.data.ui.selectionColor,
+                        temp = true,
+                        tText = obj and obj.name or objId
+                    },
+                    records = {objId},
+                    positions = {{pos = p, id = cellId}},
+                    short = true,
+                }
+            end
+
+            map.mapWidget:focusOnWorldPosition(p)
+            map.mapWidget:updateMarkers(true)
+        end
+
+        local oldLayer
+        if map.menu.layout.layer ~= commonInfo.topicMenuLayer then
+            oldLayer = map.menu.layout.layer
+            map.menu.layout.layer = commonInfo.topicMenuLayer
+        end
+
+        local function timerFunc()
+            if map.menu.layout and
+                    (menuHandler.getMenu(commonInfo.journalMenuId) or menuHandler.getMenu(commonInfo.allQuestsMenuId)) then
+                interface.realTimer(1, timerFunc)
+            elseif oldLayer and map.menu.layout then
+                map.menu.layout.layer = oldLayer
+            end
+        end
+
+        interface.realTimer(1, timerFunc)
+
+        map:update()
+
+        return true
+    end
+
+end
 
 
 return this

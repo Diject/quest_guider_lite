@@ -752,40 +752,60 @@ function topicMenuMeta.fillTrackingListContent(self)
 
     local content = sBoxMeta:getContent()
 
-    ---@type table<string, table<string, {list :string[], diaId : string}>>
+    ---@type table<string, table<string, {qName : string, list :string[], diaId : string, tm : number}>>
     local trackingObjectsByQId = {}
-    ---@type table<string, {list :string[], diaId : string}>
+    ---@type table<string, {list :string[], diaId : string, tm : number}>
     local trackingObjects = {}
     for diaId, dt in pairs(tracking.trackedObjectsByDiaId) do
         local qName = playerQuests.getQuestNameByDiaId(diaId)
         if not qName or qName == "" then qName = l10n("miscellaneous") end
 
+        local plData = playerQuests.getQuestStorageData(qName)
+        local timestamp = 0
+        if plData then
+            timestamp = plData.globalTime or plData.timestamp or 0
+        end
+
         if not trackingObjectsByQId[qName] then trackingObjectsByQId[qName] = {} end ---@diagnostic disable-line: need-check-nil
         for objId, list in pairs(dt.objects) do
-            trackingObjectsByQId[qName][objId] = {list = list, diaId = diaId}
-            trackingObjects[objId] = {list = list, diaId = diaId}
+            local d = {qName = qName, list = list, diaId = diaId, tm = timestamp}
+            trackingObjectsByQId[qName][objId] = d
+            trackingObjects[objId] = d
         end
     end
 
-    ---@type {name : string, id : string?, objects : string[]?, qName : string?, diaId : string?, diaIds : string[]}[]
+    ---@type {name : string, id : string?, objects : string[]?, qName : string?, diaId : string?, diaIds : string[], tm : number}[]
     local recordList = {}
     if localStorage.data.trackingListCheckBox then
         for objId, listData in pairs(trackingObjects) do
             local record = getObject(objId)
             local objName = record and record.name or objId or "???"
-            table.insert(recordList, {name = objName, id = objId, objects = listData.list, diaId = listData.diaId})
+            table.insert(recordList, {name = objName, id = objId, objects = listData.list, diaId = listData.diaId, tm = listData.tm or 0})
         end
 
         table.sort(recordList, function (a, b)
+            local tmA = a.tm or 0
+            local tmB = b.tm or 0
+            if tmA ~= tmB then
+                return tmA > tmB
+            end
             return (stringLib.utf8_lower(a.name or "") < stringLib.utf8_lower(b.name or ""))
         end)
     else
-        local qNames = tableLib.keys(trackingObjectsByQId)
-        table.sort(qNames, function (a, b)
-            return (stringLib.utf8_lower(a) < stringLib.utf8_lower(b))
+        local qNamesDt = {}
+        for qN, dt in pairs(trackingObjectsByQId) do
+            local _, d = next(dt)
+            if d then
+                table.insert(qNamesDt, {qN, d.tm or 0})
+            end
+        end
+
+        table.sort(qNamesDt, function (a, b)
+            return a[2] > b[2]
         end)
 
-        for _, qName in ipairs(qNames) do
+        for _, qNameDt in ipairs(qNamesDt) do
+            local qName = qNameDt[1]
             local valid = self.textFilter == ""
             if not valid then
                 valid = stringLib.utf8_lower(qName):find(self.textFilter, 1, true)
@@ -1254,6 +1274,7 @@ function this.createContent(params)
                 updateFunc = updateFunc,
                 text = l10n("filter"),
                 textSize = params.fontSize,
+                useDefaultBtnTemplate = true,
                 position = util.vector2(trackingListSize.x - 2, (params.fontSize + 10) / 2),
                 anchor = util.vector2(1, 0.5),
                 event = function (layout)

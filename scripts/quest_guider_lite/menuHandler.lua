@@ -63,6 +63,17 @@ function this.getMenu(menuId)
 end
 
 
+function this.getMenus()
+    local res = {}
+    for id, element in pairs(this.activeMenus) do
+        if element.menu and element.menu.layout then
+            res[id] = element
+        end
+    end
+    return res
+end
+
+
 function this.destroyAllMenus()
     for id, handler in pairs(this.activeMenus) do
         handler:close()

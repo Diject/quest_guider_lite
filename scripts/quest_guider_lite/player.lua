@@ -190,7 +190,7 @@ local function gamepadJournalScroll(lTr, rTr)
         return
     end
 
-    local journalMenu = menuHandler.getMenu(commonData.journalMenuId)
+    local journalMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
     if journalMenu then
         journalMenu:scrollInfo(v)
         return
@@ -237,25 +237,40 @@ local function fillQuestBoxQuestInfo(params)
         questBox.questInfo = params.data
         questBox:addTrackButtons()
 
+        local objectPosData = {}
+        local objectQuestDialogues = {}
+
         ---@type questGuider.ui.scrollBox
         local scrollBox = questBox:getScrollBox().userData.scrollBoxMeta
 
         local scrollBoxContent = scrollBox:getContent()
 
-        local isFirst = true
         for contentIndex, dt in pairs(params.data) do
-            local element = scrollBoxContent[contentIndex]
-            if not element then goto continue end
+            for objId, objDt in pairs(dt.objectPositions or {}) do
+                objectPosData[objId] = objDt
 
-            if isFirst or dt.next and next(dt.next) then
-                element.content:add(
+                local objDiaDt = objectQuestDialogues[objId] or {}
+                local diaDt = objDiaDt[dt.diaId] or {}
+                diaDt[dt.diaIndex] = true
+                objDiaDt[dt.diaId] = diaDt
+                objectQuestDialogues[objId] = objDiaDt
+            end
+
+            local element = scrollBoxContent[contentIndex]
+            if not element or not element.userData or not element.userData.detailsContent then goto continue end
+
+            local isCurrentIndex = playerQuests.getCurrentIndex(dt.diaId, self) == dt.diaIndex
+            local isValid = element.userData.isQuestList or isCurrentIndex
+
+            if isValid and dt.next and next(dt.next) then
+                element.userData.detailsContent:add(
                     nextStagesBlock.create{
                         data = dt,
                         size = scrollBox.innnerSize,
                         fontSize = config.data.ui.fontSize,
-                        hideTrackButtons = params.menuId ~= commonData.journalMenuId,
+                        hideTrackButtons = false,
                         isQuestListMode = params.menuId ~= commonData.journalMenuId,
-                        hideLinkedButtons = not isFirst,
+                        hideLinkedButtons = false,
                         parentScrollBoxUserData = questBox:getScrollBox().userData,
                         updateHeightFunc = function ()
                             scrollBox:calcContentHeight()
@@ -269,10 +284,14 @@ local function fillQuestBoxQuestInfo(params)
                         end
                     }
                 )
-                isFirst = false
+                element.userData.detailsBtn.props.visible = true
             end
 
             ::continue::
+        end
+
+        if next(objectPosData) then
+            questBox:addQuestObjectsLayout(objectPosData, objectQuestDialogues)
         end
 
         scrollBox:calcContentHeight()
@@ -344,14 +363,18 @@ local function buildAllQuestsMenu()
         isQuestList = true,
         showReqsForAll = true,
         showReqDiaEntryText = true,
-        allowNearbyMode = true,
+        allQuestsMode = true,
+        hideJournalBtn = true,
+        nearbyModeDefault = false,
+        allEntriesDefault = true,
     }
 end
 
 
 local function toggleMenu(withoutMenuMode)
-    if menuHandler.getMenu(commonData.journalMenuId) then
+    if menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId) then
         menuHandler.destroyMenu(commonData.journalMenuId)
+        menuHandler.destroyMenu(commonData.allQuestsMenuId)
     elseif menuHandler.getMenu(commonData.firstInitMenuId) then
         menuHandler.destroyMenu(commonData.firstInitMenuId)
     else
@@ -380,6 +403,7 @@ end)
 
 I.DijectKeyBindings.action.register(commonData.allQuestsTriggerId, function()
     menuHandler.destroyMenu(commonData.allQuestsMenuId)
+    menuHandler.destroyMenu(commonData.journalMenuId)
     menuHandler.activateMenuMode()
 
     menuHandler.registerMenu(commonData.allQuestsMenuId, buildAllQuestsMenu())
@@ -442,20 +466,31 @@ local function giverMarkerClick(userData)
     local objName = userData.objName or ""
     menuHandler.destroyMenu(objName)
 
-    menuHandler.registerMenu(objName, createQuestMenu{
-        fontSize = config.data.ui.fontSize,
-        sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
-        relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
-        headerName = objName,
-        questList = userData.diaIds,
-        isQuestList = true,
-        showReqsForAll = true,
-        showOnlyFirst = true,
-        hideStageText = true,
-        showReqDiaEntryText = true,
-        allowNearbyMode = true,
-        nearbyModeDefault = false,
-    })
+    local hasNonTrackedQuest = false
+    for _, diaId in pairs(userData.diaIds or {}) do
+        if not tracking.trackedObjectsByDiaId[diaId] then
+            hasNonTrackedQuest = true
+            break
+        end
+    end
+
+    if hasNonTrackedQuest then
+        menuHandler.registerMenu(objName, createQuestMenu{
+            fontSize = config.data.ui.fontSize,
+            sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+            relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+            headerName = objName,
+            questList = userData.diaIds,
+            isQuestList = true,
+            showReqsForAll = true,
+            showOnlyMainDia = true,
+            hideStageText = true,
+            showReqDiaEntryText = true,
+            allQuestsMode = false,
+            nearbyModeDefault = false,
+            allEntriesDefault = false,
+        })
+    end
 end
 
 
@@ -508,7 +543,7 @@ do
         if topicMenu then
             topicMenu:selectNextPreviousInList(1)
         else
-            local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+            local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
             if mainMenu then
                 mainMenu:selectNextPreviousInList(1)
             end
@@ -540,7 +575,7 @@ do
         if topicMenu then
             topicMenu:selectNextPreviousInList(-1)
         else
-            local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+            local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
             if mainMenu then
                 mainMenu:selectNextPreviousInList(-1)
             end
@@ -562,7 +597,7 @@ do
             return
         end
 
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
         if not mainMenu then return end
 
         mainMenu:toggleTrackObjects()
@@ -573,7 +608,7 @@ do
             return
         end
 
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
         if not mainMenu then return end
 
         mainMenu:trackObjects()
@@ -584,7 +619,7 @@ do
             return
         end
 
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
         if not mainMenu then return end
 
         mainMenu:untrackObjects()
@@ -601,7 +636,7 @@ do
             return
         end
 
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
         if mainMenu then
             mainMenu:toggleTopTopics()
         end
@@ -769,6 +804,8 @@ return {
                 data.hudMarkerData.params.opacity = config.data.tracking.hudMarkers.opacity * 0.01
                 data.hudMarkerData.params.color = commonData.colorToArray(config.data.ui.defaultColor)
 
+                hudMarkerId = tracking.addHUDMarker(data.hudMarkerData)
+
                 if tracking.storageData.hideAllMarkers and hudMarkerId then
                     tracking.setHUDMarkerVisibility{markerId = hudMarkerId, value = false}
                 end
@@ -932,6 +969,10 @@ return {
         end,
 
         ["QGL:showSimpleMap"] = function (data)
+            if advWMapIntegration.markObjectTemp(data.objectId, data.positions) then
+                return
+            end
+
             menuHandler.destroyMenu(commonData.simpleMapMenuId)
 
             local menu = simpleMap.new{}

@@ -14,6 +14,7 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
+local realTimer = require("scripts.quest_guider_lite.realTimer")
 
 local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -172,7 +173,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
     local topicData = {}
     for _, topic in pairs(playerQuests.getTopicList() or {}) do
-        topicData[topic.name or ""] = {
+        topicData[topic.id or ""] = {
             topic = topic
         }
     end
@@ -445,6 +446,8 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
     updateTopicText(topicContent, true)
 
+    topicContent[3].content[1].userData.parentScrollBoxUserData = self:getTopicScrollBox().userData
+
     ---@type questGuider.ui.scrollBox
     local sb = qMainLay.content[2].userData.scrollBoxMeta
     sb:calcContentHeight()
@@ -687,8 +690,6 @@ local function create(params)
                 local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
 
                 props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
-                props.relativePosition.x = math.max(0, math.min(1, props.relativePosition.x))
-                props.relativePosition.y = math.max(0, math.min(1, props.relativePosition.y))
                 meta:update()
 
                 layout.userData.lastMousePos = relativePos
@@ -793,6 +794,7 @@ local function create(params)
                 updateFunc = updateFunc,
                 text = l10n("filter"),
                 textSize = params.fontSize,
+                useDefaultBtnTemplate = true,
                 position = util.vector2(topictListSize.x - 2, (params.fontSize + 10) / 2),
                 anchor = util.vector2(1, 0.5),
                 event = function (layout)
@@ -871,6 +873,63 @@ local function create(params)
     }
 
 
+    local bottomTextLayout = {
+        template = {
+            type = ui.TYPE.Container,
+            content = ui.content{
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = uiUtils.whiteTexture,
+                        color = config.data.ui.backgroundColor,
+                        relativeSize = util.vector2(1, 1),
+                        position = util.vector2(4, 0),
+                    },
+                },
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = uiUtils.whiteTexture,
+                        color = config.data.ui.backgroundColor,
+                        size = util.vector2(0, 2),
+                        relativeSize = util.vector2(1, 0),
+                        position = util.vector2(4, 0),
+                        relativePosition = util.vector2(0, 1),
+                    },
+                },
+                {
+                    external = { slot = true },
+                    props = {
+                        position = util.vector2(4, 0),
+                        relativeSize = util.vector2(1, 1),
+                    }
+                }
+            },
+        },
+        type = ui.TYPE.Container,
+        props = {
+            alpha = 0,
+        },
+        content = ui.content{
+            {
+                type = ui.TYPE.TextEdit,
+                props = {
+                    text = "",
+                    textColor = config.data.ui.defaultColor,
+                    textSize = config.data.ui.fontSize * 0.8,
+                    size = util.vector2(params.size.x, 0),
+                    multiline = true,
+                    wordWrap = true,
+                    textAlignH = ui.ALIGNMENT.Center,
+                    textAlignV = ui.ALIGNMENT.Center,
+                    readOnly = true,
+                    autoSize = true,
+                },
+            }
+        }
+    }
+
+
     local mainWindow = {
         template = customTemplates.boxSolidThick,
         props = {
@@ -917,6 +976,50 @@ local function create(params)
             mainWindow,
         }
     }
+
+
+    local bottomTextTimer
+    local function decreaseBottomTextAlpha(time)
+        if not meta.menu or not meta.menu.layout then return end
+
+        local alpha = bottomTextLayout.props.alpha
+        bottomTextLayout.props.alpha = math.max(0, alpha - (alpha > 0.98 and 0.0006 / time or 0.02))
+
+        if bottomTextLayout.props.alpha > 0 then
+            bottomTextTimer = realTimer.newTimer(0.03, decreaseBottomTextAlpha, time)
+        else
+            mainFlex.content[3] = {}
+            bottomTextTimer = nil
+        end
+        meta:update()
+    end
+    local function increaseBottomTextAlpha(time)
+        if not meta.menu or not meta.menu.layout then return end
+
+        local alpha = bottomTextLayout.props.alpha
+        bottomTextLayout.props.alpha = math.min(1, alpha + 0.02)
+
+        if bottomTextLayout.props.alpha < 1 then
+            bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
+        else
+            decreaseBottomTextAlpha(time)
+        end
+        meta:update()
+    end
+
+    function meta:showInfoMessage(text, time)
+        if not config.data.journal.bottomInfoText.enabled then return end
+
+        if bottomTextTimer then
+            bottomTextTimer()
+            bottomTextTimer = nil
+        end
+
+        bottomTextLayout.content[1].props.text = text
+        mainFlex.content[3] = bottomTextLayout
+        bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
+    end
+
 
     meta.menu = ui.create(mainFlex)
 

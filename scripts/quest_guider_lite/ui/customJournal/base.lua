@@ -15,6 +15,7 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
+local realTimer = require("scripts.quest_guider_lite.realTimer")
 
 local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
@@ -27,6 +28,7 @@ local button = require("scripts.quest_guider_lite.ui.button")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
+local borders = require("scripts.quest_guider_lite.ui.borders")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
 
@@ -71,7 +73,10 @@ journalMeta.resetQuestListColors = function (self)
     local questBoxMeta = questList.userData.scrollBoxMeta
 
     for _, elem in ipairs(questBoxMeta:getContent()) do
-        elem.content[3].props.textShadow = false
+        if elem.userData then
+            -- elem.content[3].props.textShadow = false
+            elem.content[1].props.visible = false
+        end
     end
 end
 
@@ -83,8 +88,8 @@ journalMeta.updateQuestListTrackedColors = function (self)
 
     for _, elem in ipairs(questBoxMeta:getContent()) do
         if elem.userData and elem.userData.playerQuestData then
-            elem.content[1].content = ui.content{}
-            self:_addFlags(elem.content[1].content, elem.userData.playerQuestData)
+            elem.content[2].content = ui.content{}
+            self:_addFlags(elem.content[2].content, elem.userData.playerQuestData)
         end
     end
 end
@@ -114,8 +119,10 @@ journalMeta.clearQuestInfo = function (self)
     sBoxMeta:clearContent()
 end
 
-journalMeta.selectQuest = function (self, qName)
-    if not self.params.isQuestList then
+local createQuestBoxTimer
+
+journalMeta.selectQuest = function (self, qName, force, doDelay)
+    if self.params.menuId == commonData.journalMenuId then
         localStorage.data.lastSelectedQuest = qName
     end
 
@@ -144,8 +151,10 @@ journalMeta.selectQuest = function (self, qName)
 
         local scrollPos = scrollBoxMeta:getScrollPosition()
         local scrollHeight = scrollBoxMeta.params.size.y
-        local elemHeight = (self.params.fontSize or 18)
-        local height = index * elemHeight
+        local elemHeight = self.questListElementSize.y
+
+        local height = uiUtils.getContentHeightOfIndex(qListContent, index)
+
         if scrollPos > height then
             scrollBoxMeta:setScrollPosition(math.max(0, height))
         elseif scrollPos + scrollHeight < (height + elemHeight) then
@@ -154,34 +163,69 @@ journalMeta.selectQuest = function (self, qName)
     end
 
     local function applyTextShadow()
-        selectedLayout.content[3].props.textShadow = true
-        selectedLayout.content[3].props.textShadowColor = config.data.ui.shadowColor
+        -- selectedLayout.content[3].props.textShadow = true
+        -- selectedLayout.content[3].props.textShadowColor = config.data.ui.shadowColor
+        selectedLayout.content[1].props.visible = true
     end
 
     local sb = self:getQuestScrollBox()
-    if sb and sb.name == qName and self.textFilter == sb.userData.lastFilter then
+    if not force and sb and sb.name == qName and self.textFilter == sb.userData.lastFilter then
         applyTextShadow()
         return
     end
 
-    qMainLay.content[2] = questBox.create{
-        parent = self,
-        fontSize = self.params.fontSize or 18,
-        playerQuestData = selectedLayout.userData.playerQuestData,
-        isQuestList = self.params.isQuestList,
-        showReqsForAll = self.params.showReqsForAll,
-        hideStageText = self.params.hideStageText,
-        showOnlyFirst = self.params.showOnlyFirst,
-        showReqDiaEntryText = self.params.showReqDiaEntryText,
-        questName = selectedLayout.userData.questName,
-        size = self.questInfoPanelSize,
-        userData = {
-            lastFilter = self.textFilter
-        },
-        updateFunc = function ()
+    local function requestData()
+        ---@type questGuider.ui.questBoxMeta
+        local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
+        questBoxMeta.requestId = tostring(math.random())
+        core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", {
+            data = questBoxMeta.dialogueInfo,
+            menuId = self.params.menuId,
+            useCurrentIndex = (self.params.isQuestList or tracking.hasTrackedObjectsForQuestName(qName)) and true or false,
+            player = playerRef.object,
+            requestId = questBoxMeta.requestId,
+            config = config.getTrackingConfigData()
+        })
+    end
+
+    local function createQuestBox()
+        local playerHasQuest = playerQuests.getQuestStorageData(qName) or false
+        qMainLay.content[2] = questBox.create{
+            parent = self,
+            fontSize = self.params.fontSize or 18,
+            playerQuestData = selectedLayout.userData.playerQuestData,
+            isQuestList = self.params.isQuestList or not playerHasQuest,
+            showReqsForAll = not self.firstEntryMode,
+            hideStageText = self.params.hideStageText and self.firstEntryMode or not playerHasQuest and self.params.menuId == commonData.journalMenuId,
+            showOnlyMainDia = self.params.showOnlyMainDia and self.firstEntryMode,
+            showOnlyFirstDiaEntry = self.firstEntryMode or not playerHasQuest and self.params.menuId == commonData.journalMenuId,
+            showReqDiaEntryText = not playerHasQuest or self.params.menuId ~= commonData.journalMenuId,
+            questName = selectedLayout.userData.questName,
+            size = self.questInfoPanelSize,
+            userData = {
+                lastFilter = self.textFilter
+            },
+            updateFunc = function ()
+                self:update()
+            end,
+        }
+        requestData()
+    end
+
+    if createQuestBoxTimer then
+        createQuestBoxTimer()
+        createQuestBoxTimer = nil
+    end
+
+    if doDelay then
+        createQuestBoxTimer = realTimer.newTimer(0.5, function ()
+            createQuestBox()
             self:update()
-        end,
-    }
+            createQuestBoxTimer = nil
+        end)
+    else
+        createQuestBox()
+    end
 
     self:resetQuestListSelection()
     self:setQuestListSelectedFlad(qName)
@@ -190,17 +234,9 @@ journalMeta.selectQuest = function (self, qName)
 
     self:update()
 
-    ---@type questGuider.ui.questBoxMeta
-    local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
-    questBoxMeta.requestId = tostring(math.random())
-    core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", {
-        data = questBoxMeta.dialogueInfo,
-        menuId = self.params.menuId,
-        useCurrentIndex = self.params.isQuestList,
-        player = playerRef.object,
-        requestId = questBoxMeta.requestId,
-        config = config.getTrackingConfigData()
-    })
+    if not doDelay then
+        requestData()
+    end
 end
 
 journalMeta.update = function(self)
@@ -275,7 +311,7 @@ function journalMeta._addFlags(self, content, storageData)
             type = ui.TYPE.Image,
             props = {
                 resource = commonData.whiteTexture,
-                size = util.vector2(self.params.fontSize / 3, self.params.fontSize),
+                size = util.vector2(self.params.fontSize / 3, self.params.fontSize - 2),
                 color = config.data.ui.defaultColor,
             },
         }
@@ -293,7 +329,7 @@ function journalMeta._addFlags(self, content, storageData)
                     type = ui.TYPE.Image,
                     props = {
                         resource = commonData.whiteTexture,
-                        size = util.vector2(self.params.fontSize / 4, self.params.fontSize),
+                        size = util.vector2(self.params.fontSize / 4, self.params.fontSize - 2),
                         color = util.color.rgb(objData.color[1], objData.color[2], objData.color[3]),
                     },
                 }
@@ -314,21 +350,37 @@ function journalMeta.fillQuestsContent(self)
     local content = sBoxMeta:getContent()
 
     ---@type table<string, questGuider.playerQuest.storageQuestData>
-    local questData = self.storageTypeQuestData or playerQuests.getStorageData().questData
+    local questData = {}
 
-    local finishedSubVal = 200000000000
-    local disabledSubVal = 100000000000
-    local pinnedAddVal = 200000000000
+    -- for those quests that are tracked but not yet taken by the player
+    if self.params.menuId == commonData.journalMenuId then
+        questData = playerQuests.generateStorageQuestDataByDiaIdList(tableLib.keys(tracking.trackedObjectsByDiaId))
+    end
+
+    tableLib.copy(self.storageTypeQuestData or playerQuests.getStorageData().questData or {}, questData)
+
+    local finishedSubVal = 20000000000
+    local disabledSubVal = 10000000000
+    local generatedSubVal = 5000000000
+    local pinnedAddVal = 20000000000
+
+    local compareVals = {}
+    for _, dt in pairs(questData) do
+        local val = timeLib.getTimestamp(dt)
+        local hasTracked = tracking.hasTrackedObjectsForQuestName(dt.name)
+
+        val = dt.pinned and val + pinnedAddVal or
+            dt.generated and val - generatedSubVal or
+            (hasTracked and (dt.finished or dt.disabled)) and val - generatedSubVal or
+            dt.finished and val - finishedSubVal or
+            dt.disabled and val - disabledSubVal or val
+
+        compareVals[dt.name] = val
+    end
+
     local function compareFunc(a, b)
-        local aVal = timeLib.getTimestamp(a)
-        aVal = a.pinned and aVal + pinnedAddVal or
-            a.finished and aVal - finishedSubVal
-            or a.disabled and aVal - disabledSubVal or aVal
-
-        local bVal = timeLib.getTimestamp(b)
-        bVal = b.pinned and bVal + pinnedAddVal or
-            b.finished and bVal - finishedSubVal
-            or b.disabled and bVal - disabledSubVal or bVal
+        local aVal = compareVals[a.name or ""] or 0
+        local bVal = compareVals[b.name or ""] or 0
         return aVal > bVal
     end
 
@@ -344,15 +396,58 @@ function journalMeta.fillQuestsContent(self)
         end)
     end
 
+    local inactiveLabelLayout = {
+        type = ui.TYPE.Widget,
+        props = {
+            size = self.inactiveLabelSize,
+        },
+        name = "QL_InactiveLabel",
+        content = ui.content {
+            {
+                type = ui.TYPE.Text,
+                props = {
+                    text = l10n("inactiveQuestsLabel"),
+                    textSize = (params.fontSize or 18) * 1.25,
+                    autoSize = false,
+                    size = self.inactiveLabelSize,
+                    alpha = 0.75,
+                    textColor = config.data.ui.defaultColor,
+                    textAlignH = ui.ALIGNMENT.Center,
+                    textAlignV = ui.ALIGNMENT.Center,
+                },
+            },
+            {
+                type = ui.TYPE.Image,
+                props = {
+                    resource = borders.textures[4],
+                    tileH = true,
+                    tileV = false,
+                    size = util.vector2(0, 2),
+                    relativeSize = util.vector2(1, 0),
+                    anchor = util.vector2(0, 1),
+                    relativePosition = util.vector2(0, 1),
+                    alpha = 0.75,
+                },
+            },
+        }
+    }
+
     local showFinished = self:getQuestListFinishedCheckBox().userData.checked
     local showHidden = self:getQuestListHiddenCheckBox().userData.checked
 
     local disabledColor = config.data.ui.disabledColor
     local finishedColor = config.data.ui.disabledColor
 
+    self.hasInactiveLabel = false
+    local addedQuests = 0
+
     for _, dt in pairs(sortedData) do
         if dt.disabled and not showHidden
                 or dt.finished and not showFinished then
+            goto continue
+        end
+
+        if dt.started and self.params.menuId == commonData.allQuestsMenuId and not showFinished then
             goto continue
         end
 
@@ -364,22 +459,40 @@ function journalMeta.fillQuestsContent(self)
             goto continue
         end
 
+        if self.params.menuId ~= commonData.allQuestsMenuId and
+                not dt.pinned and (dt.finished or dt.disabled or dt.generated) and not self.hasInactiveLabel then
+            content:add(inactiveLabelLayout)
+            self.hasInactiveLabel = true
+        end
+
+        if addedQuests == 0 and not self.hasInactiveLabel then
+            content:add{
+                type = ui.TYPE.Image,
+                props = {
+                    resource = borders.textures[4],
+                    size = util.vector2(self.questListElementSize.x, 2),
+                },
+            }
+        end
+
         local qName = dt.name or ""
 
         local qNameText = qName == "" and l10n("miscellaneous") or qName or "???"
 
         if dt.finished or dt.disabled or dt.pinned then
-            qNameText = string.format("(%s%s%s) %s",
+            qNameText = string.format("%s (%s%s%s)",
+                qNameText,
                 dt.pinned and l10n("pinnedLabel") or "",
                 dt.finished and l10n("finishedLabel") or "",
-                dt.disabled and l10n("hiddenLabel") or "",
-                qNameText
+                dt.disabled and l10n("hiddenLabel") or ""
             )
         end
 
         local flagsContent = ui.content{}
         self:_addFlags(flagsContent, dt)
 
+        local ssqnLayout
+        local ssqnWidth = 0
         if (I.SSQN and config.data.journal.ssqnIcons) then
             local diaId = (dt.list[1] or {}).diaId
 
@@ -390,12 +503,14 @@ function journalMeta.fillQuestsContent(self)
                     iconPath = "Icons/SSQN/DEFAULT.dds"
                 end
 
-                flagsContent:add(interval(self.params.fontSize / 4, 1))
-                flagsContent:add{
+                ssqnWidth = math.floor(self.questListElementSize.y * 0.6 + config.data.ui.fontSize * 0.25)
+                ssqnLayout = {
                     type = ui.TYPE.Image,
                     props = {
-                        size = util.vector2(self.params.fontSize - 2, self.params.fontSize - 2),
+                        size = util.vector2(self.questListElementSize.y * 0.6, self.questListElementSize.y * 0.6),
                         resource = ui.texture{ path = iconPath },
+                        anchor = util.vector2(0, 0.5),
+                        position = util.vector2(0, self.questListElementSize.y * 0.5)
                     }
                 }
             end
@@ -409,16 +524,14 @@ function journalMeta.fillQuestsContent(self)
 
         local contentData
         contentData = {
-            type = ui.TYPE.Flex,
+            type = ui.TYPE.Widget,
             props = {
-                autoSize = true,
-                -- size = util.vector2(sBoxMeta.innnerSize.x, self.params.fontSize),
-                horizontal = true,
+                size = self.questListElementSize,
                 propagateEvents = false,
             },
             name = qName,
             userData = {
-                height = params.fontSize or 18,
+                height = self.questListElementSize.y,
                 questName = qName,
                 playerQuestData = dt,
             },
@@ -449,36 +562,67 @@ function journalMeta.fillQuestsContent(self)
             },
             content = ui.content {
                 {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = uiUtils.whiteTexture,
+                        color = config.data.ui.defaultColor,
+                        alpha = 0.4,
+                        size = util.vector2(sBoxMeta.innnerSize.x, self.params.fontSize * 2 + 4),
+                        visible = false,
+                    },
+                },
+                {
                     type = ui.TYPE.Flex,
                     props = {
-                        autoSize = true,
                         horizontal = true,
                         alpha = (dt.finished or dt.disabled) and 0.5 or 1,
+                        anchor = util.vector2(1, 1),
+                        position = util.vector2(self.questListElementSize.x - 2, self.questListElementSize.y - 3),
                     },
                     content = flagsContent,
                 },
-                interval(params.fontSize / 4, 1),
                 {
-                    template = templates.textNormal,
                     type = ui.TYPE.Text,
                     props = {
                         text = uiUtils.colorize(qNameText, self.textFilter, "#"..config.data.ui.selectionColor:asHex(), "#"..textColor:asHex()),
                         textSize = params.fontSize or 18,
+                        autoSize = false,
+                        size = util.vector2(self.questListElementSize.x - ssqnWidth, self.questListElementSize.y - 4),
                         textColor = textColor,
-                        multiline = false,
-                        wordWrap = false,
+                        position = util.vector2(ssqnWidth, 2),
+                        multiline = true,
+                        wordWrap = true,
                         textAlignH = ui.ALIGNMENT.Start,
+                        textAlignV = ui.ALIGNMENT.Start,
                     },
-                }
+                },
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = borders.textures[4],
+                        tileH = true,
+                        tileV = false,
+                        size = util.vector2(0, 2),
+                        relativeSize = util.vector2(1, 0),
+                        anchor = util.vector2(0, 1),
+                        relativePosition = util.vector2(0, 1),
+                        alpha = (dt.disabled or dt.finished) and not dt.pinned and 0.5 or nil
+                    },
+                },
             }
         }
 
+        if ssqnLayout then
+            contentData.content:add(ssqnLayout)
+        end
+
         content:add(contentData)
+        addedQuests = addedQuests + 1
 
         ::continue::
     end
 
-    local height = #content * (params.fontSize or 18)
+    local height = 2 + addedQuests * self.questListElementSize.y + (self.hasInactiveLabel and self.inactiveLabelSize.y or 0)
     sBoxMeta:setContentHeight(height)
     sBoxMeta:updateContent()
     local scrollPos = sBoxMeta:getScrollPosition()
@@ -491,11 +635,11 @@ end
 
 ---@return boolean changed
 function journalMeta:updateTrackedButtonVisibility()
-    if not self.trackedButtonLayout then return false end
+    if not self.trackiingBtnLayout then return false end
 
     local newVal = tracking.hasTrackedObjects() and self.params.createTrackingMenuFunc and true or false
-    if newVal ~= self.trackedButtonLayout.props.visible then
-        self.trackedButtonLayout.props.visible = newVal
+    if newVal ~= self.trackiingBtnLayout.props.visible then
+        self.trackiingBtnLayout.props.visible = newVal
         return true
     end
     return false
@@ -520,10 +664,12 @@ end
 ---@field isQuestList boolean?
 ---@field showReqsForAll boolean?
 ---@field hideStageText boolean?
----@field showOnlyFirst boolean?
+---@field showOnlyMainDia boolean?
 ---@field showReqDiaEntryText boolean?
----@field allowNearbyMode boolean?
+---@field allQuestsMode boolean?
 ---@field nearbyModeDefault boolean?
+---@field allEntriesDefault boolean?
+---@field hideJournalBtn boolean?
 ---@field createTopicMenuFunc function?
 ---@field createTrackingMenuFunc function?
 ---@field onClose function?
@@ -552,16 +698,23 @@ local function create(params)
 
     function meta.close()
         if params.onClose then params.onClose() end
-        cacheLib.clear("hasPhrase")
         if not meta.menu or not meta.menu.layout then return end
         meta.menu:destroy()
         menuHandler.unregisterMenu(params.menuId)
+        if not menuHandler.getMenu(commonData.journalMenuId) and not menuHandler.getMenu(commonData.allQuestsMenuId) then
+            cacheLib.clear("hasPhrase")
+        end
     end
 
     meta.textFilter = ""
 
+    meta.nearbyMode = params.allQuestsMode and
+        (params.nearbyModeDefault ~= nil and params.nearbyModeDefault or localStorage.data.nearbyQuestsCheckBox) or false
 
-    meta.storageTypeQuestData = meta.params.allowNearbyMode and localStorage.data.nearbyQuestsCheckBox and {} or
+    meta.firstEntryMode = params.allQuestsMode and
+        (params.allEntriesDefault ~= nil and not params.allEntriesDefault or not localStorage.data.allEntriesCheckBox) or false
+
+    meta.storageTypeQuestData = meta.params.allQuestsMode and meta.nearbyMode and {} or
         (params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList))
 
 
@@ -578,16 +731,112 @@ local function create(params)
             size = questInfoSize,
         },
         content = ui.content {
-
+            {
+                type = ui.TYPE.Image,
+                props = {
+                    resource = borders.textures[1],
+                    size = util.vector2(2, questInfoSize.y),
+                },
+            }
         }
     }
 
-    meta.trackedButtonLayout = {
+    local function toggleNearbyMenu()
+        if params.menuId == commonData.journalMenuId then
+            local dialogues = {}
+            for qName, dt in pairs(playerQuests.questData) do
+                for diaId, _ in pairs(dt.records) do
+                    table.insert(dialogues, diaId)
+                end
+            end
+            local menu = create{
+                fontSize = config.data.ui.fontSize,
+                sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+                relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+                headerName = l10n("nearby"),
+                menuId = commonData.allQuestsMenuId,
+                questList = dialogues,
+                isQuestList = true,
+                showReqsForAll = false,
+                showReqDiaEntryText = true,
+                allQuestsMode = true,
+                nearbyModeDefault = true,
+                allEntriesDefault = false,
+                hideStageText = true,
+                showOnlyMainDia = true,
+                createTopicMenuFunc = params.createTopicMenuFunc,
+                createTrackingMenuFunc = params.createTrackingMenuFunc,
+            }
+            menuHandler.registerMenu(commonData.allQuestsMenuId, menu)
+        else
+            local menu = create{
+                fontSize = config.data.ui.fontSize,
+                sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+                relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+                createTopicMenuFunc = params.createTopicMenuFunc,
+                createTrackingMenuFunc = params.createTrackingMenuFunc,
+            }
+            menuHandler.registerMenu(commonData.journalMenuId, menu)
+        end
+
+        menuHandler.destroyMenu(meta.params.menuId)
+    end
+
+    local mainHeader
+    meta.headerDragDistance = 0
+    meta.headerPressed = false
+
+    local headerEvents = {
+        mousePress = async:callback(function(e, layout)
+            mainHeader.userData.lastMousePos = e.position
+            meta.headerDragDistance = 0
+            meta.headerPressed = true
+        end),
+
+        mouseRelease = async:callback(function(_, layout)
+            local relativePos = meta.menu.layout.props.relativePosition
+            config.setValue("journal.position.x", math.floor(relativePos.x * 10000) / 100)
+            config.setValue("journal.position.y", math.floor(relativePos.y * 10000) / 100)
+            mainHeader.userData.lastMousePos = nil
+
+            if mainHeader.userData.contentBackup then
+                meta:getQuestMain().content[2] = mainHeader.userData.contentBackup
+                mainHeader.userData.contentBackup = nil
+            end
+            meta.headerDragDistance = 0
+            meta.headerPressed = false
+            meta:update()
+        end),
+
+        mouseMove = async:callback(function(e, layout)
+            if not mainHeader.userData.lastMousePos then return end
+
+            local screenSize = uiUtils.getScaledScreenSize()
+            local props = meta.menu.layout.props
+
+            meta.headerDragDistance = meta.headerDragDistance +
+                (e.position - mainHeader.userData.lastMousePos):length()
+
+            if meta.headerDragDistance > 20 then
+                if not mainHeader.userData.contentBackup then
+                    mainHeader.userData.contentBackup = meta:getQuestScrollBox()
+                    meta:getQuestMain().content[2] = questInfo
+                end
+                props.relativePosition = props.relativePosition - (mainHeader.userData.lastMousePos - e.position):ediv(screenSize)
+            end
+
+            mainHeader.userData.lastMousePos = e.position
+
+            meta:update()
+        end),
+    }
+
+    meta.trackiingBtnLayout = {
         type = ui.TYPE.Text,
         props = {
             text = l10n("tracking"),
             visible = tracking.hasTrackedObjects() and params.createTrackingMenuFunc and true or false,
-            textSize = params.fontSize * 1.25,
+            textSize = params.fontSize * 1.15,
             autoSize = true,
             textColor = config.data.ui.defaultColor,
             textShadow = true,
@@ -596,54 +845,30 @@ local function create(params)
         },
         userData = {},
         events = {
-            mouseRelease = async:callback(function(_, layout)
-                if params.createTrackingMenuFunc then
+            mousePress = async:callback(function(e, layout)
+                headerEvents.mousePress(e)
+            end),
+            mouseRelease = async:callback(function(e, layout)
+                if meta.headerDragDistance < 20 and meta.headerPressed then
+                    if params.createTrackingMenuFunc then
                     params.createTrackingMenuFunc()
                 end
+                end
+                headerEvents.mouseRelease(e)
             end),
+            mouseMove = async:callback(function(e, layout)
+                headerEvents.mouseMove(e)
+            end)
         }
     }
 
-    local mainHeader = {
+    mainHeader = {
         type = ui.TYPE.Widget,
         props = {
             size = util.vector2(params.size.x + 6, params.fontSize * 1.5),
         },
         userData = {},
-        events = {
-            mousePress = async:callback(function(coord, layout)
-                layout.userData.contentBackup = meta:getQuestScrollBox()
-                meta:getQuestMain().content[2] = questInfo
-
-                layout.userData.doDrag = true
-                local screenSize = uiUtils.getScaledScreenSize()
-                layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
-            end),
-
-            mouseRelease = async:callback(function(_, layout)
-                local relativePos = meta.menu.layout.props.relativePosition
-                config.setValue("journal.position.x", math.floor(relativePos.x * 10000) / 100)
-                config.setValue("journal.position.y", math.floor(relativePos.y * 10000) / 100)
-                layout.userData.lastMousePos = nil
-
-                meta:getQuestMain().content[2] = layout.userData.contentBackup
-                layout.userData.contentBackup = nil
-                meta:update()
-            end),
-
-            mouseMove = async:callback(function(coord, layout)
-                if not layout.userData.lastMousePos then return end
-
-                local screenSize = uiUtils.getScaledScreenSize()
-                local props = meta.menu.layout.props
-                local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
-
-                props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
-                meta:update()
-
-                layout.userData.lastMousePos = relativePos
-            end),
-        },
+        events = headerEvents,
         content = ui.content{
             {
                 type = ui.TYPE.Image,
@@ -692,12 +917,15 @@ local function create(params)
                     relativePosition = util.vector2(1, 1),
                 },
                 content = ui.content {
+                    meta.trackiingBtnLayout,
+                    interval(params.fontSize * 2, 0),
                     {
                         type = ui.TYPE.Text,
                         props = {
-                            text = l10n("topics"),
-                            visible = core.API_REVISION >= 93 and params.createTopicMenuFunc and true or false,
-                            textSize = params.fontSize * 1.25,
+                            text = params.menuId == commonData.journalMenuId and l10n("nearby") or l10n("journal"),
+                            visible = not params.hideJournalBtn and
+                                (params.menuId == commonData.allQuestsMenuId or params.menuId == commonData.journalMenuId) or false,
+                            textSize = params.fontSize * 1.15,
                             autoSize = true,
                             textColor = config.data.ui.defaultColor,
                             textShadow = true,
@@ -706,15 +934,51 @@ local function create(params)
                         },
                         userData = {},
                         events = {
-                            mouseRelease = async:callback(function(_, layout)
-                                if params.createTopicMenuFunc then
-                                    params.createTopicMenuFunc()
-                                end
+                            mousePress = async:callback(function(e, layout)
+                                headerEvents.mousePress(e)
                             end),
+                            mouseRelease = async:callback(function(e, layout)
+                                if meta.headerDragDistance < 20 and meta.headerPressed then
+                                    toggleNearbyMenu()
+                                end
+                                headerEvents.mouseRelease(e)
+                            end),
+                            mouseMove = async:callback(function(e, layout)
+                                headerEvents.mouseMove(e)
+                            end)
                         }
                     },
-                    interval(params.fontSize * 3, 0),
-                    meta.trackedButtonLayout,
+                    interval(params.fontSize * 2, 0),
+                    {
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = l10n("topics"),
+                            visible = core.API_REVISION >= 93 and params.createTopicMenuFunc and true or false,
+                            textSize = params.fontSize * 1.15,
+                            autoSize = true,
+                            textColor = config.data.ui.defaultColor,
+                            textShadow = true,
+                            textShadowColor = config.data.ui.shadowColor,
+                            propagateEvents = false,
+                        },
+                        userData = {},
+                        events = {
+                            mousePress = async:callback(function(e, layout)
+                                headerEvents.mousePress(e)
+                            end),
+                            mouseRelease = async:callback(function(e, layout)
+                                if meta.headerDragDistance < 20 and meta.headerPressed then
+                                    if params.createTopicMenuFunc then
+                                        params.createTopicMenuFunc()
+                                    end
+                                end
+                                headerEvents.mouseRelease(e)
+                            end),
+                            mouseMove = async:callback(function(e, layout)
+                                headerEvents.mouseMove(e)
+                            end)
+                        }
+                    },
                     interval(params.fontSize * 3, 0),
                     {
                         type = ui.TYPE.Text,
@@ -749,18 +1013,20 @@ local function create(params)
     meta:updateMarkersDisabledMessage()
 
     local questListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y)
+    local searchBtnWidth = stringLib.length(l10n("filter")) * config.data.ui.fontSize * config.data.journal.textHeightMulRecord + 16
     local searchBar
     searchBar = {
-        type = ui.TYPE.Container,
+        type = ui.TYPE.Flex,
         props = {
-            size = util.vector2(questListSize.x, params.fontSize)
+            horizontal = true,
+            arrange = ui.ALIGNMENT.Center,
+            anchor = util.vector2(0.5, 0.5),
         },
         content = ui.content {
             {
                 template = templates.box,
                 props = {
-                    position = util.vector2(2, 2),
-                    anchor = util.vector2(0, 0),
+                    anchor = util.vector2(0, 0.5),
                 },
                 content = ui.content {
                     {
@@ -768,14 +1034,14 @@ local function create(params)
                         props = {
                             autoSize = false,
                             textSize = params.fontSize,
-                            size = util.vector2(params.size.x * 0.2, params.fontSize + 5),
+                            size = util.vector2(questListSize.x - searchBtnWidth, params.fontSize + 4),
                             textColor = config.data.ui.defaultColor,
                         },
                         events = {
                             textChanged = async:callback(function(text, layout)
                                 meta.textFilter = text
                                 searchBar.content[1].content[1].props.text = meta.textFilter
-                                if not params.isQuestList then
+                                if params.menuId == commonData.journalMenuId then
                                     localStorage.data.journalSearchText = meta.textFilter
                                 end
                             end),
@@ -809,8 +1075,8 @@ local function create(params)
                 updateFunc = updateFunc,
                 text = l10n("filter"),
                 textSize = params.fontSize,
-                position = util.vector2(questListSize.x - 2, 3),
-                anchor = util.vector2(1, 0),
+                useDefaultBtnTemplate = true,
+                anchor = util.vector2(0, 0.5),
                 event = function (layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()
@@ -829,9 +1095,16 @@ local function create(params)
         }
     }
 
-    if not params.isQuestList then
+    if params.menuId == commonData.journalMenuId then
         meta.textFilter = localStorage.data.journalSearchText or ""
         searchBar.content[1].content[1].props.text = meta.textFilter
+    end
+
+    local finishedStartedCBValue = false
+    if params.menuId == commonData.allQuestsMenuId then
+        finishedStartedCBValue = localStorage.data.startedCheckBox and true or false
+    else
+        finishedStartedCBValue = localStorage.data.finishedCheckBox and true or false
     end
 
     local checkBoxes = {
@@ -840,21 +1113,26 @@ local function create(params)
             autoSize = true,
             horizontal = true,
             arrange = ui.ALIGNMENT.Center,
+            anchor = util.vector2(0.5, 0.5),
         },
         content = ui.content {
             checkBox{
                 updateFunc = function ()
                     meta:update()
                 end,
-                checked = localStorage.data.finishedCheckBox and true or false,
-                text = l10n("finished"),
+                checked = finishedStartedCBValue,
+                text = params.menuId ~= commonData.allQuestsMenuId and l10n("finished") or l10n("started"),
                 anchor = util.vector2(0.5, 0.5),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
                     meta:fillQuestsContent()
                     meta:selectQuest(selectedQuest)
-                    localStorage.data.finishedCheckBox = checked
+                    if params.menuId ~= commonData.allQuestsMenuId then
+                        localStorage.data.finishedCheckBox = checked
+                    else
+                        localStorage.data.startedCheckBox = checked
+                    end
                 end
             },
             interval(params.fontSize / 2, 0),
@@ -877,27 +1155,45 @@ local function create(params)
     }
 
     local checkBoxesSecondLine
-    if meta.params.allowNearbyMode then
+    if meta.params.allQuestsMode then
         checkBoxesSecondLine = {
             type = ui.TYPE.Flex,
             props = {
                 autoSize = true,
                 horizontal = true,
                 arrange = ui.ALIGNMENT.Center,
-                align = ui.ALIGNMENT.End,
+                align = ui.ALIGNMENT.Center,
+                relativeSize = util.vector2(1, 0),
+                relativePosition = util.vector2(1, 0),
+                anchor = util.vector2(0, 0.5),
             },
             content = ui.content {
                 checkBox{
                     updateFunc = function ()
                         meta:update()
                     end,
-                    checked = (localStorage.data.nearbyQuestsCheckBox and params.nearbyModeDefault == nil or
-                        params.nearbyModeDefault == true) and true or false,
+                    checked = not meta.firstEntryMode,
+                    text = l10n("allEntries"),
+                    anchor = util.vector2(1, 0.5),
+                    textSize = params.fontSize or 18,
+                    event = function (checked, layout)
+                        localStorage.data.allEntriesCheckBox = checked
+                        meta.firstEntryMode = not checked
+                        meta:selectQuest(meta:getQuestListSelectedFladValue(), true)
+                    end
+                },
+                interval(params.fontSize, 0),
+                checkBox{
+                    updateFunc = function ()
+                        meta:update()
+                    end,
+                    checked = meta.nearbyMode,
                     text = l10n("nearby"),
                     anchor = util.vector2(1, 0.5),
                     textSize = params.fontSize or 18,
                     event = function (checked, layout)
                         localStorage.data.nearbyQuestsCheckBox = checked
+                        meta.nearbyMode = checked
                         if checked then
                             core.sendGlobalEvent("QGL:getQuestsNearby", { menuId = params.menuId, player = playerRef.object })
                         else
@@ -915,14 +1211,76 @@ local function create(params)
     local questsContent = ui.content{}
 
     local questListBoxYOffset = questListSize.y - params.fontSize * 2 - 13 -
-        (meta.params.allowNearbyMode and params.fontSize or 0)
+        (meta.params.allQuestsMode and params.fontSize or 0)
     local questListBox = scrollBox{
         updateFunc = updateFunc,
         size = util.vector2(questListSize.x - 2, questListBoxYOffset),
+        anchor = util.vector2(0, 0.5),
         scrollAmount = params.size.y / 5,
         contentHeight = 0,
         autoOptimize = true,
         content = questsContent
+    }
+    local sBoxMeta = questListBox.userData.scrollBoxMeta ---@diagnostic disable-line: need-check-nil
+
+    meta.questListElementSize = util.vector2(sBoxMeta.innnerSize.x, meta.params.fontSize * 2 + 4)
+    meta.inactiveLabelSize = util.vector2(meta.questListElementSize.x, math.floor(meta.questListElementSize.y * 1.5))
+    meta.hasInactiveLabel = false
+
+    local bottomTextLayout = {
+        template = {
+            type = ui.TYPE.Container,
+            content = ui.content{
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = uiUtils.whiteTexture,
+                        color = config.data.ui.backgroundColor,
+                        relativeSize = util.vector2(1, 1),
+                        position = util.vector2(4, 0),
+                    },
+                },
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = uiUtils.whiteTexture,
+                        color = config.data.ui.backgroundColor,
+                        size = util.vector2(0, 2),
+                        relativeSize = util.vector2(1, 0),
+                        position = util.vector2(4, 0),
+                        relativePosition = util.vector2(0, 1),
+                    },
+                },
+                {
+                    external = { slot = true },
+                    props = {
+                        position = util.vector2(4, 0),
+                        relativeSize = util.vector2(1, 1),
+                    }
+                }
+            },
+        },
+        type = ui.TYPE.Container,
+        props = {
+            alpha = 0,
+        },
+        content = ui.content{
+            {
+                type = ui.TYPE.TextEdit,
+                props = {
+                    text = "",
+                    textColor = config.data.ui.defaultColor,
+                    textSize = config.data.ui.fontSize * 0.8,
+                    size = util.vector2(params.size.x, 0),
+                    multiline = true,
+                    wordWrap = true,
+                    textAlignH = ui.ALIGNMENT.Center,
+                    textAlignV = ui.ALIGNMENT.Center,
+                    readOnly = true,
+                    autoSize = true,
+                },
+            }
+        }
     }
 
     local questList = {
@@ -930,7 +1288,9 @@ local function create(params)
         props = {
             autoSize = false,
             horizontal = false,
-            size = questListSize
+            size = questListSize,
+            arrange = ui.ALIGNMENT.Center,
+            align = ui.ALIGNMENT.Center,
         },
         content = ui.content {
             searchBar,
@@ -976,6 +1336,7 @@ local function create(params)
         content = ui.content {
             mainHeader,
             mainWindow,
+            {},
         }
     }
 
@@ -983,6 +1344,50 @@ local function create(params)
 
     meta:fillQuestsContent()
     meta:update()
+
+
+    local bottomTextTimer
+    local function decreaseBottomTextAlpha(time)
+        if not meta.menu or not meta.menu.layout then return end
+
+        local alpha = bottomTextLayout.props.alpha
+        bottomTextLayout.props.alpha = math.max(0, alpha - (alpha > 0.98 and 0.0006 / time or 0.02))
+
+        if bottomTextLayout.props.alpha > 0 then
+            bottomTextTimer = realTimer.newTimer(0.03, decreaseBottomTextAlpha, time)
+        else
+            mainFlex.content[3] = {}
+            bottomTextTimer = nil
+        end
+        meta:update()
+    end
+    local function increaseBottomTextAlpha(time)
+        if not meta.menu or not meta.menu.layout then return end
+
+        local alpha = bottomTextLayout.props.alpha
+        bottomTextLayout.props.alpha = math.min(1, alpha + 0.02)
+
+        if bottomTextLayout.props.alpha < 1 then
+            bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
+        else
+            decreaseBottomTextAlpha(time)
+        end
+        meta:update()
+    end
+
+    function meta:showInfoMessage(text, time)
+        if not config.data.journal.bottomInfoText.enabled then return end
+
+        if bottomTextTimer then
+            bottomTextTimer()
+            bottomTextTimer = nil
+        end
+
+        bottomTextLayout.content[1].props.text = text
+        mainFlex.content[3] = bottomTextLayout
+        bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
+    end
+
 
     local function onMouseWheelCallback(content, value)
         for _, dt in pairs(content) do
@@ -1029,7 +1434,10 @@ local function create(params)
         pcall(function()
             local nextSelected = content[nextIndex]
             if nextSelected and nextSelected.name then
-                self:selectQuest(nextSelected.name)
+                if nextSelected.name == "QL_InactiveLabel" then
+                    nextSelected = content[nextIndex + step]
+                end
+                self:selectQuest(nextSelected.name, nil, true)
             end
         end)
     end
@@ -1054,6 +1462,7 @@ local function create(params)
         if not qBoxMeta or not qBoxMeta.trackObjectsFunc then return end
 
         qBoxMeta.trackObjectsFunc()
+        meta:update()
     end
 
     meta.untrackObjects = function (self)
@@ -1065,6 +1474,7 @@ local function create(params)
         if not qBoxMeta or not qBoxMeta.untrackObjectsFunc then return end
 
         qBoxMeta.untrackObjectsFunc()
+        meta:update()
     end
 
     meta.toggleTrackObjects = function (self)
@@ -1076,6 +1486,7 @@ local function create(params)
         if not qBoxMeta or not qBoxMeta.toggleTrackObjectsFunc then return end
 
         qBoxMeta.toggleTrackObjectsFunc()
+        meta:update()
     end
 
     meta.toggleTopTopics = function (self)
@@ -1087,10 +1498,11 @@ local function create(params)
         if not qBoxMeta or not qBoxMeta.toggleTopTopicsFunc then return end
 
         qBoxMeta.toggleTopTopicsFunc()
+        meta:update()
     end
 
 
-    if not params.isQuestList then
+    if params.menuId == commonData.journalMenuId then
         local lastQName = localStorage.data.lastSelectedQuest
         local qDt = playerQuests.getQuestDataByName(lastQName)
         local plQDt = playerQuests.getQuestStorageData(lastQName)
@@ -1103,8 +1515,7 @@ local function create(params)
     end
 
 
-    if meta.params.allowNearbyMode and (params.nearbyModeDefault == true or
-            params.nearbyModeDefault == nil and localStorage.data.nearbyQuestsCheckBox) then
+    if meta.params.allQuestsMode and meta.nearbyMode then
         core.sendGlobalEvent("QGL:getQuestsNearby", { menuId = params.menuId, player = playerRef.object })
     end
 

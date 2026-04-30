@@ -252,6 +252,7 @@ I.Settings.registerGroup{
         numberSetting{key = "journal.maxTopicEntriesInJournal", name = "maxTopicEntriesInJournal", description = "maxTopicEntriesInJournalDescription", integer = true, min = 0, default = config.default.journal.maxTopicEntriesInJournal},
         numberSetting{key = "journal.mouseScrollAmount", name = "mouseScrollAmount", description = "mouseScrollAmountDescription", integer = true, min = 1, max = 200, default = config.default.journal.mouseScrollAmount},
         numberSetting{key = "journal.textHeightMulRecord", name = "textHeightMul", description = "textHeightMulDescription", integer = false, min = 0.1, max = 2, default = config.default.journal.textHeightMulRecord},
+        boolSetting{key = "journal.bottomInfoText.enabled", name = "bottomInfoTextEnabled", description = "bottomInfoTextEnabledDescription", default = config.default.journal.bottomInfoText.enabled},
         boolSetting{key = "journal.mapByDefault", name = "mapByDefault", description = "mapByDefaultDescription", default = config.default.journal.mapByDefault},
         boolSetting{key = "journal.firstInitMenu", name = "firstInitMenu", description = "firstInitMenuDescription", default = config.default.journal.firstInitMenu},
     },

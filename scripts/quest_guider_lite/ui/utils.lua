@@ -124,6 +124,19 @@ function this.getContentHeight(content, isHorizontal)
 end
 
 
+function this.getContentHeightOfIndex(content, index)
+    local height = 0
+    for i, elem in ipairs(content) do
+        if i < index then
+            height = height + this.getElementHeight(elem)
+        else
+            break
+        end
+    end
+    return height
+end
+
+
 function this.getUIScale()
 	local width = ui.layers[1].size.x
 	local screenSize = ui.screenSize()

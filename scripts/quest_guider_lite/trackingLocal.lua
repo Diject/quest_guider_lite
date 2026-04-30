@@ -788,7 +788,7 @@ function this.getDisabledState(params)
     else
         local objData = this.markerByObjectId[params.objectId]
         local found = false
-        for qId, trackingData in pairs((objData or {}).markers) do
+        for qId, trackingData in pairs((objData or {}).markers or {}) do
             found = true
             if not trackingData.data.disabled then
                 return false
@@ -1075,7 +1075,7 @@ function this.addMarkersForQuest(params)
 end
 
 
-function this.trackQuest(questId, index)
+function this.trackQuest(questId, index, force)
     local shouldUpdate = false
 
     if this.removeMarker{ questId = questId } then
@@ -1087,20 +1087,22 @@ function this.trackQuest(questId, index)
     if isFinished then
         this.removeMarker{ questId = questId, removeLinked = true }
         this.updateMarkers()
-
-    else
-        ---@class questGuider.tracking.trackQuest.eventArgument
-        local dt = {
-            questId = questId,
-            index = index,
-            finished = isFinished,
-            shouldUpdate = shouldUpdate,
-            params = {findCompleted = false, findInLinked = true},
-            player = playerRef.object,
-            config = config.getTrackingConfigData(),
-        }
-        core.sendGlobalEvent("QGL:trackQuest", dt)
+        if not force then
+            return
+        end
     end
+
+    ---@class questGuider.tracking.trackQuest.eventArgument
+    local dt = {
+        questId = questId,
+        index = index,
+        finished = isFinished and not force and true or false,
+        shouldUpdate = shouldUpdate,
+        params = {findCompleted = force or false, findInLinked = true},
+        player = playerRef.object,
+        config = config.getTrackingConfigData(),
+    }
+    core.sendGlobalEvent("QGL:trackQuest", dt)
 end
 
 
@@ -1540,6 +1542,21 @@ function this.enableDoorMarkersForObject(objId)
     end
 
     return changed
+end
+
+
+---@return boolean?
+function this.hasTrackedObjectsForQuestName(qName)
+    local qData = playerQuests.getQuestDataByName(qName)
+    if not qData then return end
+
+    for diaId, _ in pairs(qData.records or {}) do
+        if this.trackedObjectsByDiaId[diaId] then
+            return true
+        end
+    end
+
+    return false
 end
 
 

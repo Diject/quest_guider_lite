@@ -18,6 +18,9 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local getObject = require("scripts.quest_guider_lite.core.getObject")
+local realTimer = require("scripts.quest_guider_lite.realTimer")
+
+local trackingElementLib = require("scripts.quest_guider_lite.ui.customJournal.objectTrackingElem")
 
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -28,6 +31,14 @@ local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
 local dialogueIDTooltipLib = require("scripts.quest_guider_lite.ui.dialogueIdTooltip")
 
 local l10n = core.l10n(common.l10nKey)
+
+local playerName = "Player"
+pcall(function ()
+    playerName = getObject("player").name
+end)
+
+
+local allowLoadTimeWarning = true
 
 
 local this = {}
@@ -67,28 +78,67 @@ function questBoxMeta.getHeader(self)
 end
 
 function questBoxMeta.addTrackButtons(self, showRemoveBtn)
-    self:getButtonFlex().content = ui.content{}
+    local function hasTrackedObjects(default)
+        local has = default
+        for _, info in pairs(self.dialogueInfo) do
+            has = has or tracking.isDialogueHasTracked{diaId = info.diaId}
+            if has then break end
+        end
 
-    if tracking.initialized and not self.params.isQuestList then
+        return has
+    end
+
+    local function updateTrackButton(hasTracked)
+        self:getButtonFlex().content = ui.content{}
+
+        if hasTracked then
+            self:getButtonFlex().content:add(interval(self.params.fontSize, 0))
+            self:getButtonFlex().content:add(button{
+                text = l10n("removeTracking"),
+                textSize = self.params.fontSize * 0.8,
+                visible = tracking.initialized,
+                parentScrollBoxUserData = self:getScrollBox().userData,
+                event = self.untrackObjectsFunc,
+                updateFunc = function ()
+                    self.params.updateFunc()
+                end
+            })
+        else
+            self:getButtonFlex().content:add(button{
+                text = l10n("trackObjects"),
+                textSize = self.params.fontSize * 0.8,
+                visible = tracking.initialized,
+                parentScrollBoxUserData = self:getScrollBox().userData,
+                event = self.trackObjectsFunc,
+                updateFunc = function ()
+                    self.params.updateFunc()
+                end
+            })
+        end
+    end
+
+    if tracking.initialized then
         self.trackObjectsFunc = function ()
             self:addTrackButtons(true)
 
             for _, info in pairs(self.questInfo) do
-                tracking.trackQuest(info.diaId, info.diaIndex)
+                tracking.trackQuest(info.diaId, info.diaIndex, self.params.isQuestList)
             end
             async:newUnsavableSimulationTimer(0.1, function ()
                 tracking.updateTemporaryMarkers()
+            end)
+
+            realTimer.newTimer(0.75, function ()
+                trackingElementLib.updateObjectTrackingElements(self.content)
+                updateTrackButton(hasTrackedObjects(false))
+                self:update()
             end)
         end
     else
         self.trackObjectsFunc = nil
     end
 
-    local hasTracked = showRemoveBtn
-    for _, info in pairs(self.dialogueInfo) do
-        hasTracked = hasTracked or tracking.isDialogueHasTracked{diaId = info.diaId}
-        if hasTracked then break end
-    end
+    local hasTracked = hasTrackedObjects(showRemoveBtn)
 
     if hasTracked then
         self.untrackObjectsFunc = function ()
@@ -103,6 +153,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             tracking.updateTemporaryMarkers()
 
             self:addTrackButtons()
+            trackingElementLib.updateObjectTrackingElements(self.content)
             playerRef:sendEvent("QGL:updateQuestMenu", {})
         end
     else
@@ -110,11 +161,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     end
 
     self.toggleTrackObjectsFunc = function ()
-        local hasTracked = false
-        for _, info in pairs(self.dialogueInfo) do
-            hasTracked = hasTracked or tracking.isDialogueHasTracked{diaId = info.diaId}
-            if hasTracked then break end
-        end
+        local hasTracked = hasTrackedObjects(false)
 
         if hasTracked then
             if self.untrackObjectsFunc then
@@ -127,30 +174,90 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         end
     end
 
-    if hasTracked then
-        self:getButtonFlex().content:add(interval(self.params.fontSize, 0))
-        self:getButtonFlex().content:add(button{
-            text = l10n("removeTracking"),
-            textSize = self.params.fontSize * 0.8,
-            visible = tracking.initialized and not self.params.isQuestList,
-            parentScrollBoxUserData = self:getScrollBox().userData,
-            event = self.untrackObjectsFunc,
-            updateFunc = function ()
-                self.params.updateFunc()
-            end
-        })
-    else
-        self:getButtonFlex().content:add(button{
-            text = l10n("trackObjects"),
-            textSize = self.params.fontSize * 0.8,
-            visible = tracking.initialized and not self.params.isQuestList,
-            parentScrollBoxUserData = self:getScrollBox().userData,
-            event = self.trackObjectsFunc,
-            updateFunc = function ()
-                self.params.updateFunc()
-            end
-        })
+    updateTrackButton(hasTracked)
+end
+
+
+---@param data table<string, questGuider.quest.getRequirementPositionData.returnData>
+---@param questDiaLinks table<string, table<string, any>> by objectId, by quest dialogue id
+function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
+    if #self.content < 2 or self.params.questName == "" then return end
+
+    local ss, layIndex = pcall(function ()
+        return self.content:indexOf("TR_Objects_Flex")
+    end)
+    if layIndex then
+        uiUtils.removeFromContent(self.content, layIndex)
     end
+
+    local objectsFlexContent = ui.content{}
+    local objectsContainerLayout = ui.content{}
+
+    local objectsBtn = button{
+        text = l10n("questObjectsBtn"),
+        textSize = self.params.fontSize * 0.8,
+        visible = true,
+        anchor = util.vector2(0.5, 0.5),
+        parentScrollBoxUserData = self:getScrollBox().userData,
+        relativePosition = util.vector2(0.5, 0.5),
+        userData = {
+            opened = false,
+        },
+        event = function (layout)
+            layout.userData.opened = not layout.userData.opened
+            if layout.userData.opened then
+                objectsContainerLayout.content[2].content = objectsFlexContent
+            else
+                objectsContainerLayout.content[2].content = ui.content{}
+            end
+
+            self:getScrollBoxMeta():calcContentHeight()
+            self:getScrollBoxMeta():updateContent()
+        end,
+        updateFunc = function ()
+            self.params.updateFunc()
+        end
+    }
+
+    trackingElementLib.addObjectPositionInfo(objectsFlexContent, {
+        objPoss = data,
+        questDiaLinks = questDiaLinks,
+        width = self.params.size.x,
+        fontSize = config.data.ui.fontSize,
+        questName = self.params.questName,
+        addMissingTrackingObjects = true,
+        parentContent = self.content,
+        parentScrollBoxUserData = self:getScrollBox().userData,
+        updateFunc = self.update,
+    })
+
+
+    objectsContainerLayout = {
+        type = ui.TYPE.Flex,
+        name = "TR_Objects_Flex",
+        userData = {
+            objectsFlexContent = objectsFlexContent,
+        },
+        content = ui.content{
+            {
+                props = {
+                    size = util.vector2(self.params.size.x, config.data.ui.fontSize * 2),
+                },
+                content = ui.content{
+                    objectsBtn,
+                },
+            },
+            {
+                type = ui.TYPE.Flex,
+                props = {
+                    horizontal = false,
+                },
+                content = ui.content{},
+            }
+        }
+    }
+
+    self.content:insert(3, objectsContainerLayout)
 end
 
 
@@ -161,23 +268,31 @@ function questBoxMeta._fillJournal(self, content, params)
     ---@type table<string, boolean>
     local addedDiaIds = {}
 
-    local playerQuestDataList, topicTexts = playerQuests.getAndUpdateJournalQuestData(params.questName or "")
+    local playerQuestDataList, topicTexts
+    if self.params.isQuestList then
+        playerQuestDataList, topicTexts = playerQuests.getQuestStorageData(params.questName or "")
+    else
+        playerQuestDataList, topicTexts = playerQuests.getAndUpdateJournalQuestData(params.questName or "")
+    end
     playerQuestDataList = playerQuestDataList and playerQuestDataList.list or params.playerQuestData.list
 
     local topicData = {}
     for _, topic in pairs(playerQuests.getTopicList() or {}) do
-        topicData[topic.name or ""] = {
+        topicData[topic.id or ""] = {
             topic = topic
         }
     end
     local topicList = tableLib.keys(topicData)
+    table.sort(topicList, function (a, b)
+        return stringLib.length(a) > stringLib.length(b)
+    end)
 
     local contentIndex = 2
     local function addElement(i)
         local qInfo = playerQuestDataList[i]
         if not qInfo then goto continue end
 
-        if params.showOnlyFirst and addedDiaIds[qInfo.diaId] then return end
+        if params.showOnlyFirstDiaEntry and addedDiaIds[qInfo.diaId] then return end
 
         local text = self.params.hideStageText and "" or nil
         if not text then
@@ -226,16 +341,19 @@ function questBoxMeta._fillJournal(self, content, params)
         text = text or ""
 
         text = stringLib.removeSpecialCharactersFromJournalText(text)
+        local actorsStrTags = {}
 
+        local tagCnt = 0
         if next(linkedTexts) then
             local tt = {}
             for t, actors in pairs(linkedTexts) do
                 local actorNamesArr = tableLib.keys(actors)
-                table.insert(tt, string.format("#%s%s#%s: %s",
-                        config.data.ui.objectColor:asHex(),
-                        table.concat(actorNamesArr, ", "),
-                        config.data.ui.defaultColor:asHex(),
-                        t
+                local tag = string.format("__ACTORNAME%d__", tagCnt)
+                tagCnt = tagCnt + 1
+                actorsStrTags[tag] = table.concat(actorNamesArr, ", ")
+                table.insert(tt, string.format("%s: %s",
+                        tag,
+                        string.gsub(stringLib.removeSpecialCharactersFromJournalText(t), "%%PCName", playerName)
                     )
                 )
             end
@@ -261,49 +379,62 @@ function questBoxMeta._fillJournal(self, content, params)
         local height = uiUtils.getTextHeight(text, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, 1, true)
         local textElemSize = util.vector2(self.scrollBoxContentSize.x, height)
 
+        local tm = core.getRealTime()
         local topicPoss = config.data.journal.fuzzyTopicMatching and stringLib.findPhrases(text, topicList) or
             stringLib.findPhrasesExact(text, topicList)
+        tm = core.getRealTime() - tm
+
+        if tm > 0.2 and config.data.journal.fuzzyTopicMatching and allowLoadTimeWarning then
+            self.params.parent:showInfoMessage(l10n("journalTopicLoadingTimeWarning", {setting = l10n("fuzzyTopicMatching")}), 10)
+            allowLoadTimeWarning = false
+        end
 
         local linkColor = "#"..config.data.ui.linkColor:asHex()
         local defaultColor = "#"..config.data.ui.defaultColor:asHex()
         text = uiUtils.colorizeFromPhrasePositions(text, topicPoss, linkColor, defaultColor)
 
-        for id, dt in pairs(topicPoss) do
-            if topicData[id] then
-                dt.topic = topicData[id].topic ---@diagnostic disable-line: inject-field
-            else
-                topicPoss[id] = nil
-            end
+        for tag, str in pairs(actorsStrTags) do
+            text = text:gsub(tag, string.format("#%s%s#%s",
+                config.data.ui.objectColor:asHex(),
+                str,
+                config.data.ui.defaultColor:asHex()
+            ))
         end
 
         local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{recordInfo = qInfo, fontSize = params.fontSize,
             filter = self.parent.textFilter}
 
         local element
+        local detailsContent = ui.content{}
 
+        local textTopics = {}
+        for id, dt in pairs(topicPoss) do
+            if topicData[id] then
+                local topic = topicData[id].topic
+                textTopics[topic.id] = topic
+            end
+        end
 
         local topicsText
-        local function getTopicsText()
-            if topicsText ~= nil then return topicsText end
-
-            local topics = {}
-            for _, data in pairs(topicPoss) do
-                topics[data.topic.id] = data.topic ---@diagnostic disable-line: undefined-field
-            end
+        local compactTopicText
+        local function getTopicsText(count, compact)
+            if not compact and topicsText ~= nil then return topicsText end
+            if compact and compactTopicText ~= nil then return compactTopicText end
 
             local t = ""
             local firstLine = true
-            for _, topic in pairs(topics) do
-                local topicText = string.format("%s#%s%s#%s:\n",
+            for _, topic in pairs(textTopics) do
+                local topicText = string.format("%s#%s%s#%s:%s",
                     firstLine and "" or "\n\n",
                     config.data.ui.linkColor:asHex(),
                     topic.name,
-                    config.data.ui.defaultColor:asHex()
+                    config.data.ui.defaultColor:asHex(),
+                    compact and "" or "\n"
                 )
                 firstLine = false
 
                 local entryCount = #topic.entries
-                local startIndex = math.max(1, entryCount - config.data.journal.maxTopicEntriesInJournal + 1)
+                local startIndex = math.max(1, entryCount - count + 1)
                 local endIndex = entryCount
 
                 if startIndex ~= 1 then
@@ -313,24 +444,31 @@ function questBoxMeta._fillJournal(self, content, params)
                     )
                 end
 
+                local first = true
                 for j = startIndex, endIndex do
                     local entry = topic.entries[j]
                     local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
-                    topicText = string.format("%s\n\t#%s%s#%s: \"%s\"",
+                    topicText = string.format("%s%s\t#%s%s#%s: \"%s\"",
                         topicText,
+                        first and "\n" or "\n\n",
                         config.data.ui.objectColor:asHex(),
                         entry.actor,
                         config.data.ui.defaultColor:asHex(),
                         entryText
                     )
+                    first = false
                 end
 
                 t = t..topicText
             end
 
-            topicsText = t ~= "" and t or false
+            if not compact then
+                topicsText = t ~= "" and t or false
+            else
+                compactTopicText = t ~= "" and t or false
+            end
 
-            return topicsText
+            return compact and compactTopicText or topicsText
         end
 
         local function changeEntryBlockText(toggle)
@@ -346,7 +484,7 @@ function questBoxMeta._fillJournal(self, content, params)
                 "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
 
             if withTopics then
-                local t = getTopicsText()
+                local t = getTopicsText(config.data.journal.maxTopicEntriesInJournal)
                 if t then
                     newText = string.format("%s\n\n\n%s\n", newText, t)
                 end
@@ -375,7 +513,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
         if not self.toggleTopTopicsFunc then
             self.toggleTopTopicsFunc = function ()
-                if not (tracking.initialized and not self.params.isQuestList and next(topicPoss)
+                if not (tracking.initialized and next(topicPoss)
                         and config.data.journal.maxTopicEntriesInJournal > 0) then return end
 
                 toggleTopics()
@@ -383,70 +521,108 @@ function questBoxMeta._fillJournal(self, content, params)
             end
         end
 
-
+        local topicsTooltipTimer
         local topicsBtnTooltipContent
         local topicsBtn = button{
             text = l10n("topics"),
             textSize = self.params.fontSize * 0.8,
-            visible = tracking.initialized and not self.params.isQuestList and next(topicPoss)
+            visible = tracking.initialized and next(topicPoss)
                 and config.data.journal.maxTopicEntriesInJournal > 0 and true or false,
-            position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, params.fontSize * 1.25 * 0.5),
-            anchor = util.vector2(1, 0.5),
+            anchor = util.vector2(0.5, 0.5),
             parentScrollBoxUserData = self:getScrollBox().userData,
+            focusLoss = function (layout)
+                topicsBtnTooltipContent = nil
+                layout.userData.params.tooltipContent = nil
+                if topicsTooltipTimer then
+                    topicsTooltipTimer()
+                    topicsTooltipTimer = nil
+                end
+            end,
             mouseMove = function (layout)
                 if topicsBtnTooltipContent ~= nil then return end
 
-                local t = getTopicsText()
-                if not t then topicsBtnTooltipContent = false end
+                if not topicsTooltipTimer then
+                    topicsTooltipTimer = realTimer.newTimer(config.data.ui.tooltipDelay, function ()
+                        local t = getTopicsText(1, true)
+                        if not t then topicsBtnTooltipContent = false end
 
-                local screenSize = uiUtils.getScaledScreenSize()
-                local w = math.floor(screenSize.x * 0.5)
-                local paddingW = math.floor(screenSize.x * 0.025)
-                local paddingH = math.floor(screenSize.y * 0.025)
+                        local screenSize = uiUtils.getScaledScreenSize()
+                        local w = math.floor(screenSize.x * 0.5)
+                        local paddingW = math.floor(screenSize.x * 0.025)
+                        local paddingH = math.floor(screenSize.y * 0.025)
 
-                topicsBtnTooltipContent = ui.content{
-                    {
-                        type = ui.TYPE.Flex,
-                        props = {
-                            autoSize = true,
-                            horizontal = false,
-                        },
-                        content = ui.content{
-                            interval(0, paddingH),
+                        topicsBtnTooltipContent = ui.content{
                             {
                                 type = ui.TYPE.Flex,
                                 props = {
                                     autoSize = true,
-                                    horizontal = true,
+                                    horizontal = false,
                                 },
                                 content = ui.content{
-                                    interval(paddingW, 0),
+                                    interval(0, paddingH),
                                     {
-                                        type = ui.TYPE.TextEdit,
+                                        type = ui.TYPE.Flex,
                                         props = {
-                                            text = t,
-                                            textColor = config.data.ui.defaultColor,
-                                            size = util.vector2(w, 0),
-                                            textSize = config.data.ui.fontSize,
-                                            multiline = true,
-                                            wordWrap = true,
-                                            readOnly = true,
                                             autoSize = true,
-                                            textAlignH = ui.ALIGNMENT.Center,
+                                            horizontal = true,
+                                        },
+                                        content = ui.content{
+                                            interval(paddingW, 0),
+                                            {
+                                                type = ui.TYPE.TextEdit,
+                                                props = {
+                                                    text = t,
+                                                    textColor = config.data.ui.defaultColor,
+                                                    size = util.vector2(w, 0),
+                                                    textSize = config.data.ui.fontSize,
+                                                    multiline = true,
+                                                    wordWrap = true,
+                                                    readOnly = true,
+                                                    autoSize = true,
+                                                    textAlignH = ui.ALIGNMENT.Center,
+                                                }
+                                            },
+                                            interval(paddingW, 0),
                                         }
                                     },
-                                    interval(paddingW, 0),
+                                    interval(0, paddingH),
                                 }
                             },
-                            interval(0, paddingH),
                         }
-                    },
-                }
 
-                layout.userData.params.tooltipContent = topicsBtnTooltipContent
+                        layout.userData.params.tooltipContent = topicsBtnTooltipContent
+
+                        ---@type questGuider.ui.buttonMeta
+                        local btnMeta = layout.userData.meta
+                        btnMeta:triggerTooltip()
+                    end)
+                end
             end,
             event = function (layout)
                 toggleTopics()
+            end,
+            updateFunc = function ()
+                self.params.updateFunc()
+            end
+        }
+
+        local detailsBtn = button{
+            text = l10n("stageDetailsBtn"),
+            textSize = self.params.fontSize * 0.8,
+            visible = false,
+            anchor = util.vector2(0.5, 0.5),
+            parentScrollBoxUserData = self:getScrollBox().userData,
+            event = function (layout)
+                local container = element.content["TR_Details_Flex"]
+                container.userData.opened = not container.userData.opened
+                if container.userData.opened then
+                    container.content = detailsContent
+                else
+                    container.content = ui.content{}
+                end
+
+                self:getScrollBoxMeta():calcContentHeight()
+                self:getScrollBoxMeta():updateContent()
             end,
             updateFunc = function ()
                 self.params.updateFunc()
@@ -463,6 +639,9 @@ function questBoxMeta._fillJournal(self, content, params)
                 contentIndex = contentIndex,
                 info = qInfo,
                 topicData = topicPoss,
+                detailsContent = detailsContent,
+                detailsBtn = detailsBtn,
+                isQuestList = params.isQuestList,
             },
             content = ui.content {
                 interval(0, params.fontSize),
@@ -499,7 +678,21 @@ function questBoxMeta._fillJournal(self, content, params)
                                 end),
                             },
                         },
-                        topicsBtn,
+                        {
+                            type = ui.TYPE.Flex,
+                            props = {
+                                horizontal = true,
+                                anchor = util.vector2(1, 0.5),
+                                position = util.vector2(textElemSize.x - config.data.ui.scrollArrowSize - 8, params.fontSize * 1.25 * 0.5),
+                                arrange = ui.ALIGNMENT.Center,
+                                align = ui.ALIGNMENT.Center,
+                            },
+                            content = ui.content{
+                                detailsBtn,
+                                interval(config.data.ui.fontSize, 0),
+                                topicsBtn,
+                            }
+                        },
                     }
                 },
                 {
@@ -530,8 +723,19 @@ function questBoxMeta._fillJournal(self, content, params)
                                 wordWrap = true,
                                 textAlignH = ui.ALIGNMENT.Center,
                             },
-                        }
+                        },
                     }
+                },
+                {
+                    type = ui.TYPE.Flex,
+                    props = {
+                        horizontal = false,
+                    },
+                    userData = {
+                        opened = false,
+                    },
+                    name = "TR_Details_Flex",
+                    content = ui.content{}
                 },
             }
         }
@@ -545,7 +749,19 @@ function questBoxMeta._fillJournal(self, content, params)
 
     if self.params.isQuestList then
         for i = 1, #playerQuestDataList do
-            addElement(i)
+            if params.showOnlyMainDia then
+                local qInfo = playerQuestDataList[i]
+                if not qInfo then goto continue end
+
+                local mainDias = questBase.getQuestMainDialogueIdsMap(qInfo.diaId)
+                if mainDias[qInfo.diaId] then
+                    addElement(i)
+                end
+            else
+                addElement(i)
+            end
+
+            ::continue::
         end
     else
         for i = #playerQuestDataList, 1, -1 do
@@ -607,7 +823,8 @@ end
 ---@field hideStageText boolean?
 ---@field showReqDiaEntryText boolean?
 ---@field showReqsForAll boolean?
----@field showOnlyFirst boolean?
+---@field showOnlyMainDia boolean?
+---@field showOnlyFirstDiaEntry boolean?
 ---@field updateFunc function
 ---@field parent questGuider.ui.customJournal
 ---@field userData table
@@ -755,7 +972,7 @@ function this.create(params)
                                 checked = params.playerQuestData.disabled,
                                 text = l10n("hidden"),
                                 textSize = params.fontSize or 18,
-                                visible = not params.isQuestList,
+                                visible = true,
                                 getScrollBoxMeta = function ()
                                     return meta:getScrollBoxMeta()
                                 end,
@@ -799,7 +1016,9 @@ function this.create(params)
         return journalEntries
     end
 
-    meta:_fillJournal(journalContent, params)
+    meta.content = journalContent
+
+    meta:_fillJournal(meta.content, params)
 
     return journalEntries
 end

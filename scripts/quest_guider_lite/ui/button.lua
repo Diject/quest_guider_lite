@@ -32,6 +32,12 @@ function buttonMeta.getButtonIconElement(self)
 end
 
 
+function buttonMeta:triggerTooltip()
+    if not self.layout.userData.lastCoord or not self.layout.userData.params.tooltipContent then return end
+    tooltip.createOrMove(self.layout.userData.lastCoord, self.layout, self.layout.userData.params.tooltipContent)
+end
+
+
 local mousePress = async:callback(function(e, layout)
     if e.button ~= 1 then return end
 
@@ -51,18 +57,20 @@ end)
 local mouseRelease = async:callback(function(e, layout)
     if e.button ~= 1 then return end
 
-    layout.template = templates.boxSolidThick
+    local userData = layout.userData
 
-    if layout.userData.params.mouseRelease then
+    layout.template = userData.params.useDefaultBtnTemplate and templates.boxSolidThick or templates.btnBoxSolidThick
+
+    if userData.params.mouseRelease then
         layout.userData.params.mouseRelease(layout)
     end
 
-    if layout.userData.pressed and layout.userData.params.event then
-        layout.userData.params.event(layout)
+    if userData.pressed and userData.params.event then
+        userData.params.event(layout)
     end
 
-    layout.userData.pressed = false
-    layout.userData.params.updateFunc()
+    userData.pressed = false
+    userData.params.updateFunc()
 end)
 
 local focusLoss = async:callback(function(e, layout)
@@ -72,14 +80,20 @@ local focusLoss = async:callback(function(e, layout)
     layout.userData.pressed = false
     tooltip.destroy(layout)
 
+    if layout.userData.params.focusLoss then
+        layout.userData.params.focusLoss(layout)
+    end
+
     if layout.userData.parentScrollBoxUserData then
         layout.userData.parentScrollBoxUserData.inFocus = false
     end
 end)
 
 local mouseMove = async:callback(function(coord, layout)
-    if layout.userData.parentScrollBoxUserData then
-        layout.userData.parentScrollBoxUserData.inFocus = true
+    local userData = layout.userData
+    userData.lastCoord = coord
+    if userData.parentScrollBoxUserData then
+        userData.parentScrollBoxUserData.inFocus = true
     end
 
     local params = layout.userData.params
@@ -107,6 +121,7 @@ end)
 ---@field mousePress fun(layout : any)?
 ---@field mouseRelease fun(layout : any)?
 ---@field mouseMove fun(layout : any)?
+---@field focusLoss fun(layout : any)?
 ---@field tooltipContent any?
 ---@field relativePosition any? util.vector2
 ---@field position any? util.vector2
@@ -115,6 +130,7 @@ end)
 ---@field parentScrollBoxUserData table?
 ---@field updateFunc fun()
 ---@field thisElementInContent any
+---@field useDefaultBtnTemplate boolean?
 
 ---@param params questGuider.ui.button.params
 return function (params)
@@ -167,7 +183,7 @@ return function (params)
 
     local layout
     layout = {
-        template = templates.boxSolidThick,
+        template = params.useDefaultBtnTemplate and templates.boxSolidThick or templates.btnBoxSolidThick,
         props = {
             propagateEvents = false,
             relativePosition = params.relativePosition,

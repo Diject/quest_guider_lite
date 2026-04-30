@@ -16,10 +16,12 @@ local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataH
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 
-local playerQuests = require('scripts.quest_guider_lite.playerQuests')
+local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 
 local log = require("scripts.quest_guider_lite.utils.log")
+
+local trackingElementLib = require("scripts.quest_guider_lite.ui.customJournal.objectTrackingElem")
 
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -93,237 +95,6 @@ function nextStagesMeta._fill(self, nextBtnsMeta)
 
     ---@type table<string, questGuider.quest.getRequirementPositionData.returnData>
     local objectPositions = nextStageData.objectPositions
-
-
-    ---@param requirements questGuider.quest.getDescriptionDataFromBlock.returnArr[]
-    local function addObjectPositionInfo(content, requirements, diaId, diaIndex)
-        ---@type table<string, {id : string, name : string, descr : string, descrBackward : string, positions : questGuider.quest.getRequirementPositionData.positionData[]}>
-        local objectPosInfo = {}
-        for _, req in pairs(requirements) do
-            for objId, posDt in pairs(req.positionData or {}) do
-                if objectPosInfo[objId] or consts.forbiddenForTracking[posDt.reqType or ""] then goto continue end
-
-                local positionData = objectPositions[objId]
-                if not positionData then goto continue end
-
-                ---@param pos questGuider.quest.getRequirementPositionData.positionData
-                for _, pos in pairs(tableLib.getFirst(positionData.positions, 1)) do
-                    local descr, descrBck = stringLib.getPathToPosition(pos)
-
-                    objectPosInfo[objId] = {
-                        id = objId,
-                        descr = descr or "",
-                        descrBackward = descrBck or descr or "",
-                        name = positionData.name or "???",
-                        positions = positionData.positions,
-                    }
-                end
-
-                ::continue::
-            end
-        end
-
-        objectPosInfo = tableLib.values(objectPosInfo, function (a, b)
-            return a.name < b.name
-        end)
-
-        for _, objData in pairs(objectPosInfo) do
-            local objId = objData.id
-            local trackingData = tracking.markerByObjectId[objId]
-
-            local objectColor = config.data.ui.defaultColor
-            if trackingData then
-                if trackingData.color then
-                    objectColor = util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
-                end
-            end
-
-            local header
-            header = {
-                type = ui.TYPE.Widget,
-                props = {
-                    size = util.vector2(self.params.size.x, params.fontSize * 1.2)
-                },
-                content = ui.content {
-                    {
-                        type = ui.TYPE.Flex,
-                        props = {
-                            autoSize = true,
-                            horizontal = true,
-                            anchor = util.vector2(0, 0),
-                        },
-                        content = ui.content {
-                            {
-                                type = ui.TYPE.Text,
-                                props = {
-                                    text = objData.name,
-                                    autoSize = true,
-                                    textSize = (self.params.fontSize or 18) * 1.2,
-                                    multiline = false,
-                                    wordWrap = false,
-                                    textColor = tracking.getDisabledState{objectId = objId, questId = diaId} and config.data.ui.disabledColor or objectColor,
-                                },
-                            },
-                        }
-                    },
-                    {
-                        type = ui.TYPE.Flex,
-                        props = {
-                            autoSize = true,
-                            horizontal = true,
-                            anchor = util.vector2(1, 0),
-                            position = util.vector2(self.params.size.x - config.data.ui.scrollArrowSize - 8, 0),
-                            arrange = ui.ALIGNMENT.Center,
-                        },
-                        content = ui.content {
-                            button{
-                                updateFunc = self.update,
-                                text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and l10n("untrack") or l10n("track"),
-                                textSize = (self.params.fontSize or 18) * 0.8,
-                                visible = tracking.initialized and not params.hideTrackButtons,
-                                anchor = util.vector2(0, 0.5),
-                                parentScrollBoxUserData = self.params.parentScrollBoxUserData,
-                                event = function (layout)
-                                    local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
-                                    if trackedState then
-                                        tracking.removeMarker{objectId = objId, questId = diaId}
-                                        tracking.updateMarkers()
-                                        playerRef:sendEvent("QGL:updateQuestMenu", {})
-                                    else
-                                        tracking.trackObject{diaId = diaId, objectId = objId, index = diaIndex}
-                                    end
-                                    async:newUnsavableSimulationTimer(0.1, function ()
-                                        tracking.updateTemporaryMarkers()
-                                    end)
-
-                                    ---@type questGuider.ui.buttonMeta
-                                    local btnMeta = layout.userData.meta
-                                    local btn = btnMeta:getButtonTextElement()
-                                    if btn then
-                                        btn.props.text = not trackedState and l10n("untrack") or l10n("track")
-                                        if I.proximityTool then
-                                            I.proximityTool.newRealTimer(0.25, function ()
-                                                pcall(function ()
-                                                    local showHideBtn = header.content[2].content[3]
-                                                    ---@type questGuider.ui.buttonMeta
-                                                    local showHideBtnMeta = showHideBtn.userData.meta
-                                                    local btn = showHideBtnMeta:getButtonTextElement()
-                                                    ---@diagnostic disable-next-line: need-check-nil
-                                                    btn.props.text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide")
-                                                    ---@diagnostic disable-next-line: need-check-nil
-                                                    showHideBtn.props.visible = tracking.isObjectTracked{diaId = diaId, objectId = objId}
-                                                    self:updateObjectElements()
-                                                    self:update()
-                                                end)
-                                            end)
-                                        end
-                                    end
-                                    self:updateObjectElements()
-                                end
-                            },
-                            interval((self.params.fontSize or 18) * 2, (self.params.fontSize or 18) + 8),
-                            button{
-                                updateFunc = self.update,
-                                text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
-                                textSize = (self.params.fontSize or 18) * 0.8,
-                                visible = tracking.initialized and not params.hideTrackButtons and tracking.isObjectTracked{diaId = diaId, objectId = objId},
-                                anchor = util.vector2(0, 0.5),
-                                parentScrollBoxUserData = self.params.parentScrollBoxUserData,
-                                event = function (layout)
-                                    local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
-                                    disabledState = not disabledState
-
-                                    tracking.setDisableMarkerState{
-                                        objectId = objId,
-                                        questId = diaId,
-                                        value = disabledState,
-                                        isUserDisabled = true,
-                                    }
-                                    tracking.updateTemporaryMarkers()
-                                    tracking.updateMarkers()
-
-                                    ---@type questGuider.ui.buttonMeta
-                                    local btnMeta = layout.userData.meta
-                                    local btn = btnMeta:getButtonTextElement()
-                                    if btn then
-                                        btn.props.text = disabledState and l10n("show") or l10n("hide")
-                                    end
-
-                                    self:updateObjectElements()
-                                end
-                            },
-                            interval((self.params.fontSize or 18) * 2, 0),
-                            {
-                                type = ui.TYPE.Text,
-                                props = {
-                                    text = l10n("closestColon"),
-                                    textColor = config.data.ui.defaultColor,
-                                    autoSize = true,
-                                    textSize = (self.params.fontSize or 18) * 0.8,
-                                    anchor = util.vector2(0, 0.5),
-                                    textAlignH = ui.ALIGNMENT.End,
-                                    multiline = false,
-                                    wordWrap = false,
-                                },
-                            },
-                        }
-                    },
-                }
-            }
-
-            if playerDataHandler.isMapImageExists() and objData.positions and next(objData.positions)
-                    and mapMenu.isValidMapPositionsExist(objData.positions) then
-                header.content[2].content:insert(5, button{
-                    updateFunc = self.update,
-                    text = l10n("map"),
-                    textSize = (self.params.fontSize or 18) * 0.8,
-                    anchor = util.vector2(0, 0.5),
-                    parentScrollBoxUserData = self.params.parentScrollBoxUserData,
-                    event = function (layout)
-                        playerRef:sendEvent("QGL:showSimpleMap", {positions = objData.positions})
-                    end
-                })
-                header.content[2].content:insert(6, interval((self.params.fontSize or 18) * 2, 0))
-            end
-
-            local posTextShift = self.params.fontSize / 2
-            local posHeight = uiUtils.getTextHeight(objData.descr, self.params.fontSize, self.params.size.x - posTextShift, config.data.journal.textHeightMulRecord)
-            local position = {
-                type = ui.TYPE.Text,
-                props = {
-                    text = objData.descr,
-                    textColor = config.data.ui.defaultColor,
-                    autoSize = false,
-                    textSize = self.params.fontSize or 18,
-                    size = util.vector2(
-                        self.params.size.x,
-                        posHeight
-                    ),
-                    multiline = true,
-                    wordWrap = true,
-                },
-            }
-
-            content:add{
-                type = ui.TYPE.Flex,
-                props = {
-                    autoSize = true,
-                    horizontal = false,
-                },
-                userData = {
-                    objectId = objId,
-                    diaId = diaId,
-                    -- positions = objData.positions,
-                },
-                content = ui.content {
-                    header,
-                    interval(self.params.fontSize / 2),
-                    position,
-                }
-            }
-            content:add(interval(0, math.floor(self.params.fontSize / 2)))
-        end
-    end
 
     ---@param requirements questGuider.quest.getDescriptionDataFromBlock.returnArr[]
     local function addRequirements(content, requirements)
@@ -450,7 +221,19 @@ function nextStagesMeta._fill(self, nextBtnsMeta)
                                         btn.props.textColor = config.data.ui.selectionColor
                                     end
 
-                                    addObjectPositionInfo(posFlex.content, reqs, diaId, nextData.index)
+                                    trackingElementLib.addObjectPositionInfo(posFlex.content, {
+                                        diaId = diaId,
+                                        diaIndex = nextData.index,
+                                        reqs = reqs,
+                                        objPoss = nextStageData.objectPositions,
+                                        width = self.params.size.x,
+                                        fontSize = config.data.ui.fontSize,
+                                        parentScrollBoxUserData = self.params.parentScrollBoxUserData,
+                                        hideTrackButtons = self.params.hideTrackButtons,
+                                        parentContent = self:getLayout().content,
+                                        updateFunc = self.update
+                                    })
+
                                     addRequirements(reqFlex.content, reqs)
 
                                     params.updateHeightFunc()

@@ -56,6 +56,8 @@ local this = {}
 ---@field disabled boolean?
 ---@field finished boolean?
 ---@field pinned boolean?
+---@field started boolean? -- only for generated data
+---@field generated boolean? -- only for generated data
 ---@field timestamp number?
 ---@field globalTime number?
 ---@field list questGuider.playerQuest.storageQuestInfo[]
@@ -285,6 +287,8 @@ function this.generateStorageQuestDataByDiaIdList(list)
                 disabled = plData and plData.disabled,
                 finished = plData and plData.finished,
                 pinned = plData and plData.pinned,
+                started = plData and true or false,
+                generated = not plData and true or false,
             }
             res[qName] = storDt
         end
@@ -551,7 +555,7 @@ function this.getAndUpdateJournalQuestData(qName)
 
         ::continue::
     end
--- require("scripts.quest_guider_lite.utils.log")(storData)
+
     return storData, texts
 end
 
