@@ -2,6 +2,8 @@
 
 -- Note: When the data is ready to use, the global event "QGL:Interop:DataReady" will be triggered
 
+-- This annotations are deprecated!!!
+
 ---@class QuestGuiderLite
 ---@field version integer
 ---@field getQuestsData fun() : questDataGenerator.quests

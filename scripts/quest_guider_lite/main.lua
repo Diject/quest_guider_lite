@@ -10,6 +10,7 @@ local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 
 local log = require("scripts.quest_guider_lite.utils.log")
 local dataHandler = require("scripts.quest_guider_lite.storage.dataHandler")
+local questBase = require("scripts.quest_guider_lite.questBase")
 local questLib = require("scripts.quest_guider_lite.quest")
 local testing = require("scripts.quest_guider_lite.testing.tests")
 local questGivers = require("scripts.quest_guider_lite.questGiverTracking")
@@ -539,6 +540,7 @@ return {
         getLocalVarialesData = function ()
             return dataHandler.localVariablesByScriptId or {}
         end,
+        questBaseLib = questBase,
         questLib = questLib,
         requirementChecker = requirementChecker,
         types = require("scripts.quest_guider_lite.types"),
