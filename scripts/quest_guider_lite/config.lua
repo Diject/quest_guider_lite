@@ -6,6 +6,8 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 
 local this = {}
 
+this.inputSectionVersion = 1
+
 ---@class questGuider.config
 this.default = {
     tracking = {
@@ -95,18 +97,26 @@ this.default = {
         tooltipDelay = 1, -- local
     },
     input = {
+        version = nil,
         gamepadJournalScroll = true,
         keys = {
             allQuestsMenu = "LeftShift + LeftCtrl + H", -- global
             topicMenu = nil, -- global
             trackingMenu = nil, -- global
             toggleMarkersVisibility = nil, -- global
-            nextQuest = "C_RightShoulder",
-            previousQuest = "C_LeftShoulder",
-            trackObjects = nil,
-            untrackObjects = nil,
-            toggleTrackObjects = "C_X",
+            nextQuest = "C_DPadDown",
+            previousQuest = "C_DPadUp",
+            trackObjects = nil, -- deprecated
+            untrackObjects = nil, -- deprecated
+            toggleTrackObjects = "C_X","C_LeftShoulder",
             toggleTopTopics = "C_Y",
+            topicMenuLocal = "C_RightShoulder", -- local
+            nearbyMenuLocal = "C_LeftShoulder", -- local
+            toggleTracking = "C_DPadRight", -- local
+            toggleFinishedHidden = "C_DPadLeft", -- local
+            toggleStartedHidden = "C_DPadLeft", -- local
+            toggleNearby = nil, -- local
+            toggleAllEntries = nil, -- local
         },
         initialized = false,
     },
@@ -115,6 +125,27 @@ this.default = {
 
 ---@class questGuider.config
 this.data = tableLib.deepcopy(this.default)
+
+
+this.keyToTriggerMap = {
+    ["input.keys.allQuestsMenu"] = commonData.allQuestsTriggerId,
+    ["input.keys.topicMenu"] = commonData.topicMenuTriggerId,
+    ["input.keys.trackingMenu"] = commonData.trackingMenuTriggerId,
+    ["input.keys.toggleMarkersVisibility"] = commonData.toggleMarkersTriggerId,
+    ["input.keys.nextQuest"] = commonData.nextQuestTriggerId,
+    ["input.keys.previousQuest"] = commonData.previousQuestTriggerId,
+    ["input.keys.trackObjects"] = commonData.trackObjectsTriggerId, -- deprecated
+    ["input.keys.untrackObjects"] = commonData.untrackObjectsTriggerId, -- deprecated
+    ["input.keys.toggleTrackObjects"] = commonData.toggleTrackObjectsTriggerId,
+    ["input.keys.toggleTopTopics"] = commonData.toggleTopTopicsTriggerId,
+    ["input.keys.topicMenuLocal"] = commonData.topicMenuLocalTriggerId,
+    ["input.keys.nearbyMenuLocal"] = commonData.nearbyMenuLocalTriggerId,
+    ["input.keys.toggleTracking"] = commonData.toggleTrackingTriggerId,
+    ["input.keys.toggleFinishedHidden"] = commonData.toggleFinishedHiddenTriggerId,
+    ["input.keys.toggleStartedHidden"] = commonData.toggleStartedHiddenTriggerId,
+    ["input.keys.toggleNearby"] = commonData.toggleNearbyTriggerId,
+    ["input.keys.toggleAllEntries"] = commonData.toggleAllEntriesTriggerId,
+}
 
 
 function this.getTrackingConfigData()

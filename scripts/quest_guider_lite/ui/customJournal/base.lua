@@ -1501,6 +1501,50 @@ local function create(params)
         meta:update()
     end
 
+    meta.toggleTopCheckboxes = function (self)
+        ---@type questGuider.ui.checkBox
+        local cb1Meta = checkBoxes.content[1].userData.meta
+        ---@type questGuider.ui.checkBox
+        local cb2Meta = checkBoxes.content[3].userData.meta
+
+        local checked = cb1Meta:getChecked() or cb2Meta:getChecked() or false
+
+        cb1Meta:setChecked(not checked)
+        cb2Meta:setChecked(not checked)
+
+        meta:update()
+    end
+
+    meta.toggleNearbyCheckbox = function (self)
+        if checkBoxesSecondLine.type ~= ui.TYPE.Flex then return end
+        ---@type questGuider.ui.checkBox
+        local cbMeta = checkBoxesSecondLine.content[3].userData.meta
+        if not cbMeta then return end
+
+        cbMeta:setChecked(not cbMeta:getChecked())
+        meta:update()
+    end
+
+    meta.toggleAllEntriesCheckbox = function (self)
+        if checkBoxesSecondLine.type ~= ui.TYPE.Flex then return end
+        ---@type questGuider.ui.checkBox
+        local cbMeta = checkBoxesSecondLine.content[1].userData.meta
+        if not cbMeta then return end
+
+        cbMeta:setChecked(not cbMeta:getChecked())
+        meta:update()
+    end
+
+    meta.toggleQuestObjectsBtn = function (self)
+        local qInfoScrollBox = self:getQuestScrollBox()
+        if not qInfoScrollBox or not qInfoScrollBox.userData or not qInfoScrollBox.userData.questBoxMeta then return end
+
+        ---@class questGuider.ui.questBoxMeta
+        local qb = qInfoScrollBox.userData.questBoxMeta
+        qb:toggleQuestObjectsBtn()
+        meta:update()
+    end
+
 
     if params.menuId == commonData.journalMenuId then
         local lastQName = localStorage.data.lastSelectedQuest

@@ -43,7 +43,7 @@ return function(params)
     ---@class questGuider.ui.checkBox
     local meta = setmetatable({}, {})
 
-    local contentData = {
+    local layout = {
         type = ui.TYPE.Flex,
         props = {
             autoSize = true,
@@ -128,9 +128,9 @@ return function(params)
     }
 
     if params.text then
-        contentData.content:add(interval(4, 4))
+        layout.content:add(interval(4, 4))
 
-        contentData.content:add({
+        layout.content:add({
             type = ui.TYPE.Text,
             props = {
                 text = params.text or "",
@@ -148,20 +148,24 @@ return function(params)
     end
 
     meta.getChecked = function(self)
-        return contentData.userData.checked
+        return layout.userData.checked
     end
 
     meta.setChecked = function(self, checked)
-        contentData.userData.checked = checked
+        layout.userData.checked = checked
 
-        if contentData.userData.checked then
-            contentData.content[1].content[1].props.alpha = 1
+        if layout.userData.checked then
+            layout.content[1].content[1].props.alpha = 1
         else
-            contentData.content[1].content[1].props.alpha = 0
+            layout.content[1].content[1].props.alpha = 0
+        end
+
+        if params.event then
+            params.event(checked, layout)
         end
 
         params.updateFunc()
     end
 
-    return contentData
+    return layout
 end

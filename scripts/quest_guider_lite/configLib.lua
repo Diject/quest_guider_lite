@@ -1,6 +1,7 @@
 local storage = require('openmw.storage')
 local async = require('openmw.async')
 local core = require("openmw.core")
+local I = require("openmw.interfaces")
 
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local commonData = require("scripts.quest_guider_lite.common")
@@ -15,6 +16,7 @@ this.storageSections = {
     storage.playerSection(commonData.configJournalSectionName),
     storage.playerSection(commonData.configUISectionName),
     storage.playerSection(commonData.configTrackingSectionName),
+    storage.playerSection(commonData.configInputSectionName),
 }
 
 
@@ -39,6 +41,10 @@ for _, section in pairs(this.storageSections) do
                 res = value
             end
             tableLib.setValueByPath(this.data, key, res)
+
+            if key == "journal.menuKey" then
+                I.DijectKeyBindings.registerKey(commonData.journalMenuTriggerId, value)
+            end
         else
             this.loadFromStorage(section)
         end

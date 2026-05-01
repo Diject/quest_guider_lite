@@ -3,6 +3,7 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local input = require('openmw.input')
 local storage = require('openmw.storage')
+local async = require("openmw.async")
 
 local config = require("scripts.quest_guider_lite.config")
 local commonData = require("scripts.quest_guider_lite.common")
@@ -154,13 +155,18 @@ local function color(args)
 end
 
 
+local inputSettingsSection = storage.playerSection(commonData.configInputSectionName)
+
+
 -- This code registers key bindings. It also contains some code to migrate old keybindings to the new system.
 local res, err = pcall(function()
+    -- Deprecated keys
+    I.DijectKeyBindings.registerKey(commonData.trackObjectsTriggerId, nil)
+    I.DijectKeyBindings.registerKey(commonData.untrackObjectsTriggerId, nil)
+
     local bindingSection = storage.playerSection("OMWInputBindings")
 
-    local inputModSettings = storage.playerSection(commonData.configInputSectionName)
-
-    local initialized = inputModSettings:get("input.initialized")
+    local initialized = inputSettingsSection:get("input.initialized")
     if initialized then return end
 
     local binds = bindingSection:asTable()
@@ -205,7 +211,7 @@ local res, err = pcall(function()
     if toggleTrackingKey ~= nil then
         bindingSection:set(toggleTrackingSectionId, nil)
         I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, toggleTrackingKey)
-        inputModSettings:set("input.keys.toggleMarkersVisibility", toggleTrackingKey)
+        inputSettingsSection:set("input.keys.toggleMarkersVisibility", toggleTrackingKey)
         trackingModSettings:set("tracking.toggleVisibilityKey", nil)
     end
 
@@ -213,8 +219,6 @@ local res, err = pcall(function()
     I.DijectKeyBindings.registerKey(commonData.nextQuestTriggerId, config.default.input.keys.nextQuest)
     I.DijectKeyBindings.registerKey(commonData.previousQuestTriggerId, config.default.input.keys.previousQuest)
     I.DijectKeyBindings.registerKey(commonData.toggleTrackObjectsTriggerId, config.default.input.keys.toggleTrackObjects)
-    I.DijectKeyBindings.registerKey(commonData.trackObjectsTriggerId, config.default.input.keys.trackObjects)
-    I.DijectKeyBindings.registerKey(commonData.untrackObjectsTriggerId, config.default.input.keys.untrackObjects)
     I.DijectKeyBindings.registerKey(commonData.toggleTopTopicsTriggerId, config.default.input.keys.toggleTopTopics)
 
     if not journalMenuKey then
@@ -223,11 +227,43 @@ local res, err = pcall(function()
         I.DijectKeyBindings.registerKey(commonData.toggleMarkersTriggerId, config.default.input.keys.toggleMarkersVisibility)
     end
 
-    inputModSettings:set("input.initialized", true)
+    inputSettingsSection:set("input.initialized", true)
 end)
 if not res then
     print(err)
 end
+
+
+local inputVersion = inputSettingsSection:get("input.version")
+if inputVersion ~= config.inputSectionVersion then
+    if inputVersion == nil then
+        I.DijectKeyBindings.registerKey(commonData.previousQuestTriggerId, config.default.input.keys.previousQuest)
+        I.DijectKeyBindings.registerKey(commonData.nextQuestTriggerId, config.default.input.keys.nextQuest)
+        I.DijectKeyBindings.registerKey(commonData.toggleTrackingTriggerId, config.default.input.keys.toggleTracking)
+        I.DijectKeyBindings.registerKey(commonData.toggleFinishedHiddenTriggerId, config.default.input.keys.toggleFinishedHidden)
+        I.DijectKeyBindings.registerKey(commonData.toggleStartedHiddenTriggerId, config.default.input.keys.toggleStartedHidden)
+        I.DijectKeyBindings.registerKey(commonData.toggleNearbyTriggerId, config.default.input.keys.toggleNearby)
+        I.DijectKeyBindings.registerKey(commonData.toggleAllEntriesTriggerId, config.default.input.keys.toggleAllEntries)
+
+        I.DijectKeyBindings.registerKey(commonData.nearbyMenuLocalTriggerId, config.default.input.keys.nearbyMenuLocal)
+        I.DijectKeyBindings.registerKey(commonData.topicMenuLocalTriggerId, config.default.input.keys.topicMenuLocal)
+    end
+    inputSettingsSection:set("input.version", config.inputSectionVersion)
+end
+
+
+local function registerHotkeyListener()
+    if not I.DijectKeyBindings then return end
+
+    inputSettingsSection:subscribe(async:callback(function(s, key)
+        local trigger = config.keyToTriggerMap[key]
+        if key and config.keyToTriggerMap[key] then
+            local value = inputSettingsSection:get(key)
+            I.DijectKeyBindings.registerKey(trigger, value)
+        end
+    end))
+end
+registerHotkeyListener()
 
 
 I.Settings.registerGroup{
@@ -324,10 +360,17 @@ I.Settings.registerGroup{
         boolSetting{key = "input.gamepadJournalScroll", name = "gamepadJournalScroll", description = "gamepadJournalScrollDescription", default = config.default.input.gamepadJournalScroll},
         inputKey{key = "input.keys.previousQuest", name = "previousQuestKey", description = "previousQuestKeyDescription", action = commonData.previousQuestTriggerId, default = config.default.input.keys.previousQuest},
         inputKey{key = "input.keys.nextQuest", name = "nextQuestKey", description = "nextQuestKeyDescription", action = commonData.nextQuestTriggerId, default = config.default.input.keys.nextQuest},
+        inputKey{key = "input.keys.topicMenuLocal", name = "topicMenuLocalKey", description = "topicMenuLocalKeyDescription", action = commonData.topicMenuLocalTriggerId, default = config.default.input.keys.topicMenuLocal},
+        inputKey{key = "input.keys.nearbyMenuLocal", name = "nearbyMenuLocalKey", description = "nearbyMenuLocalKeyDescription", action = commonData.nearbyMenuLocalTriggerId, default = config.default.input.keys.nearbyMenuLocal},
         inputKey{key = "input.keys.toggleTrackObjects", name = "toggleTrackObjectsKey", description = "toggleTrackObjectsKeyDescription", action = commonData.toggleTrackObjectsTriggerId, default = config.default.input.keys.toggleTrackObjects},
-        inputKey{key = "input.keys.trackObjects", name = "trackObjectsKey", description = "trackObjectsKeyDescription", action = commonData.trackObjectsTriggerId, default = config.default.input.keys.trackObjects},
-        inputKey{key = "input.keys.untrackObjects", name = "untrackObjectsKey", description = "untrackObjectsKeyDescription", action = commonData.untrackObjectsTriggerId, default = config.default.input.keys.untrackObjects},
+        -- inputKey{key = "input.keys.trackObjects", name = "trackObjectsKey", description = "trackObjectsKeyDescription", action = commonData.trackObjectsTriggerId, default = config.default.input.keys.trackObjects},
+        -- inputKey{key = "input.keys.untrackObjects", name = "untrackObjectsKey", description = "untrackObjectsKeyDescription", action = commonData.untrackObjectsTriggerId, default = config.default.input.keys.untrackObjects},
         inputKey{key = "input.keys.toggleTopTopics", name = "toggleTopTopicsKey", description = "toggleTopTopicsKeyDescription", action = commonData.toggleTopTopicsTriggerId, default = config.default.input.keys.toggleTopTopics},
+        inputKey{key = "input.keys.toggleTracking", name = "toggleTrackingKey", description = "toggleTrackingKeyDescription", action = commonData.toggleTrackingTriggerId, default = config.default.input.keys.toggleTracking},
+        inputKey{key = "input.keys.toggleFinishedHidden", name = "toggleFinishedHiddenKey", description = "toggleFinishedHiddenKeyDescription", action = commonData.toggleFinishedHiddenTriggerId, default = config.default.input.keys.toggleFinishedHidden},
+        inputKey{key = "input.keys.toggleStartedHidden", name = "toggleStartedHiddenKey", description = "toggleStartedHiddenKeyDescription", action = commonData.toggleStartedHiddenTriggerId, default = config.default.input.keys.toggleStartedHidden},
+        inputKey{key = "input.keys.toggleNearby", name = "toggleNearbyKey", description = "toggleNearbyKeyDescription", action = commonData.toggleNearbyTriggerId, default = config.default.input.keys.toggleNearby},
+        inputKey{key = "input.keys.toggleAllEntries", name = "toggleAllEntriesKey", description = "toggleAllEntriesKeyDescription", action = commonData.toggleAllEntriesTriggerId, default = config.default.input.keys.toggleAllEntries},
     }
 }
 

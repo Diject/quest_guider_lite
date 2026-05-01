@@ -1020,6 +1020,20 @@ function this.create(params)
 
     meta:_fillJournal(meta.content, params)
 
+
+    meta.toggleQuestObjectsBtn = function (self)
+        local ss, btnLayout = pcall(function ()
+            return meta.content["TR_Objects_Flex"].content[1].content[1]
+        end)
+        if not ss or not btnLayout then return end
+
+        ---@type questGuider.ui.buttonMeta
+        local btnMeta = btnLayout.userData.meta
+        if btnMeta.params.event then
+            btnMeta.params.event(btnLayout)
+        end
+    end
+
     return journalEntries
 end
 

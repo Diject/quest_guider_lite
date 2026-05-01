@@ -326,8 +326,9 @@ local function buildTrackingMenu()
 end
 
 
-local function buildMainQuestMenu()
-    return createQuestMenu{
+local function buildMainQuestMenu(nearbyMode)
+    ---@type questGuider.ui.customJournal.params
+    local params = {
         fontSize = config.data.ui.fontSize,
         sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
         relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
@@ -342,6 +343,28 @@ local function buildMainQuestMenu()
             menuHandler.registerMenu(commonData.trackingMenuId, buildTrackingMenu())
         end,
     }
+    if nearbyMode then
+        local dialogues = {}
+        for qName, dt in pairs(playerQuests.questData) do
+            for diaId, _ in pairs(dt.records) do
+                table.insert(dialogues, diaId)
+            end
+        end
+
+        params.headerName = l10n("nearby")
+        params.menuId = commonData.allQuestsMenuId
+        params.questList = dialogues
+        params.isQuestList = true
+        params.showReqsForAll = false
+        params.showReqDiaEntryText = true
+        params.allQuestsMode = true
+        params.nearbyModeDefault = true
+        params.allEntriesDefault = false
+        params.hideStageText = true
+        params.showOnlyMainDia = true
+    end
+
+    return createQuestMenu(params)
 end
 
 
@@ -502,15 +525,37 @@ I.DijectKeyBindings.action.register(commonData.toggleMarkersTriggerId, function(
 end)
 
 
+local function closeTopMenu()
+    local closed = false
+    if menuHandler.getMenu(commonData.trackingMenuId) then
+        closed = true
+        menuHandler.destroyMenu(commonData.trackingMenuId)
+    end
+    if menuHandler.getMenu(commonData.topicsMenuId) then
+        closed = true
+        menuHandler.destroyMenu(commonData.topicsMenuId)
+    end
+
+    if closed then
+        if menuHandler.hasActiveMenus() then
+            menuHandler.activateMenuMode()
+        end
+
+        return
+    end
+    menuHandler.destroyAllMenus()
+end
+
+
 local function onKeyPress(key)
     if key.code == input.KEY.Escape then
-        menuHandler.destroyAllMenus()
+        closeTopMenu()
     end
 end
 
 local function onControllerButtonPress(button)
     if button == input.CONTROLLER_BUTTON.B then
-        menuHandler.destroyAllMenus()
+        closeTopMenu()
     end
 end
 
@@ -603,28 +648,6 @@ do
         mainMenu:toggleTrackObjects()
     end
 
-    local function trackObjects()
-        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
-            return
-        end
-
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
-        if not mainMenu then return end
-
-        mainMenu:trackObjects()
-    end
-
-    local function untrackObjects()
-        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
-            return
-        end
-
-        local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
-        if not mainMenu then return end
-
-        mainMenu:untrackObjects()
-    end
-
     local function toggleTopTopics()
         if menuHandler.getMenu(commonData.trackingMenuId) then
             return
@@ -642,23 +665,126 @@ do
         end
     end
 
+    local function toggleTopicMenuLocal()
+        if menuHandler.getMenu(commonData.trackingMenuId) then
+            return
+        end
+
+        local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
+        if topicMenu then
+            menuHandler.destroyMenu(commonData.topicsMenuId)
+            return
+        end
+
+        menuHandler.registerMenu(commonData.topicsMenuId, buildTopicMenu())
+    end
+
+    local function toggleNearbyMenuLocal()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
+            return
+        end
+
+        local nearbyMenu = menuHandler.getMenu(commonData.allQuestsMenuId)
+        if nearbyMenu then
+            menuHandler.registerMenu(commonData.journalMenuId, buildMainQuestMenu())
+            menuHandler.destroyMenu(commonData.allQuestsMenuId)
+            return
+        end
+
+        local journalMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if journalMenu then
+            menuHandler.registerMenu(commonData.allQuestsMenuId, buildMainQuestMenu(true))
+            menuHandler.destroyMenu(commonData.journalMenuId)
+            return
+        end
+    end
+
+    local function toggleFinishedHiddenJournl()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) or
+                menuHandler.getMenu(commonData.allQuestsMenuId) then
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleTopCheckboxes()
+    end
+
+    local function toggleFinishedHiddenNearby()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) or
+                menuHandler.getMenu(commonData.journalMenuId) then
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.allQuestsMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleTopCheckboxes()
+    end
+
+    local function toggleNearbyMode()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) or
+                menuHandler.getMenu(commonData.journalMenuId) then
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.allQuestsMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleNearbyCheckbox()
+    end
+
+    local function toggleAllEntriesMode()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) or
+                menuHandler.getMenu(commonData.journalMenuId) then
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.allQuestsMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleAllEntriesCheckbox()
+    end
+
+    local function toggleTrackingBtnInfo()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleQuestObjectsBtn()
+    end
+
     menuHandler.onMenuModeActivated = function ()
         I.DijectKeyBindings.action.register(commonData.nextQuestTriggerId, nextQ)
         I.DijectKeyBindings.action.register(commonData.previousQuestTriggerId, prevQ)
-        I.DijectKeyBindings.action.register(commonData.trackObjectsTriggerId, trackObjects)
-        I.DijectKeyBindings.action.register(commonData.untrackObjectsTriggerId, untrackObjects)
         I.DijectKeyBindings.action.register(commonData.toggleTrackObjectsTriggerId, toggleTrackObjects)
         I.DijectKeyBindings.action.register(commonData.toggleTopTopicsTriggerId, toggleTopTopics)
+        I.DijectKeyBindings.action.register(commonData.topicMenuLocalTriggerId, toggleTopicMenuLocal)
+        I.DijectKeyBindings.action.register(commonData.nearbyMenuLocalTriggerId, toggleNearbyMenuLocal)
+        I.DijectKeyBindings.action.register(commonData.toggleFinishedHiddenTriggerId, toggleFinishedHiddenJournl)
+        I.DijectKeyBindings.action.register(commonData.toggleStartedHiddenTriggerId, toggleFinishedHiddenNearby)
+        I.DijectKeyBindings.action.register(commonData.toggleNearbyTriggerId, toggleNearbyMode)
+        I.DijectKeyBindings.action.register(commonData.toggleAllEntriesTriggerId, toggleAllEntriesMode)
+        I.DijectKeyBindings.action.register(commonData.toggleTrackingTriggerId, toggleTrackingBtnInfo)
         gamepadJournalScrollEnabled = config.data.input.gamepadJournalScroll
     end
 
     menuHandler.onMenuModeDeactivated = function ()
         I.DijectKeyBindings.action.unregister(commonData.nextQuestTriggerId, nextQ)
         I.DijectKeyBindings.action.unregister(commonData.previousQuestTriggerId, prevQ)
-        I.DijectKeyBindings.action.unregister(commonData.trackObjectsTriggerId, trackObjects)
-        I.DijectKeyBindings.action.unregister(commonData.untrackObjectsTriggerId, untrackObjects)
         I.DijectKeyBindings.action.unregister(commonData.toggleTrackObjectsTriggerId, toggleTrackObjects)
         I.DijectKeyBindings.action.unregister(commonData.toggleTopTopicsTriggerId, toggleTopTopics)
+        I.DijectKeyBindings.action.unregister(commonData.topicMenuLocalTriggerId, toggleTopicMenuLocal)
+        I.DijectKeyBindings.action.unregister(commonData.nearbyMenuLocalTriggerId, toggleNearbyMenuLocal)
+        I.DijectKeyBindings.action.unregister(commonData.toggleFinishedHiddenTriggerId, toggleFinishedHiddenJournl)
+        I.DijectKeyBindings.action.unregister(commonData.toggleStartedHiddenTriggerId, toggleFinishedHiddenNearby)
+        I.DijectKeyBindings.action.unregister(commonData.toggleNearbyTriggerId, toggleNearbyMode)
+        I.DijectKeyBindings.action.unregister(commonData.toggleAllEntriesTriggerId, toggleAllEntriesMode)
+        I.DijectKeyBindings.action.unregister(commonData.toggleTrackingTriggerId, toggleTrackingBtnInfo)
         gamepadJournalScrollEnabled = false
     end
 end
