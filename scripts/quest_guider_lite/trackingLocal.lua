@@ -590,7 +590,7 @@ function this.addMarker(params)
 
             ---@type AdvWMap_tracking.TemplateData
             local dTemplate = {
-                path = common.mapMarkerPath,
+                path = common.mapMarkerDoorPath,
                 layer = "nonInteractive",
                 size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
                 anchor = util.vector2(0.5, 1),
@@ -1213,7 +1213,7 @@ function this.addMarkerForInteriorCellFromGlobal(data)
             modName = common.modName,
             version = 6,
             params = {
-                icon = common.doorMarkPath,
+                icon = common.hudDoorMarkPath,
                 scale = scale,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range * 3.28,
@@ -1272,7 +1272,7 @@ function this.createMarkersForExteriorDoor(ref)
             modName = common.modName,
             version = 6,
             params = {
-                icon = common.doorMarkPath,
+                icon = common.hudDoorMarkPath,
                 scale = scale,
                 raytracing = config.data.tracking.hudMarkers.rayTracing,
                 range = config.data.tracking.hudMarkers.range * 3.28,
