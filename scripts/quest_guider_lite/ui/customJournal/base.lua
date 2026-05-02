@@ -16,6 +16,7 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
+local keysModule = require("scripts.quest_guider_lite.input.keys")
 
 local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
@@ -1369,7 +1370,7 @@ local function create(params)
 
         if bottomTextLayout.props.alpha < 1 then
             bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
-        else
+        elseif time then
             decreaseBottomTextAlpha(time)
         end
         meta:update()
@@ -1386,6 +1387,12 @@ local function create(params)
         bottomTextLayout.content[1].props.text = text
         mainFlex.content[3] = bottomTextLayout
         bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
+    end
+
+
+    local keyInfo = keysModule.getJournalMenuHotkeyInfoStr(params.menuId == commonData.allQuestsMenuId)
+    if keyInfo then
+        meta:showInfoMessage(keyInfo, not keysModule.isGamepad and math.min(45, stringLib.length(keyInfo) * 0.25) or nil)
     end
 
 

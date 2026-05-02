@@ -29,6 +29,7 @@ local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local dateLib = require("scripts.quest_guider_lite.utils.date")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
+local keysModule = require("scripts.quest_guider_lite.input.keys")
 
 local menuMode = require("scripts.quest_guider_lite.ui.menuMode")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
@@ -551,12 +552,14 @@ end
 
 
 local function onKeyPress(key)
+    keysModule.isGamepad = false
     if key.code == input.KEY.Escape then
         closeTopMenu()
     end
 end
 
 local function onControllerButtonPress(button)
+    keysModule.isGamepad = true
     if button == input.CONTROLLER_BUTTON.B then
         closeTopMenu()
     end
