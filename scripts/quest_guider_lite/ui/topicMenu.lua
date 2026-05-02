@@ -15,6 +15,7 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
+local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
 
 local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -41,7 +42,7 @@ topicMenuMeta.menu = nil
 
 
 topicMenuMeta.getTopicList = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[3]
+    return self.menu.layout.content[2].content[1].content[1].content[4]
 end
 
 topicMenuMeta.getSearchBar = function (self)
@@ -496,13 +497,27 @@ function topicMenuMeta.fillTopicsContent(self)
 
     local topicData = playerQuests.getTopicList()
 
+    local sortFunc
+    if localStorage.data.alphabeticalCheckBox then
+        sortFunc = function (a, b)
+            return (stringLib.utf8_lower(a.id or "") < stringLib.utf8_lower(b.id or ""))
+        end
+    else
+        sortFunc = function (a, b)
+            local tmA = dialogueTime.getTimestamp(a.id)
+            local tmB = dialogueTime.getTimestamp(b.id)
+            if tmA ~= tmB then
+                return tmA > tmB
+            end
+            return (stringLib.utf8_lower(a.id or "") < stringLib.utf8_lower(b.id or ""))
+        end
+    end
+
     ---@type questGuider.PlayerJournalTopic[]
-    local sortedData = tableLib.values(topicData, function (a, b)
-        return (stringLib.utf8_lower(a.id or "") < stringLib.utf8_lower(b.id or ""))
-    end)
+    local sortedData = tableLib.values(topicData, sortFunc)
 
     local heightInList = 0
-    for _, dt in pairs(sortedData) do
+    for _, dt in ipairs(sortedData) do
 
         if self.textFilter ~= "" and not hasText(dt, self.textFilter) then
             goto continue
@@ -814,6 +829,36 @@ local function create(params)
     meta.textFilter = localStorage.data.topicMenuSearchText or ""
     searchBar.content[1].content[1].props.text = meta.textFilter
 
+    local alphabeticalCB = checkBox{
+        updateFunc = function ()
+            meta:update()
+        end,
+        checked = localStorage.data.alphabeticalCheckBox,
+        text = l10n("alphabeticalSort"),
+        anchor = util.vector2(0.5, 0.5),
+        textSize = params.fontSize or 18,
+        event = function (checked, layout)
+            localStorage.data.alphabeticalCheckBox = checked
+            meta:fillTopicsContent()
+            local selectedTopic = meta:getTopicListSelectedFladValue()
+            meta:selectTopic(selectedTopic)
+        end
+    }
+
+    local checkBoxes = {
+        type = ui.TYPE.Flex,
+        props = {
+            autoSize = false,
+            size = util.vector2(topictListSize.x, params.fontSize + 4),
+            horizontal = true,
+            arrange = ui.ALIGNMENT.Center,
+            align = ui.ALIGNMENT.Center,
+        },
+        content = ui.content {
+            alphabeticalCB,
+        }
+    }
+
     local nextPrevBlock = {
         type = ui.TYPE.Widget,
         props = {
@@ -851,7 +896,7 @@ local function create(params)
 
     local topicListBox = scrollBox{
         updateFunc = updateFunc,
-        size = util.vector2(topictListSize.x - 2, topictListSize.y - params.fontSize * 2.5 - 16),
+        size = util.vector2(topictListSize.x - 2, topictListSize.y - params.fontSize * 3.5 - 20),
         scrollAmount = params.size.y / 5,
         content = topicsContent,
         contentHeight = 0,
@@ -867,6 +912,7 @@ local function create(params)
         },
         content = ui.content {
             searchBar,
+            checkBoxes,
             nextPrevBlock,
             topicListBox,
         }
@@ -1120,6 +1166,15 @@ local function create(params)
         if not updateTextFunc then return end
 
         updateTextFunc(nil, true)
+    end
+
+
+    meta.toggleAlphabeticalCheckbox = function (self)
+        local cbMeta = alphabeticalCB.userData.meta
+        if not cbMeta then return end
+
+        cbMeta:setChecked(not cbMeta:getChecked())
+        meta:update()
     end
 
 

@@ -145,6 +145,8 @@ toggleNearbyKey: "Toggle nearby quests"
 toggleNearbyKeyDescription: "Key to toggle the display of nearby quests in the nearby/all quests menu."
 toggleAllEntriesKey: "Toggle all entries"
 toggleAllEntriesKeyDescription: "Key to toggle the display of all quest entries in the nearby/all quests menu."
+toggleAlphabeticalKey: "Toggle alphabetical sorting"
+toggleAlphabeticalKeyDescription: "Key to toggle the alphabetical sorting of dialogue topics in the topic menu."
 
 fuzzyTopicMatching: "Fuzzy topic matching"
 fuzzyTopicMatchingDescription: "When enabled, the mod will use fuzzy string matching to recognize topics in the quest text. This can help identify topics that are similar but not identical to the topic names, but may reduce performance and cause false positives."
@@ -214,6 +216,7 @@ dialogueDefaultActorName: "???"
 inactiveQuestsLabel: "Inactive:"
 stageDetailsBtn: "Details"
 journalTopicLoadingTimeWarning: "If the quest takes too long to load, disable the \"{setting}\" setting."
+alphabeticalSort: "Alphabetical"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."

@@ -25,6 +25,7 @@ local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 local questLib = require("scripts.quest_guider_lite.questBase")
 local configLib = require("scripts.quest_guider_lite.configLib")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
+local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local dateLib = require("scripts.quest_guider_lite.utils.date")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
@@ -125,6 +126,7 @@ local function onInit()
         localStorage.initPlayerStorage()
     end
     killCounter.initByStorageData(localStorage.data)
+    dialogueTime.init()
     tracking.init()
     playerQuests.init()
 end
@@ -141,6 +143,7 @@ end
 local function onLoad(data)
     localStorage.initPlayerStorage(data)
     killCounter.initByStorageData(localStorage.data)
+    dialogueTime.init()
     tracking.init()
     playerQuests.init()
     async:newUnsavableSimulationTimer(0.1, function ()
@@ -699,7 +702,7 @@ do
         end
     end
 
-    local function toggleFinishedHiddenJournl()
+    local function toggleFinishedHiddenJournal()
         if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) or
                 menuHandler.getMenu(commonData.allQuestsMenuId) then
             return
@@ -758,6 +761,17 @@ do
         mainMenu:toggleQuestObjectsBtn()
     end
 
+    local function toggleAlphabeticalMode()
+        if menuHandler.getMenu(commonData.trackingMenuId) then
+            return
+        end
+
+        local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
+        if not topicMenu then return end
+
+        topicMenu:toggleAlphabeticalCheckbox()
+    end
+
     menuHandler.onMenuModeActivated = function ()
         I.DijectKeyBindings.action.register(commonData.nextQuestTriggerId, nextQ)
         I.DijectKeyBindings.action.register(commonData.previousQuestTriggerId, prevQ)
@@ -765,11 +779,12 @@ do
         I.DijectKeyBindings.action.register(commonData.toggleTopTopicsTriggerId, toggleTopTopics)
         I.DijectKeyBindings.action.register(commonData.topicMenuLocalTriggerId, toggleTopicMenuLocal)
         I.DijectKeyBindings.action.register(commonData.nearbyMenuLocalTriggerId, toggleNearbyMenuLocal)
-        I.DijectKeyBindings.action.register(commonData.toggleFinishedHiddenTriggerId, toggleFinishedHiddenJournl)
+        I.DijectKeyBindings.action.register(commonData.toggleFinishedHiddenTriggerId, toggleFinishedHiddenJournal)
         I.DijectKeyBindings.action.register(commonData.toggleStartedHiddenTriggerId, toggleFinishedHiddenNearby)
         I.DijectKeyBindings.action.register(commonData.toggleNearbyTriggerId, toggleNearbyMode)
         I.DijectKeyBindings.action.register(commonData.toggleAllEntriesTriggerId, toggleAllEntriesMode)
         I.DijectKeyBindings.action.register(commonData.toggleTrackingTriggerId, toggleTrackingBtnInfo)
+        I.DijectKeyBindings.action.register(commonData.toggleAlphabeticalTriggerId, toggleAlphabeticalMode)
         gamepadJournalScrollEnabled = config.data.input.gamepadJournalScroll
     end
 
@@ -780,11 +795,12 @@ do
         I.DijectKeyBindings.action.unregister(commonData.toggleTopTopicsTriggerId, toggleTopTopics)
         I.DijectKeyBindings.action.unregister(commonData.topicMenuLocalTriggerId, toggleTopicMenuLocal)
         I.DijectKeyBindings.action.unregister(commonData.nearbyMenuLocalTriggerId, toggleNearbyMenuLocal)
-        I.DijectKeyBindings.action.unregister(commonData.toggleFinishedHiddenTriggerId, toggleFinishedHiddenJournl)
+        I.DijectKeyBindings.action.unregister(commonData.toggleFinishedHiddenTriggerId, toggleFinishedHiddenJournal)
         I.DijectKeyBindings.action.unregister(commonData.toggleStartedHiddenTriggerId, toggleFinishedHiddenNearby)
         I.DijectKeyBindings.action.unregister(commonData.toggleNearbyTriggerId, toggleNearbyMode)
         I.DijectKeyBindings.action.unregister(commonData.toggleAllEntriesTriggerId, toggleAllEntriesMode)
         I.DijectKeyBindings.action.unregister(commonData.toggleTrackingTriggerId, toggleTrackingBtnInfo)
+        I.DijectKeyBindings.action.unregister(commonData.toggleAlphabeticalTriggerId, toggleAlphabeticalMode)
         gamepadJournalScrollEnabled = false
     end
 end
@@ -874,6 +890,11 @@ return {
             if e.oldMode == "Loading" then
                 advWMapIntegration.removeInvalidDoorGiverMarkers()
             end
+        end,
+
+        DialogueResponse = function(e)
+            if e.type ~= "topic" then return end
+            dialogueTime.updateDialogue(e.recordId)
         end,
 
         ["QGL:addMarker"] = function(data)

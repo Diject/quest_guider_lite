@@ -117,6 +117,7 @@ this.default = {
             toggleStartedHidden = "C_DPadLeft", -- local
             toggleNearby = nil, -- local
             toggleAllEntries = nil, -- local
+            toggleAlphabetical = "C_DPadLeft", -- local
         },
         initialized = false,
     },
@@ -145,6 +146,7 @@ this.keyToTriggerMap = {
     ["input.keys.toggleStartedHidden"] = commonData.toggleStartedHiddenTriggerId,
     ["input.keys.toggleNearby"] = commonData.toggleNearbyTriggerId,
     ["input.keys.toggleAllEntries"] = commonData.toggleAllEntriesTriggerId,
+    ["input.keys.toggleAlphabetical"] = commonData.toggleAlphabeticalTriggerId,
 }
 
 
