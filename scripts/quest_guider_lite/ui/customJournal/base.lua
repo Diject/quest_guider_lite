@@ -182,7 +182,7 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
         core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", {
             data = questBoxMeta.dialogueInfo,
             menuId = self.params.menuId,
-            useCurrentIndex = (self.params.isQuestList or tracking.hasTrackedObjectsForQuestName(qName)) and true or false,
+            useCurrentIndex = not (self.params.isQuestList or tracking.hasTrackedObjectsForQuestName(qName)) and true or false,
             player = playerRef.object,
             requestId = questBoxMeta.requestId,
             config = config.getTrackingConfigData()

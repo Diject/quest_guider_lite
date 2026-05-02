@@ -1341,12 +1341,32 @@ function this.isObjectTracked(params)
 end
 
 
----@param params {diaId : string}
+---@param params {diaId : string, index: integer|string?}
 ---@return boolean
 function this.isDialogueHasTracked(params)
     local dia = this.trackedObjectsByDiaId[params.diaId]
     if not dia then return false end
     if not next(dia.objects) then return false end
+
+    if params.index then
+        local indexStr = tostring(params.index)
+
+        for objId, _ in pairs(dia.objects) do
+            local objData = this.markerByObjectId[objId]
+            if not objData then goto continue end
+
+            local markerData = objData.markers[params.diaId]
+            if not markerData then goto continue end
+
+            if tostring(markerData.index) == indexStr then
+                return true
+            end
+
+            ::continue::
+        end
+
+        return false
+    end
 
     return true
 end

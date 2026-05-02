@@ -769,6 +769,18 @@ function questBoxMeta._fillJournal(self, content, params)
         end
     end
 
+    -- add missing dialogues if they have tracked objects
+    for i, dt in pairs(playerQuestDataList) do
+        local id = dt.diaId..tostring(dt.index)
+        if not self.dialogueInfo[id] and tracking.isDialogueHasTracked{diaId = dt.diaId, index = dt.index} then
+            self.dialogueInfo[id] = {
+                diaId = dt.diaId,
+                index = dt.index,
+                contentIndex = 1000 + i, -- use a nonexistent index to filter these entries later
+            }
+        end
+    end
+
     local sb = self:getScrollBoxMeta()
     sb:calcContentHeight()
     sb:updateContent()

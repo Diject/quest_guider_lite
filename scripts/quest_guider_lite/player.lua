@@ -260,8 +260,10 @@ local function fillQuestBoxQuestInfo(params)
                 objectQuestDialogues[objId] = objDiaDt
             end
 
-            local element = scrollBoxContent[contentIndex]
-            if not element or not element.userData or not element.userData.detailsContent then goto continue end
+            if contentIndex >= 1000 then goto continue end
+
+            local success, element = pcall(function() return scrollBoxContent[contentIndex] end)
+            if not success or not element or not element.userData or not element.userData.detailsContent then goto continue end
 
             local isCurrentIndex = playerQuests.getCurrentIndex(dt.diaId, self) == dt.diaIndex
             local isValid = element.userData.isQuestList or isCurrentIndex
