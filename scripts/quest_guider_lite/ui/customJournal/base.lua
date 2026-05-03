@@ -175,6 +175,8 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
         return
     end
 
+    local playerHasQuest = playerQuests.getQuestStorageData(qName) or false
+
     local function requestData()
         ---@type questGuider.ui.questBoxMeta
         local questBoxMeta = self:getQuestScrollBox().userData.questBoxMeta
@@ -182,7 +184,7 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
         core.sendGlobalEvent("QGL:fillQuestBoxQuestInfo", {
             data = questBoxMeta.dialogueInfo,
             menuId = self.params.menuId,
-            useCurrentIndex = not (self.params.isQuestList or tracking.hasTrackedObjectsForQuestName(qName)) and true or false,
+            useCurrentIndex = self.params.isQuestList or self.params.menuId == commonData.journalMenuId and not playerHasQuest,
             player = playerRef.object,
             requestId = questBoxMeta.requestId,
             config = config.getTrackingConfigData()
@@ -190,7 +192,6 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
     end
 
     local function createQuestBox()
-        local playerHasQuest = playerQuests.getQuestStorageData(qName) or false
         qMainLay.content[2] = questBox.create{
             parent = self,
             fontSize = self.params.fontSize or 18,

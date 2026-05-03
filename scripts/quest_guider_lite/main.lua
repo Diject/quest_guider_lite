@@ -560,7 +560,12 @@ return {
         ---@param data questGuider.tracking.trackQuest.eventArgument
         ["QGL:trackQuest"] = function (data)
             local player = data.player or world.players[1]
-            local questNextIndexes, linkedIndexData, validLinked = questLib.getNextIndexes(data.questId, data.questId, data.index, data.params, player)
+            local questNextIndexes, linkedIndexData, validLinked
+            if not data.params.useCurrentIndex then
+                questNextIndexes, linkedIndexData, validLinked = questLib.getNextIndexes(data.questId, data.questId, data.index, data.params, player)
+            else
+                questNextIndexes = {data.index}
+            end
 
             local objects = {}
 

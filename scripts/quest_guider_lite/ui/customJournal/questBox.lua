@@ -19,6 +19,7 @@ local stringLib = require("scripts.quest_guider_lite.utils.string")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local getObject = require("scripts.quest_guider_lite.core.getObject")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
+local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
 
 local trackingElementLib = require("scripts.quest_guider_lite.ui.customJournal.objectTrackingElem")
 
@@ -122,7 +123,11 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             self:addTrackButtons(true)
 
             for _, info in pairs(self.questInfo) do
-                tracking.trackQuest(info.diaId, info.diaIndex, self.params.isQuestList)
+                tracking.trackQuest(info.diaId, info.diaIndex, {
+                        force = self.params.isQuestList,
+                        useCurrentIndex = self.params.isQuestList,
+                    }
+                )
             end
             async:newUnsavableSimulationTimer(0.1, function ()
                 tracking.updateTemporaryMarkers()
@@ -284,7 +289,12 @@ function questBoxMeta._fillJournal(self, content, params)
     end
     local topicList = tableLib.keys(topicData)
     table.sort(topicList, function (a, b)
-        return stringLib.length(a) > stringLib.length(b)
+        local tmA = dialogueTime.getTimestamp(a)
+        local tmB = dialogueTime.getTimestamp(b)
+        if tmA ~= tmB then
+            return tmA > tmB
+        end
+        return a < b
     end)
 
     local contentIndex = 2

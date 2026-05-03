@@ -1075,7 +1075,9 @@ function this.addMarkersForQuest(params)
 end
 
 
-function this.trackQuest(questId, index, force)
+---@param params {force: boolean, useCurrentIndex: boolean}?
+function this.trackQuest(questId, index, params)
+    if not params then params = {} end
     local shouldUpdate = false
 
     if this.removeMarker{ questId = questId } then
@@ -1087,7 +1089,7 @@ function this.trackQuest(questId, index, force)
     if isFinished then
         this.removeMarker{ questId = questId, removeLinked = true }
         this.updateMarkers()
-        if not force then
+        if not params.force then
             return
         end
     end
@@ -1096,9 +1098,13 @@ function this.trackQuest(questId, index, force)
     local dt = {
         questId = questId,
         index = index,
-        finished = isFinished and not force and true or false,
+        finished = isFinished and not params.force and true or false,
         shouldUpdate = shouldUpdate,
-        params = {findCompleted = force or false, findInLinked = true},
+        params = {
+            findCompleted = params.force or false,
+            findInLinked = true,
+            useCurrentIndex = params.useCurrentIndex
+        },
         player = playerRef.object,
         config = config.getTrackingConfigData(),
     }
