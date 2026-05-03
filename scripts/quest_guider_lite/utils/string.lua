@@ -533,4 +533,11 @@ function this.getAfterComma(str)
 end
 
 
+function this.replaceGameTags(str, replacements)
+    return (str:gsub("%%(%w+)", function(key)
+        return replacements[key] or ("%"..key)
+    end))
+end
+
+
 return this

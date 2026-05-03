@@ -33,9 +33,14 @@ local dialogueIDTooltipLib = require("scripts.quest_guider_lite.ui.dialogueIdToo
 
 local l10n = core.l10n(common.l10nKey)
 
-local playerName = "Player"
+local playerName = "PCName"
+local playerRace = "PCRace"
+local playerClass = "PCClass"
 pcall(function ()
-    playerName = getObject("player").name
+    local obj = getObject("player")
+    playerName = obj.name
+    playerRace = obj.race
+    playerClass = obj.class
 end)
 
 
@@ -363,7 +368,14 @@ function questBoxMeta._fillJournal(self, content, params)
                 actorsStrTags[tag] = table.concat(actorNamesArr, ", ")
                 table.insert(tt, string.format("%s: %s",
                         tag,
-                        string.gsub(stringLib.removeSpecialCharactersFromJournalText(t), "%%PCName", playerName)
+                        stringLib.replaceGameTags(
+                            stringLib.removeSpecialCharactersFromJournalText(t),
+                            {
+                                ["PCName"] = playerName,
+                                ["PCRace"] = playerRace,
+                                ["PCClass"] = playerClass,
+                            }
+                        )
                     )
                 )
             end
