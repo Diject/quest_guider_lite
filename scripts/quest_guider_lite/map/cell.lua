@@ -20,12 +20,12 @@ end
 ---@param data AdvancedWorldMap.DataHandler.EntranceData
 ---@return tes3cellData
 function this.getEntranceCellData(data)
-    local gridX = data.isEx and math.floor(data.dPos.x / 8192) or nil
-    local gridY = data.isEx and math.floor(data.dPos.y / 8192) or nil
+    local gridX = data.isEx and math.floor(data.pos.x / 8192) or nil
+    local gridY = data.isEx and math.floor(data.pos.y / 8192) or nil
     ---@type tes3cellData
     local out = {
         id = not data.isEx and data.cId or nil,
-        name = data.isEx and I.AdvancedWorldMap.getExteriorCellName(data.dPos) or I.AdvancedWorldMap.getCellNameById(data.cId) or "",
+        name = data.isEx and I.AdvancedWorldMap.getExteriorCellName(data.pos) or I.AdvancedWorldMap.getCellNameById(data.cId) or "",
         gridX = gridX,
         gridY = gridY,
         isExterior = data.isEx
@@ -139,7 +139,7 @@ function this.findExitPos(cellId, path, checked, cellPath, depth)
 
                     ---@diagnostic disable-next-line: undefined-field
                     if door then
-                        if drData.doorDt.dCId == drData.cId then ---@diagnostic disable-line: undefined-field
+                        if door.dCId == drData.cId then ---@diagnostic disable-line: undefined-field
                             drData.pos = door.pos or drData.marker.position
                         else
                             drData.pos = drData.marker.position
@@ -183,7 +183,7 @@ function this.findNearestDoor(position, cellId)
 
     ---@param doorDt AdvancedWorldMap.DataHandler.EntranceData
     local function checkDoor(doorDt)
-        local dist = (doorDt.dPos - position):length()
+        local dist = (doorDt.pos - position):length()
         if nearestdist > dist then
             nearestdist = dist
             nearestDoor = doorDt
