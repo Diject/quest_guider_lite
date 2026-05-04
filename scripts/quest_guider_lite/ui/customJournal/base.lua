@@ -710,11 +710,23 @@ local function create(params)
 
     meta.textFilter = ""
 
-    meta.nearbyMode = params.allQuestsMode and
-        (params.nearbyModeDefault ~= nil and params.nearbyModeDefault or localStorage.data.nearbyQuestsCheckBox) or false
+    meta.nearbyMode = false
+    if params.allQuestsMode then
+        if params.nearbyModeDefault ~= nil then
+            meta.nearbyMode = params.nearbyModeDefault
+        else
+            meta.nearbyMode = localStorage.data.nearbyQuestsCheckBox or false
+        end
+    end
 
-    meta.firstEntryMode = params.allQuestsMode and
-        (params.allEntriesDefault ~= nil and not params.allEntriesDefault or not localStorage.data.allEntriesCheckBox) or false
+    meta.firstEntryMode = false
+    if params.allQuestsMode then
+        if params.allEntriesDefault ~= nil then
+            meta.firstEntryMode = not params.allEntriesDefault
+        else
+            meta.firstEntryMode = not localStorage.data.allEntriesCheckBox
+        end
+    end
 
     meta.storageTypeQuestData = meta.params.allQuestsMode and meta.nearbyMode and {} or
         (params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList))
@@ -1563,6 +1575,9 @@ local function create(params)
         else
             meta:selectNextPreviousInList(1)
         end
+        meta:update()
+    else
+        meta:selectNextPreviousInList(1)
         meta:update()
     end
 

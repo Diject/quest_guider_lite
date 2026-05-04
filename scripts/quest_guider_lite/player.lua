@@ -504,10 +504,11 @@ local function giverMarkerClick(userData)
     end
 
     if hasNonTrackedQuest then
-        menuHandler.registerMenu(objName, createQuestMenu{
+        menuHandler.registerMenu(commonData.allQuestsMenuId, createQuestMenu{
             fontSize = config.data.ui.fontSize,
             sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
             relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+            menuId = commonData.allQuestsMenuId,
             headerName = objName,
             questList = userData.diaIds,
             isQuestList = true,
@@ -515,9 +516,10 @@ local function giverMarkerClick(userData)
             showOnlyMainDia = true,
             hideStageText = true,
             showReqDiaEntryText = true,
-            allQuestsMode = false,
+            allQuestsMode = true,
             nearbyModeDefault = false,
             allEntriesDefault = false,
+            hideJournalBtn = true,
         })
     end
 end
@@ -1220,6 +1222,12 @@ return {
             if not menu then return end
 
             menu:loadQuestList(data.diaIds)
+            local selectedQuest = menu:getQuestListSelectedFladValue()
+            if selectedQuest then
+                menu:selectQuest(selectedQuest)
+            else
+                menu:selectNextPreviousInList(1)
+            end
             menu:update()
         end
     },
