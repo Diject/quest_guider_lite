@@ -645,7 +645,7 @@ local dataFuncs = {
                 if not lDt or lDt.type ~= 3 then goto continue end
 
                 local dId = stringLib.convertDialogueName(lId)
-                if playerTopics[dId] then
+                if playerTopics[dId] or dId:find("greeting", 1, true) then
                     return true
                 end
 

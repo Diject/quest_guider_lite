@@ -1482,7 +1482,7 @@ function this.setMarkersVisibility(params)
 
     if params.includeQuestGivers then
         advWMapIntegration.setGiverMarkersVisibility(not this.storageData.hideAllMarkers)
-        core.sendGlobalEvent("QGL:updateQuestGiverMarkers")
+        core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {player = playerRef.object})
     end
 
     this.updateMarkers()

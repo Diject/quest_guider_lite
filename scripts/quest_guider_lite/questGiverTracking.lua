@@ -21,6 +21,10 @@ local l10n = require('openmw.core').l10n(commonInfo.l10nKey)
 local this = {}
 
 
+---@type table<string, string[]> by object id, dia list
+this.activeGivers = {}
+
+
 ---@type table<string, {type : string, player : any, markerId : string?, hudMarkerId : string?, refs : table<string, {ref : any, markerId : string?, hudMarkerId : string?}>?}>
 this.trackedQuestGivers = {}
 
@@ -161,9 +165,11 @@ function this.createQuestGiverMarker(ref, player)
 end
 
 
-function this.updateQuestGiverMarkers()
+function this.updateQuestGiverMarkers(player)
 
     for trId, markerData in pairs(this.trackedQuestGivers) do
+        if markerData.player.id ~= player.id then goto continue end
+
         markerData.player:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
         markerData.player:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
         markerData.markerId = nil
@@ -187,6 +193,8 @@ function this.updateQuestGiverMarkers()
         if not found then
             this.trackedQuestGivers[trId] = nil
         end
+
+        ::continue::
     end
 end
 

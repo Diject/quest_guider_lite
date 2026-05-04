@@ -38,6 +38,16 @@ local l10n = core.l10n(common.l10nKey)
 ---@alias questGuider.main.fillQuestBoxQuestInfo.return {data : table<integer, questGuider.main.fillQuestBoxQuestInfo.returnBlock>, menuId : string, requestId : string} data by content id
 
 
+local supportedGiverTypes = {
+    [types.NPC] = true,
+    [types.Creature] = true,
+    [types.Book] = true,
+    [types.Miscellaneous] = true,
+    [types.Weapon] = true,
+    [types.Activator] = true,
+}
+
+
 local function onInit()
     if not localStorage.isPlayerStorageReady() then
         localStorage.initPlayerStorage()
@@ -69,6 +79,8 @@ end
 
 
 local function onObjectActive(ref)
+    if not supportedGiverTypes[ref.type] and ref.type ~= types.Door then return end
+
     if types.Actor.objectIsInstance(ref) then
         if not ref:hasScript("scripts/quest_guider_lite/actor.lua") then
             ref:addScript("scripts/quest_guider_lite/actor.lua")
@@ -78,7 +90,7 @@ local function onObjectActive(ref)
     async:newUnsavableSimulationTimer(0.2, function ()
         local dataReady = dataHandler.isReady()
 
-        if dataReady and (ref.type == types.NPC or ref.type == types.Creature) then
+        if dataReady and supportedGiverTypes[ref.type] then
             for _, pl in pairs(world.players) do
                 questGivers.createQuestGiverMarker(ref, pl)
             end
@@ -94,6 +106,32 @@ local function onObjectActive(ref)
             end
         end
     end)
+end
+
+
+local function updatePlayerGivers(pl)
+    if not pl or not pl.cell then return end
+
+    local function checkCell(cell)
+        for objType, _ in pairs(supportedGiverTypes) do
+            for _, obj in pairs(cell:getAll(objType)) do
+                questGivers.createQuestGiverMarker(obj, pl)
+            end
+        end
+    end
+
+    if pl.cell.isExterior then
+        for i = -1 , 1 do
+            for j = -1, 1 do
+                local c = world.getExteriorCell(pl.cell.gridX + i, pl.cell.gridY + j)
+                if c then
+                    checkCell(c)
+                end
+            end
+        end
+    else
+        checkCell(pl.cell)
+    end
 end
 
 
@@ -704,8 +742,11 @@ return {
             questGivers.registerTrackedQuestGiver(data.inputData, recordId, hudMarkerId, player)
         end,
 
-        ["QGL:updateQuestGiverMarkers"] = function ()
-            questGivers.updateQuestGiverMarkers()
+        ["QGL:updateQuestGiverMarkers"] = function (data)
+            if not data.player then return end
+
+            updatePlayerGivers(data.player)
+            questGivers.updateQuestGiverMarkers(data.player)
         end,
 
         ["QGL:addMarkersForInteriorCell"] = function (data)

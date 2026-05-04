@@ -814,7 +814,7 @@ end
 
 
 local function updateQuestGivers()
-    core.sendGlobalEvent("QGL:updateQuestGiverMarkers")
+    core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {player = self.object})
     advWMapIntegration.updateGiversMarker()
 end
 
