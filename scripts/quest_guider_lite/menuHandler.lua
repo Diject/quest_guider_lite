@@ -1,3 +1,5 @@
+local async = require("openmw.async")
+
 local menuMode = require("scripts.quest_guider_lite.ui.menuMode")
 local controllerScrollTimer = require("scripts.quest_guider_lite.input.controllerScroll")
 
@@ -20,6 +22,28 @@ local function deactivateMenuMode()
 end
 
 
+local validationTimerStarted = false
+local function startMenuModeValidationTimer()
+    if validationTimerStarted then return end
+    validationTimerStarted = true
+
+    local function func()
+        if menuMode.isMenuInteractive() then
+            async:newUnsavableSimulationTimer(0.2, func)
+            return
+        end
+
+        if this.hasActiveMenus() then
+            this.destroyAllMenus()
+        end
+
+        validationTimerStarted = false
+    end
+
+    async:newUnsavableSimulationTimer(0.2, func)
+end
+
+
 function this.registerMenu(menuId, menu)
     if this.activeMenus[menuId] then
         this.activeMenus[menuId]:close()
@@ -27,6 +51,8 @@ function this.registerMenu(menuId, menu)
 
     this.activeMenus[menuId] = menu
     controllerScrollTimer.start()
+
+    startMenuModeValidationTimer()
 end
 
 
