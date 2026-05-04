@@ -192,16 +192,19 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
     end
 
     local function createQuestBox()
+        local hideStageText = self.params.hideStageText and self.firstEntryMode or not playerHasQuest and
+            self.params.menuId == commonData.journalMenuId
         qMainLay.content[2] = questBox.create{
             parent = self,
             fontSize = self.params.fontSize or 18,
             playerQuestData = selectedLayout.userData.playerQuestData,
             isQuestList = self.params.isQuestList or not playerHasQuest,
             showReqsForAll = not self.firstEntryMode,
-            hideStageText = self.params.hideStageText and self.firstEntryMode or not playerHasQuest and self.params.menuId == commonData.journalMenuId,
+            hideStageText = hideStageText,
             showOnlyMainDia = self.params.showOnlyMainDia and self.firstEntryMode,
             showOnlyFirstDiaEntry = self.firstEntryMode or not playerHasQuest and self.params.menuId == commonData.journalMenuId,
             showReqDiaEntryText = not playerHasQuest or self.params.menuId ~= commonData.journalMenuId,
+            showFullReqDiaEntryText = not hideStageText,
             questName = selectedLayout.userData.questName,
             size = self.questInfoPanelSize,
             userData = {

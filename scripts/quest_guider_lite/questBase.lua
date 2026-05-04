@@ -471,6 +471,7 @@ end
 ---@return string? diaId
 ---@return string? index
 ---@return string? actorId
+---@return string[]? indexChain
 function this.getReqBlockPrimeDialogueId(reqBlock)
     local links = {}
     local mainDiaId
@@ -489,24 +490,27 @@ function this.getReqBlockPrimeDialogueId(reqBlock)
 
     if not mainDiaId or not mainDiaIndex then return end
 
+    local indexChain = {mainDiaIndex}
+
     local function findFirst(depth)
         if depth <= 0 then return end
         depth = depth - 1
 
         if links[mainDiaIndex] then
             mainDiaIndex = links[mainDiaIndex]
+            table.insert(indexChain, mainDiaIndex)
             findFirst(depth)
         end
     end
     findFirst(10)
 
-    return mainDiaId, mainDiaIndex, actorId ---@diagnostic disable-line: return-type-mismatch
+    return mainDiaId, mainDiaIndex, actorId, indexChain ---@diagnostic disable-line: return-type-mismatch
 end
 
 
 ---@param diaId string
 ---@param index string|integer|nil
----@return {diaId: string, topicId: string, actorId: string?}[]?
+---@return {diaId: string, topicId: string, actorId: string?, indexChain: string[]?}[]?
 function this.getQuestDiaPrimeDialogueIds(diaId, index)
     local questData = dataHandler.getQuestData(diaId)
     if not questData then return end
@@ -519,9 +523,9 @@ function this.getQuestDiaPrimeDialogueIds(diaId, index)
     if not indexData then return end
 
     for _, reqBlock in pairs(indexData.requirements or {}) do
-        local mainDiaId, mainDiaIndex, actorId = this.getReqBlockPrimeDialogueId(reqBlock)
+        local mainDiaId, mainDiaIndex, actorId, indexChain = this.getReqBlockPrimeDialogueId(reqBlock)
         if mainDiaId and mainDiaIndex then
-            table.insert(out, {diaId = mainDiaId, topicId = mainDiaIndex, actorId = actorId})
+            table.insert(out, {diaId = mainDiaId, topicId = mainDiaIndex, actorId = actorId, indexChain = indexChain})
         end
     end
 

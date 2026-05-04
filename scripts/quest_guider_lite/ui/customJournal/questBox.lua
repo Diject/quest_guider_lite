@@ -329,7 +329,6 @@ function questBoxMeta._fillJournal(self, content, params)
                 if not checkedInfos[dt.topicId] then
                     local diaInfo = playerQuests.getDialogueInfo(dt.diaId, dt.topicId)
                     if diaInfo then
-                        local diaText = diaInfo.text or ""
                         local actorName
                         if dt.actorId then
                             local actor = getObject(dt.actorId)
@@ -339,10 +338,25 @@ function questBoxMeta._fillJournal(self, content, params)
                         end
                         actorName = actorName or l10n("dialogueDefaultActorName")
 
-                        if not linkedTexts[diaText] then
-                            linkedTexts[diaText] = {[actorName] = true}
-                        else
-                            linkedTexts[diaText][actorName] = true
+                        local texts = {}
+                        if params.showFullReqDiaEntryText then
+                            for _, tId in pairs(tableLib.invertIndexes(dt.indexChain or {})) do
+                                local dInfo = playerQuests.getDialogueInfo(dt.diaId, tId)
+                                if dInfo and diaInfo.text then
+                                    table.insert(texts, dInfo.text)
+                                end
+                            end
+                        elseif diaInfo.text then
+                            table.insert(texts, diaInfo.text)
+                        end
+
+                        if next(texts) then
+                            local diaText = table.concat(texts, "\n\n")
+                            if not linkedTexts[diaText] then
+                                linkedTexts[diaText] = {[actorName] = true}
+                            else
+                                linkedTexts[diaText][actorName] = true
+                            end
                         end
                     end
 
@@ -374,6 +388,7 @@ function questBoxMeta._fillJournal(self, content, params)
                                 ["PCName"] = playerName,
                                 ["PCRace"] = playerRace,
                                 ["PCClass"] = playerClass,
+                                ["name"] = #actorNamesArr == 1 and actorNamesArr[1] or nil
                             }
                         )
                     )
@@ -856,6 +871,7 @@ end
 ---@field isQuestList boolean?
 ---@field hideStageText boolean?
 ---@field showReqDiaEntryText boolean?
+---@field showFullReqDiaEntryText boolean?
 ---@field showReqsForAll boolean?
 ---@field showOnlyMainDia boolean?
 ---@field showOnlyFirstDiaEntry boolean?
