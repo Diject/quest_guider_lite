@@ -766,8 +766,14 @@ return {
             local function processCell(c, depth)
                 depth = depth - 1
 
-                for _, obj in pairs(c:getAll(types.NPC)) do
-                    objectIds[obj.recordId] = true
+                for tp, _ in pairs(supportedGiverTypes) do
+                    for _, obj in pairs(c:getAll(tp)) do
+                        objectIds[obj.recordId] = true
+                        local rec = obj.type.record(obj)
+                        if rec and rec.mwscript and rec.mwscript ~= "" then
+                            objectIds[rec.mwscript] = true
+                        end
+                    end
                 end
 
                 if depth <= 0 then return end

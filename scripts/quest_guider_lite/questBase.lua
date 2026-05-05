@@ -424,14 +424,19 @@ end
 
 ---@return table<string, boolean>?
 ---@return boolean? isGiver
-function this.getGiverQuests(object, player)
+---@return boolean? activatedByScript
+function this.getGiverQuests(ref, player)
     local diaIds = {}
+    local activatedByScript
+    local isGiver = false
 
-    local function checkId(id)
+    local function checkId(id, byScript)
         if not id then return end
 
         local objectData = dataHandler.getObjectData(id)
         if not objectData or not objectData.starts then return end
+
+        isGiver = true
 
         for _, diaId in pairs(objectData.starts) do
             local diaIdLower = diaId:lower()
@@ -449,21 +454,27 @@ function this.getGiverQuests(object, player)
 
             local firstIndexStr = this.getFirstIndex(questData)
             if not firstIndexStr then goto continue end
-            if not this.checkConditionsForQuest(diaIdLower, firstIndexStr, object, player, {handleCustomActorReq = true}) then
+            if not this.checkConditionsForQuest(diaIdLower, firstIndexStr, ref, player, {handleCustomActorReq = true}) then
                 goto continue
             end
 
             diaIds[diaId] = true
+            if byScript then
+                activatedByScript = true
+            end
 
             ::continue::
         end
     end
 
-    checkId(object.recordId)
-    checkId(object.mwscript)
+    checkId(ref.recordId)
+    local object = ref.type.record(ref.recordId)
+    if object and object.mwscript and object.mwscript ~= "" then
+        checkId(object.mwscript, true)
+    end
 
-    if not next(diaIds) then return nil, true end
-    return diaIds, true
+    if not next(diaIds) then return nil, isGiver, activatedByScript end
+    return diaIds, true, activatedByScript
 end
 
 

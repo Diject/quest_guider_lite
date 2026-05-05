@@ -78,7 +78,7 @@ function this.createQuestGiverMarker(ref, player)
         end
     end
 
-    local diaIds = questBase.getGiverQuests(ref, player)
+    local diaIds, _, activatedByScript = questBase.getGiverQuests(ref, player)
     if not diaIds then return end
 
     local questNames = {}
@@ -103,7 +103,7 @@ function this.createQuestGiverMarker(ref, player)
         proximity = 0,
         priority = -100,
         temporary = true,
-        options = {hideDead = true},
+        options = {hideDead = not activatedByScript},
         userData = {
             type = "questGiver",
             diaIds = tableLib.keys(diaIds),
@@ -135,7 +135,7 @@ function this.createQuestGiverMarker(ref, player)
                 -- color = commonInfo.colorToArray(config.data.ui.defaultColor),
             },
             objectIds = {recordId},
-            hideDead = true,
+            hideDead = not activatedByScript,
             temporary = true,
         }
     end
