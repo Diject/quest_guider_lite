@@ -305,7 +305,7 @@ function this.init()
 
     ---@param e AdvancedWorldMap.Event.onTrackingTooltipShowEvent
     events.registerHandler("onTrackingTooltipShow", function (e)
-        if e.markerId ~= this.questGiverMarker or not e.object then return end
+        if (e.markerId ~= this.questGiverMarker and e.markerId ~= this.deadQuestGiverMarker) or not e.object then return end
         if not config.data.tracking.questGivers then return end
 
         local dialogIds = questBase.getGiverQuests(e.object)
@@ -728,6 +728,10 @@ function this.updateGiversMarker(force)
         trackingInt.removeMarker(this.questGiverMarker)
         this.questGiverMarker = nil
     end
+    if this.deadQuestGiverMarker then
+        trackingInt.removeMarker(this.deadQuestGiverMarker)
+        this.deadQuestGiverMarker = nil
+    end
 
     if not config.data.tracking.questGivers or not config.data.tracking.advWMapMarkers.enabled or
             not config.data.tracking.advWMapMarkers.details.givers then
@@ -766,6 +770,24 @@ function this.updateGiversMarker(force)
             local giverQuests = questBase.getGiverQuests(object)
 
             if giverQuests then
+                return true
+            else
+                return false
+            end
+        end,
+    }
+    this.deadQuestGiverMarker = trackingInt.addMarker{
+        template = this.questGiverTemplate,
+        types = {"NPC", "Creature"},
+        alive = false,
+        priority = 8,
+        objValidateFn = function (marker, template, object)
+            if not config.data.tracking.advWMapMarkers.enabled or
+                not config.data.tracking.advWMapMarkers.details.givers then return false end
+
+            local giverQuests, _, byScript = questBase.getGiverQuests(object)
+
+            if giverQuests and byScript then
                 return true
             else
                 return false

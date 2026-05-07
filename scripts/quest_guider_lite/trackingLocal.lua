@@ -57,6 +57,8 @@ local exteriorDoorHUDMarkers = {}
 ---@field advWMapDoorMarker string?
 ---@field disabled boolean?
 ---@field userDisabled boolean?
+---@field hidden boolean? current disabled state considering all factors
+---@field doorHidden boolean? current disabled state for door marker considering all factors
 
 ---@alias questGuider.tracking.markerData {id : string, index : integer, groupName : string, data : questGuider.tracking.markerRecord, parentObject: string?, itemCount : integer?, actorCount : integer?, handledRequirements : table<string, questDataGenerator.requirementBlock>?}
 
@@ -633,7 +635,7 @@ function this.addMarker(params)
     this.handleObjectRequirements(objectId)
 
     local storageData = playerQuests.getQuestStorageData(qName)
-    if storageData and storageData.disabled or this.storageData.hideAllMarkers then
+    if storageData and (storageData.disabled or storageData.finished) or this.storageData.hideAllMarkers then
         this.setDisableMarkerState{ questId = params.questId, value = true }
     end
 
@@ -648,6 +650,7 @@ function this.addMarker(params)
 end
 
 
+---require questId or objectId or markerData with objectData
 ---@class questGuider.tracking.disableMarker
 ---@field questId string? should be lowercase
 ---@field objectId string? should be lowercase
@@ -656,6 +659,8 @@ end
 ---@field isUserDisabled boolean?
 ---@field temporary boolean?
 ---@field update boolean?
+---@field markerData questGuider.tracking.markerData?
+---@field objectData questGuider.tracking.objectRecord?
 
 ---@param params questGuider.tracking.disableMarker
 ---@return boolean? changed
@@ -665,26 +670,34 @@ function this.setDisableMarkerState(params)
     local markerDataHashTable = {}
 
     local hidden = false
+    local qName
     if params.questId then
-        local qName = playerQuests.getQuestNameByDiaId(params.questId)
-        if qName then
-            local storageData = playerQuests.getQuestStorageData(qName)
-            hidden = storageData and storageData.disabled or false
-        end
+        qName = playerQuests.getQuestNameByDiaId(params.questId)
+    elseif params.markerData and params.markerData.id then
+        qName = playerQuests.getQuestNameByDiaId(params.markerData.id)
     end
 
-    for objId, objData in pairs(this.markerByObjectId) do
-        if params.objectId and objId ~= params.objectId then goto continue end
+    if qName then
+        local storageData = playerQuests.getQuestStorageData(qName)
+        hidden = storageData and (storageData.disabled or storageData.finished) or false
+    end
 
-        for qId, markerData in pairs(objData.markers) do
-            if params.questId and qId ~= params.questId then goto continue end
+    if not params.markerData and not params.objectData then
+        for objId, objData in pairs(this.markerByObjectId) do
+            if params.objectId and objId ~= params.objectId then goto continue end
 
-            markerDataHashTable[markerData.data] = objData
+            for qId, markerData in pairs(objData.markers) do
+                if params.questId and qId ~= params.questId then goto continue end
+
+                markerDataHashTable[markerData.data] = objData
+
+                ::continue::
+            end
 
             ::continue::
         end
-
-        ::continue::
+    else
+        markerDataHashTable[params.markerData.data] = params.objectData
     end
 
     local changed = false
@@ -740,6 +753,11 @@ function this.setDisableMarkerState(params)
         else
             doorRes = not disabledState
         end
+
+        if disabledState == markerData.hidden and doorRes == not markerData.doorHidden then return end
+
+        markerData.hidden = disabledState
+        markerData.doorHidden = not doorRes
 
         if markerData.localDoorMarkerId and proximityTool then
             proximityTool.setVisibility(markerData.localDoorMarkerId, nil, doorRes)
@@ -803,7 +821,8 @@ end
 
 
 ---@param markerData questGuider.tracking.markerData
-local function checkHandledRequirements(objectId, markerData, protectedState)
+---@param objectData questGuider.tracking.objectRecord
+local function checkHandledRequirements(objectId, markerData, objectData, protectedState)
     if not protectedState then protectedState = false end
     local changed = false
     if not markerData.handledRequirements then return end
@@ -817,12 +836,12 @@ local function checkHandledRequirements(objectId, markerData, protectedState)
 
     if res == false then
         if markerData.data.disabled ~= true and not protectedState then
-            changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true }
+            changed = this.setDisableMarkerState{ markerData = markerData, objectData = objectData, value = true }
         end
     elseif res == true then
         protectedState = true
         if markerData.data.disabled ~= false then
-            changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false }
+            changed = this.setDisableMarkerState{ markerData = markerData, objectData = objectData, value = false }
         end
     end
 
@@ -867,7 +886,7 @@ function this.handleObjectRequirements(objectId, withoutUpdate)
     local protected = false
     for _, markerData in pairs(objData.markers) do
         if markerData.handledRequirements and not protected then
-            local hChanged, hProtected = checkHandledRequirements(objectId, markerData, protected)
+            local hChanged, hProtected = checkHandledRequirements(objectId, markerData, objData, protected)
             changed = changed or hChanged
             -- protected = protected or hProtected
         end
@@ -876,12 +895,12 @@ function this.handleObjectRequirements(objectId, withoutUpdate)
             local killCount = killCounter.getKillCount(markerData.parentObject or objectId)
             if killCount >= markerData.actorCount then
                 if markerData.data.disabled ~= true and not protected then
-                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true } or changed
+                    changed = this.setDisableMarkerState{ markerData = markerData, objectData = objData, value = true } or changed
                 end
             else
                 protected = true
                 if markerData.data.disabled ~= false then
-                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false } or changed
+                    changed = this.setDisableMarkerState{ markerData = markerData, objectData = objData, value = false } or changed
                 end
             end
         end
@@ -890,12 +909,12 @@ function this.handleObjectRequirements(objectId, withoutUpdate)
             local palyerItemCount = types.Actor.inventory(playerRef):countOf(markerData.parentObject)
             if markerData.itemCount <= palyerItemCount then
                 if markerData.data.disabled ~= true and not protected then
-                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = true } or changed
+                    changed = this.setDisableMarkerState{ markerData = markerData, objectData = objData, value = true } or changed
                 end
             else
                 protected = true
                 if markerData.data.disabled ~= false then
-                    changed = this.setDisableMarkerState{ objectId = objectId, questId = markerData.id, value = false } or changed
+                    changed = this.setDisableMarkerState{ markerData = markerData, objectData = objData, value = false } or changed
                 end
             end
         end

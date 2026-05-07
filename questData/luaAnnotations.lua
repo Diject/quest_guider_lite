@@ -1,4 +1,4 @@
-
+﻿
 ---@class questDataGenerator.requirementData
 ---@field type string requirement type id
 ---@field operator integer equal = 48, notEqual = 49, greater = 50, greaterOrEqual = 51, less = 52, lessOrEqual = 53,
@@ -76,3 +76,4 @@
 ---@field pixelsPerCell integer
 ---@field gridX {min : integer, max : integer}
 ---@field gridY {min : integer, max : integer}
+---@field bColor number[]|nil

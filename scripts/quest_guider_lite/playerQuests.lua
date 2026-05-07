@@ -400,9 +400,23 @@ function this.update(diaId, index)
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
+    local data = this.getQuestDataByName(dia.questName or "")
+
     local questData = initStorageQuestData(dia.questName or "")
     if questData then
+        local info = this.getQuestDialogueInfo(diaId, index)
+
         questData.finished = questData.finished or qDia.finished
+        if info and info.isQuestRestart and not qDia.finished then
+            this.finished[diaId] = nil
+            if data then
+                for id, _ in pairs(data.records) do
+                    this.finished[id] = false
+                end
+            end
+            questData.finished = false
+        end
+
         questData.timestamp = core.getGameTime()
         questData.globalTime = timeLib.getGlobalTimestamp()
         table.insert(questData.list, {
@@ -414,7 +428,6 @@ function this.update(diaId, index)
         })
     end
 
-    local data = this.getQuestDataByName(dia.questName or "")
     if not data then return end
 
     if qDia.finished then
@@ -482,6 +495,20 @@ function this.getDialogueInfo(diaId, infoId)
 
     for _, info in pairs(dia.infos) do
         if info.id == infoId then
+            return info
+        end
+    end
+end
+
+
+---@param diaId string
+---@param index string
+function this.getQuestDialogueInfo(diaId, index)
+    local dia = core.dialogue.journal.records[diaId]
+    if not dia then return end
+
+    for _, info in pairs(dia.infos) do
+        if info.questStage == index then
             return info
         end
     end

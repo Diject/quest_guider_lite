@@ -77,7 +77,7 @@ function this.getNextIndexes(questData, quesId, questIndex, params, player)
         return
     end
 
-    local plIndex = params.findCompleted == false and playerQuests.getCurrentIndex(quesId or "") or -1
+    local plIndex = params.findCompleted == false and playerQuests.getCurrentIndex(quesId or "", player) or -1
     plIndex = plIndex or -1
 
     ---@type table<string, {index: integer, qData: questDataGenerator.questData}>
@@ -93,7 +93,7 @@ function this.getNextIndexes(questData, quesId, questIndex, params, player)
             local linkRequirements = linkData[tostring(firstIndex)]
             if not linkRequirements then goto continue end
 
-            if params.findCompleted == false and (playerQuests.getCurrentIndex(linkedId) or 0) ~= 0 then
+            if params.findCompleted == false and (playerQuests.getCurrentIndex(linkedId, player) or 0) ~= 0 then
                 goto continue
             end
 

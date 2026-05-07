@@ -913,7 +913,7 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
                             if pDt.depth <= lowestDepth + 2 then
                                 local nearestDoor = findNearestDoorFunc(pDt.pos)
                                 if nearestDoor then
-                                    table.insert(exits, nearestDoor.position)
+                                    table.insert(exits, useAdvCell and nearestDoor.pos or nearestDoor.position)
                                 else
                                     table.insert(exits, pDt.pos)
                                 end
@@ -1016,7 +1016,7 @@ local function addCellData(cell, id, arr, configData)
                     if pDt.depth <= lowestDepth + 1 then
                         local nearestDoor = findNearestDoorFunc(pDt.pos)
                         if nearestDoor then
-                            table.insert(exits, nearestDoor.position)
+                            table.insert(exits, useAdvCell and nearestDoor.pos or nearestDoor.position)
                         else
                             table.insert(exits, pDt.pos)
                         end

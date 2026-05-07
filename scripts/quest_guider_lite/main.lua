@@ -253,6 +253,8 @@ local function addMarkersForQuest(params)
 
     local shouldAddObjectMarker = params.objectId and true or false
 
+    local addedHashMap = {}
+
     for i, reqDataBlock in pairs(indexData.requirements or {}) do
 
         if params.checkRequirements and not requirementChecker.checkBlock(reqDataBlock, {
@@ -273,6 +275,8 @@ local function addMarkersForQuest(params)
 
         local hasJournalReq = false
         for _, requirement in ipairs(requirementData) do
+            if not requirement.positionData then goto continue end
+
             if not params.objectId and requirement.data.type == myTypes.requirementType.Dead and
                     (requirement.data.operator == myTypes.operator.value.NotEqual and requirement.data.value == 1 or
                     requirement.data.operator == myTypes.operator.value.Equal and requirement.data.value == 0) then
@@ -285,12 +289,34 @@ local function addMarkersForQuest(params)
                 goto continue
             end
 
+            local reqHash = {}
+            if not params.objectId then
+                for _, reqBl in ipairs(requirement.reqDataForHandlingArr or {}) do
+                    table.insert(reqHash, myTypes.gerRequirementBlockHash(reqBl))
+                end
+                table.insert(reqHash, myTypes.gerRequirementBlockHash(requirement.reqDataForHandling))
+            end
+            reqHash = table.concat(reqHash, "_")
+
             for objId, posData in pairs(requirement.positionData or {}) do
+                if not params.objectId and not posData.foundValidPos then
+                    goto continue
+                end
+
                 if params.objectId and params.objectId ~= objId or
                         not params.objectId and (posData.isActorAliveReq or
                         params.protectedActors and posData.actorCount and posData.actorCount > 0 and
                         indexData.finished and params.protectedActors[objId]) then
                     goto continue
+                end
+
+                if not params.objectId then
+                    local hash = string.format("%s_%s_%s_%s_%s_%s", objId, posData.reqType, posData.name, reqHash,
+                        posData.itemCount, posData.actorCount)
+                    if addedHashMap[hash] then
+                        goto continue
+                    end
+                    addedHashMap[hash] = true
                 end
 
                 ---@type questGuider.tracking.addMarker

@@ -228,7 +228,7 @@ end
 function this.gerRequirementBlockHash(reqBlock)
     if not reqBlock then return "" end
     local hash = ""
-    for i, req in pairs(reqBlock) do
+    for i, req in ipairs(reqBlock) do
         hash = hash..this.getRequirementHash(req).."|"
     end
     return hash
