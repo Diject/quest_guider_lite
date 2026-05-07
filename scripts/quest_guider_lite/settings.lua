@@ -245,6 +245,8 @@ if inputVersion ~= config.inputSectionVersion then
         I.DijectKeyBindings.registerKey(commonData.toggleNearbyTriggerId, config.default.input.keys.toggleNearby)
         I.DijectKeyBindings.registerKey(commonData.toggleAllEntriesTriggerId, config.default.input.keys.toggleAllEntries)
         I.DijectKeyBindings.registerKey(commonData.toggleAlphabeticalTriggerId, config.default.input.keys.toggleAlphabetical)
+        I.DijectKeyBindings.registerKey(commonData.toggleQuestHiddenTriggerId, config.default.input.keys.toggleQuestHidden)
+        I.DijectKeyBindings.registerKey(commonData.toggleQuestPinnedTriggerId, config.default.input.keys.toggleQuestPinned)
 
         I.DijectKeyBindings.registerKey(commonData.nearbyMenuLocalTriggerId, config.default.input.keys.nearbyMenuLocal)
         I.DijectKeyBindings.registerKey(commonData.topicMenuLocalTriggerId, config.default.input.keys.topicMenuLocal)
@@ -372,6 +374,8 @@ I.Settings.registerGroup{
         inputKey{key = "input.keys.toggleStartedHidden", name = "toggleStartedHiddenKey", description = "toggleStartedHiddenKeyDescription", action = commonData.toggleStartedHiddenTriggerId, default = config.default.input.keys.toggleStartedHidden},
         inputKey{key = "input.keys.toggleNearby", name = "toggleNearbyKey", description = "toggleNearbyKeyDescription", action = commonData.toggleNearbyTriggerId, default = config.default.input.keys.toggleNearby},
         inputKey{key = "input.keys.toggleAllEntries", name = "toggleAllEntriesKey", description = "toggleAllEntriesKeyDescription", action = commonData.toggleAllEntriesTriggerId, default = config.default.input.keys.toggleAllEntries},
+        inputKey{key = "input.keys.toggleQuestHidden", name = "toggleQuestHiddenKey", description = "toggleQuestHiddenKeyDescription", action = commonData.toggleQuestHiddenTriggerId, default = config.default.input.keys.toggleQuestHidden},
+        inputKey{key = "input.keys.toggleQuestPinned", name = "toggleQuestPinnedKey", description = "toggleQuestPinnedKeyDescription", action = commonData.toggleQuestPinnedTriggerId, default = config.default.input.keys.toggleQuestPinned},
         inputKey{key = "input.keys.toggleAlphabetical", name = "toggleAlphabeticalKey", description = "toggleAlphabeticalKeyDescription", action = commonData.toggleAlphabeticalTriggerId, default = config.default.input.keys.toggleAlphabetical},
     }
 }

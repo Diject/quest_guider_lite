@@ -863,6 +863,22 @@ function questBoxMeta:updateColors()
 end
 
 
+---@param state boolean
+function questBoxMeta:setTrackingDisabledState(state)
+    local qData = playerQuests.getQuestDataByName(self.params.questName)
+    if qData then
+        local changed = false
+        for diaId, _ in pairs(qData.records or {}) do
+            changed = tracking.setDisableMarkerState{questId = diaId, value = state} or changed
+        end
+        if changed then
+            tracking.updateTemporaryMarkers()
+            tracking.updateMarkers()
+        end
+    end
+end
+
+
 ---@class questGuider.ui.questBox.params
 ---@field size any
 ---@field fontSize integer
@@ -923,6 +939,70 @@ function this.create(params)
     local headerSize = util.vector2(meta.scrollBoxContentSize.x, params.fontSize * 4)
     local checkBoxBlockSize = util.vector2(meta.scrollBoxContentSize.x, params.fontSize * 2)
     local header
+
+    local pinnedCB = checkBox{
+        updateFunc = function ()
+            params.updateFunc()
+        end,
+        checked = params.playerQuestData.pinned,
+        text = l10n("pinned"),
+        textSize = params.fontSize or 18,
+        visible = not params.isQuestList,
+        getScrollBoxMeta = function ()
+            return meta:getScrollBoxMeta()
+        end,
+        event = function (checked, layout)
+            params.playerQuestData.pinned = checked
+            local selectedQuest = meta.parent:getQuestListSelectedFladValue()
+            meta.parent:fillQuestsContent()
+            meta.parent:selectQuest(selectedQuest)
+        end
+    }
+
+    local finishedCB = checkBox{
+        updateFunc = function ()
+            params.updateFunc()
+        end,
+        checked = params.playerQuestData.finished,
+        text = l10n("finished"),
+        textSize = params.fontSize or 18,
+        visible = not params.isQuestList,
+        getScrollBoxMeta = function ()
+            return meta:getScrollBoxMeta()
+        end,
+        event = function (checked, layout)
+            params.playerQuestData.finished = checked
+            meta:setTrackingDisabledState(checked)
+            local selectedQuest = meta.parent:getQuestListSelectedFladValue()
+            meta.parent:fillQuestsContent()
+            meta.parent:selectQuest(selectedQuest)
+        end
+    }
+
+    local hiddenCB = checkBox{
+        updateFunc = function ()
+            params.updateFunc()
+        end,
+        checked = params.playerQuestData.disabled,
+        text = l10n("hidden"),
+        textSize = params.fontSize or 18,
+        visible = true,
+        getScrollBoxMeta = function ()
+            return meta:getScrollBoxMeta()
+        end,
+        event = function (checked, layout)
+            params.playerQuestData.disabled = checked
+            meta:setTrackingDisabledState(checked)
+            local selectedQuest = meta.parent:getQuestListSelectedFladValue()
+            meta.parent:fillQuestsContent()
+            meta.parent:selectQuest(selectedQuest)
+        end
+    }
+
+    meta.finishedCheckboxLayot = finishedCB
+    meta.hiddenCheckboxLayout = hiddenCB
+    meta.pinnedCheckboxLayout = pinnedCB
+
     header = {
         type = ui.TYPE.Flex,
         props = {
@@ -977,72 +1057,11 @@ function this.create(params)
                             position = util.vector2(0, checkBoxBlockSize.y / 2),
                         },
                         content = ui.content{
-                            checkBox{
-                                updateFunc = function ()
-                                    params.updateFunc()
-                                end,
-                                checked = params.playerQuestData.pinned,
-                                text = l10n("pinned"),
-                                textSize = params.fontSize or 18,
-                                visible = not params.isQuestList,
-                                getScrollBoxMeta = function ()
-                                    return meta:getScrollBoxMeta()
-                                end,
-                                event = function (checked, layout)
-                                    params.playerQuestData.pinned = checked
-                                    local selectedQuest = meta.parent:getQuestListSelectedFladValue()
-                                    meta.parent:fillQuestsContent()
-                                    meta.parent:selectQuest(selectedQuest)
-                                end
-                            },
+                            pinnedCB,
                             interval(config.data.ui.fontSize, 0),
-                            checkBox{
-                                updateFunc = function ()
-                                    params.updateFunc()
-                                end,
-                                checked = params.playerQuestData.finished,
-                                text = l10n("finished"),
-                                textSize = params.fontSize or 18,
-                                visible = not params.isQuestList,
-                                getScrollBoxMeta = function ()
-                                    return meta:getScrollBoxMeta()
-                                end,
-                                event = function (checked, layout)
-                                    params.playerQuestData.finished = checked
-                                    local selectedQuest = meta.parent:getQuestListSelectedFladValue()
-                                    meta.parent:fillQuestsContent()
-                                    meta.parent:selectQuest(selectedQuest)
-                                end
-                            },
+                            finishedCB,
                             interval(config.data.ui.fontSize, 0),
-                            checkBox{
-                                updateFunc = function ()
-                                    params.updateFunc()
-                                end,
-                                checked = params.playerQuestData.disabled,
-                                text = l10n("hidden"),
-                                textSize = params.fontSize or 18,
-                                visible = true,
-                                getScrollBoxMeta = function ()
-                                    return meta:getScrollBoxMeta()
-                                end,
-                                event = function (checked, layout)
-                                    params.playerQuestData.disabled = checked
-                                    local qData = playerQuests.getQuestDataByName(params.questName)
-                                    if qData then
-                                        local changed = false
-                                        for diaId, _ in pairs(qData.records or {}) do
-                                            changed = tracking.setDisableMarkerState{questId = diaId, value = checked} or changed
-                                        end
-                                        if changed then
-                                            tracking.updateMarkers()
-                                        end
-                                    end
-                                    local selectedQuest = meta.parent:getQuestListSelectedFladValue()
-                                    meta.parent:fillQuestsContent()
-                                    meta.parent:selectQuest(selectedQuest)
-                                end
-                            },
+                            hiddenCB,
                         }
                     },
                     {

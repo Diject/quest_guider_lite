@@ -224,6 +224,7 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
 
     if doDelay then
         createQuestBoxTimer = realTimer.newTimer(0.5, function ()
+            if not self.menu.layout then return end
             createQuestBox()
             self:update()
             createQuestBoxTimer = nil
@@ -1562,10 +1563,36 @@ local function create(params)
         local qInfoScrollBox = self:getQuestScrollBox()
         if not qInfoScrollBox or not qInfoScrollBox.userData or not qInfoScrollBox.userData.questBoxMeta then return end
 
-        ---@class questGuider.ui.questBoxMeta
+        ---@type questGuider.ui.questBoxMeta
         local qb = qInfoScrollBox.userData.questBoxMeta
         qb:toggleQuestObjectsBtn()
         meta:update()
+    end
+
+    meta.toggleQuestHiddenCheckbox = function (self)
+        local qInfoScrollBox = self:getQuestScrollBox()
+        if not qInfoScrollBox or not qInfoScrollBox.userData or not qInfoScrollBox.userData.questBoxMeta then return end
+
+        ---@type questGuider.ui.questBoxMeta
+        local qb = qInfoScrollBox.userData.questBoxMeta
+
+        ---@type questGuider.ui.checkBox
+        local hiddenCBMeta = qb.hiddenCheckboxLayout.userData.meta
+
+        hiddenCBMeta:setChecked(not hiddenCBMeta:getChecked())
+    end
+
+    meta.toggleQuestPinnedCheckbox = function (self)
+        local qInfoScrollBox = self:getQuestScrollBox()
+        if not qInfoScrollBox or not qInfoScrollBox.userData or not qInfoScrollBox.userData.questBoxMeta then return end
+
+        ---@type questGuider.ui.questBoxMeta
+        local qb = qInfoScrollBox.userData.questBoxMeta
+
+        ---@type questGuider.ui.checkBox
+        local pinnedCBMeta = qb.pinnedCheckboxLayout.userData.meta
+
+        pinnedCBMeta:setChecked(not pinnedCBMeta:getChecked())
     end
 
 

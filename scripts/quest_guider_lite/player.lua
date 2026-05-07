@@ -583,68 +583,60 @@ end
 
 -- Input
 do
-    local nextQTimer
-    local function nextQ()
-        local hasTimer = nextQTimer ~= nil
-        if nextQTimer then
-            nextQTimer()
-            nextQTimer = nil
-        end
+    local function selectNextPrev(val)
         if menuHandler.getMenu(commonData.trackingMenuId) then
-            return
+            return false
         end
 
         local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
         if topicMenu then
-            topicMenu:selectNextPreviousInList(1)
+            topicMenu:selectNextPreviousInList(val)
         else
             local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
             if mainMenu then
-                mainMenu:selectNextPreviousInList(1)
+                mainMenu:selectNextPreviousInList(val)
             end
         end
+        return true
+    end
 
-        if I.DijectKeyBindings.version >= 4 then
-            nextQTimer = realTimer.newTimer(hasTimer and 0.15 or 0.75, function ()
-                if I.DijectKeyBindings.action.isPressed(commonData.nextQuestTriggerId) then
-                    nextQ()
+    local nextPrevTimer
+    local keyHoldCount = 0
+    local function nextPrev(val, trigger)
+        if nextPrevTimer then
+            nextPrevTimer()
+            nextPrevTimer = nil
+            keyHoldCount = 0
+        end
+
+        local res = selectNextPrev(val)
+        if res and I.DijectKeyBindings.version >= 4 then
+            local function timerFunc()
+                keyHoldCount = keyHoldCount + 1
+
+                if I.DijectKeyBindings.action.isPressed(trigger) then
+                    if keyHoldCount > 10 then
+                        selectNextPrev(val)
+                    end
                 else
-                    nextQTimer = nil
+                    nextPrevTimer = nil
+                    keyHoldCount = 0
+                    return
                 end
-            end)
+
+                nextPrevTimer = realTimer.newTimer(0.05, timerFunc)
+            end
+            nextPrevTimer = realTimer.newTimer(0.05, timerFunc)
         end
     end
 
-    local prevQTimer
+
     local function prevQ()
-        local hasTimer = prevQTimer ~= nil
-        if prevQTimer then
-            prevQTimer()
-            prevQTimer = nil
-        end
-        if menuHandler.getMenu(commonData.trackingMenuId) then
-            return
-        end
+        nextPrev(-1, commonData.previousQuestTriggerId)
+    end
 
-        local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
-        if topicMenu then
-            topicMenu:selectNextPreviousInList(-1)
-        else
-            local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
-            if mainMenu then
-                mainMenu:selectNextPreviousInList(-1)
-            end
-        end
-
-        if I.DijectKeyBindings.version >= 4 then
-            prevQTimer = realTimer.newTimer(hasTimer and 0.15 or 0.75, function ()
-                if I.DijectKeyBindings.action.isPressed(commonData.previousQuestTriggerId) then
-                    prevQ()
-                else
-                    prevQTimer = nil
-                end
-            end)
-        end
+    local function nextQ()
+        nextPrev(1, commonData.nextQuestTriggerId)
     end
 
     local function toggleTrackObjects()
@@ -779,6 +771,28 @@ do
         topicMenu:toggleAlphabeticalCheckbox()
     end
 
+    local function toggleQuestPinned()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleQuestPinnedCheckbox()
+    end
+
+    local function toggleQuestHidden()
+        if menuHandler.getMenu(commonData.trackingMenuId) or menuHandler.getMenu(commonData.topicsMenuId) then
+            return
+        end
+
+        local mainMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
+        if not mainMenu then return end
+
+        mainMenu:toggleQuestHiddenCheckbox()
+    end
+
     menuHandler.onMenuModeActivated = function ()
         I.DijectKeyBindings.action.register(commonData.nextQuestTriggerId, nextQ)
         I.DijectKeyBindings.action.register(commonData.previousQuestTriggerId, prevQ)
@@ -788,6 +802,8 @@ do
         I.DijectKeyBindings.action.register(commonData.nearbyMenuLocalTriggerId, toggleNearbyMenuLocal)
         I.DijectKeyBindings.action.register(commonData.toggleFinishedHiddenTriggerId, toggleFinishedHiddenJournal)
         I.DijectKeyBindings.action.register(commonData.toggleStartedHiddenTriggerId, toggleFinishedHiddenNearby)
+        I.DijectKeyBindings.action.register(commonData.toggleQuestHiddenTriggerId, toggleQuestHidden)
+        I.DijectKeyBindings.action.register(commonData.toggleQuestPinnedTriggerId, toggleQuestPinned)
         I.DijectKeyBindings.action.register(commonData.toggleNearbyTriggerId, toggleNearbyMode)
         I.DijectKeyBindings.action.register(commonData.toggleAllEntriesTriggerId, toggleAllEntriesMode)
         I.DijectKeyBindings.action.register(commonData.toggleTrackingTriggerId, toggleTrackingBtnInfo)
@@ -804,6 +820,8 @@ do
         I.DijectKeyBindings.action.unregister(commonData.nearbyMenuLocalTriggerId, toggleNearbyMenuLocal)
         I.DijectKeyBindings.action.unregister(commonData.toggleFinishedHiddenTriggerId, toggleFinishedHiddenJournal)
         I.DijectKeyBindings.action.unregister(commonData.toggleStartedHiddenTriggerId, toggleFinishedHiddenNearby)
+        I.DijectKeyBindings.action.unregister(commonData.toggleQuestHiddenTriggerId, toggleQuestHidden)
+        I.DijectKeyBindings.action.unregister(commonData.toggleQuestPinnedTriggerId, toggleQuestPinned)
         I.DijectKeyBindings.action.unregister(commonData.toggleNearbyTriggerId, toggleNearbyMode)
         I.DijectKeyBindings.action.unregister(commonData.toggleAllEntriesTriggerId, toggleAllEntriesMode)
         I.DijectKeyBindings.action.unregister(commonData.toggleTrackingTriggerId, toggleTrackingBtnInfo)

@@ -112,6 +112,20 @@ function this.getJournalMenuHotkeyInfoStr(allQuestsMode)
         }))
     end
 
+    if isKeyValidToShow(keyConfig.toggleQuestHidden) then
+        table.insert(out, l10n("toggleQuestHiddenHotkeyStrFormat", {
+            hotkey = this.keyCombinationToString(keyConfig.toggleQuestHidden),
+        }))
+    end
+
+    if not allQuestsMode then
+        if isKeyValidToShow(keyConfig.toggleQuestPinned) then
+            table.insert(out, l10n("toggleQuestPinnedHotkeyStrFormat", {
+                hotkey = this.keyCombinationToString(keyConfig.toggleQuestPinned),
+            }))
+        end
+    end
+
     if allQuestsMode then
         if isKeyValidToShow(keyConfig.toggleStartedHidden) then
             table.insert(out, l10n("toggleStartedHiddenHotkeyStrFormat", {

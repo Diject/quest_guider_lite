@@ -117,6 +117,8 @@ this.default = {
             toggleStartedHidden = "C_DPadLeft", -- local
             toggleNearby = nil, -- local
             toggleAllEntries = nil, -- local
+            toggleQuestHidden = "C_RightStick", -- local
+            toggleQuestPinned = nil, -- local
             toggleAlphabetical = "C_DPadLeft", -- local
         },
         initialized = false,
@@ -147,6 +149,8 @@ this.keyToTriggerMap = {
     ["input.keys.toggleNearby"] = commonData.toggleNearbyTriggerId,
     ["input.keys.toggleAllEntries"] = commonData.toggleAllEntriesTriggerId,
     ["input.keys.toggleAlphabetical"] = commonData.toggleAlphabeticalTriggerId,
+    ["input.keys.toggleQuestHidden"] = commonData.toggleQuestHiddenTriggerId,
+    ["input.keys.toggleQuestPinned"] = commonData.toggleQuestPinnedTriggerId,
 }
 
 
