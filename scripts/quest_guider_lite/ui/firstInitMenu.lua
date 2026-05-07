@@ -159,6 +159,17 @@ function this.new(params)
                     },
                 },
                 interval(0, params.fontSize * 0.5),
+                checkBox{
+                    updateFunc = meta.update,
+                    text = l10n("firstInitDisableAutoTracking"),
+                    textSize = params.fontSize,
+                    getScrollBoxMeta = function() return sBoxMeta end,
+                    checked = not config.data.tracking.autoTrack,
+                    event = function (checked, layout)
+                        config.setValue("tracking.autoTrack", not checked)
+                    end
+                },
+                interval(0, params.fontSize / 2),
                 {
                     type = ui.TYPE.Text,
                     props = {
@@ -173,17 +184,17 @@ function this.new(params)
                         textAlignV = ui.ALIGNMENT.Center,
                     },
                 },
-                interval(0, params.fontSize),
+                interval(0, params.fontSize / 2),
                 insertLabelToContent(l10n("firstInitMapMarkersCategory")),
-                interval(0, params.fontSize/ 2),
+                interval(0, params.fontSize / 2),
                 insertCBToContent(config.data.tracking.advWMapMarkers, "tracking.advWMapMarkers"),
                 interval(0, params.fontSize),
                 insertLabelToContent(l10n("firstInitProximityMarkersCategory")),
-                interval(0, params.fontSize/ 2),
+                interval(0, params.fontSize / 2),
                 insertCBToContent(config.data.tracking.proximityMarkers, "tracking.proximityMarkers"),
                 interval(0, params.fontSize),
                 insertLabelToContent(l10n("firstInitHUDMarkersCategory")),
-                interval(0, params.fontSize/ 2),
+                interval(0, params.fontSize / 2),
                 insertCBToContent(config.data.tracking.hudMarkers, "tracking.hudMarkers"),
                 interval(0, params.fontSize * 2),
                 {

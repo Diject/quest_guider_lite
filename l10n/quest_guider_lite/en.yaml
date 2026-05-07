@@ -234,6 +234,7 @@ dateFormat: "%d %B 3E %Y, %H:%M"
 
 firstInitQuestDataFound: "Quest data detected. Select tracking preferences."
 firstInitNote0: "If any of the mods listed below are not installed, tracking will begin once they are installed.\nChanging object settings will not affect markers for already tracked objects if you do not recreate them."
+firstInitDisableAutoTracking: "Completely disable automatic tracking of quest objects. Markers can still be created manually."
 firstInitMapMarkersCategory: "Map markers via Advanced World Map mod\n(https://www.nexusmods.com/morrowind/mods/57881)"
 firstInitProximityMarkersCategory: "Proximity markers via proximityTool mod\n(https://www.nexusmods.com/morrowind/mods/57286)"
 firstInitHUDMarkersCategory: "HUD markers via HUDMarkers mod\n(https://www.nexusmods.com/morrowind/mods/57112 , also requires proximityTool)"
