@@ -7,6 +7,7 @@ local util = require("openmw.util")
 local async = require("openmw.async")
 local nearby = require("openmw.nearby")
 
+local log = require("scripts.quest_guider_lite.utils.log")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local itemLib = require("scripts.quest_guider_lite.types.item")
@@ -190,19 +191,37 @@ function this.addMarker(params)
         end
     end
 
+    ---@param markerData questGuider.tracking.markerData
+    ---@param reqs questDataGenerator.requirementData[]
+    local function addHandledReqsToData(markerData, reqs)
+        if not reqs then return end
+
+        local hash = ""
+        for _, r in pairs(reqs) do
+            hash = hash..r.type..tostring(r.operator)..tostring(r.value)..tostring(r.variable)..tostring(r.object)
+        end
+        if not markerData.handledRequirements then markerData.handledRequirements = {} end
+        markerData.handledRequirements[hash] = reqs
+    end
+
+    ---@param markerData questGuider.tracking.markerData
+    local function addHandledReqs(markerData)
+        if params.reqData and (params.reqData.reqDataForHandling or params.reqData.reqDataForHandlingArr) then
+            addHandledReqsToData(markerData, params.reqData.reqDataForHandling)
+            if params.reqData.reqDataForHandlingArr then
+                for _, reqs in pairs(params.reqData.reqDataForHandlingArr) do
+                    addHandledReqsToData(markerData, reqs)
+                end
+            end
+        elseif params.reqData and params.reqData.data.type == requirementType.CustomActor then
+            if not markerData.handledRequirements then markerData.handledRequirements = {} end
+            markerData.handledRequirements[""] = {}
+        end
+    end
+
+
     if objectTrackingData.markers[params.questId] then
         local oldData = objectTrackingData.markers[params.questId]
-
-        local function addHandledReqs(reqs)
-            if not reqs then return end
-
-            local hash = ""
-            for _, r in pairs(reqs) do
-                hash = hash..r.type..tostring(r.operator)..tostring(r.value)..tostring(r.variable)..tostring(r.object)
-            end
-            if not oldData.handledRequirements then oldData.handledRequirements = {} end
-            oldData.handledRequirements[hash] = reqs
-        end
 
         if oldData.actorCount or positionData.actorCount then
             oldData.actorCount = math.max(oldData.actorCount or 0, positionData.actorCount or 0)
@@ -213,17 +232,7 @@ function this.addMarker(params)
         if positionData.parentObject then
             oldData.parentObject = positionData.parentObject
         end
-        if params.reqData and (params.reqData.reqDataForHandling or params.reqData.reqDataForHandlingArr) then
-            addHandledReqs(params.reqData.reqDataForHandling)
-            if params.reqData.reqDataForHandlingArr then
-                for _, reqs in pairs(params.reqData.reqDataForHandlingArr) do
-                    addHandledReqs(reqs)
-                end
-            end
-        elseif params.reqData and params.reqData.data.type == requirementType.CustomActor then
-            if not oldData.handledRequirements then oldData.handledRequirements = {} end
-            oldData.handledRequirements[""] = {}
-        end
+        addHandledReqs(oldData)
         return
     end
 
@@ -290,19 +299,8 @@ function this.addMarker(params)
 
 
     if not objectTrackingData.markers then objectTrackingData.markers = {} end
-    local handledReqs = params.reqData and params.reqData.reqDataForHandling
-    if handledReqs then
-        local hash = ""
-        for _, r in pairs(handledReqs) do
-            hash = hash..r.type..tostring(r.operator)..tostring(r.value)..tostring(r.variable)..tostring(r.object)
-        end
-        handledReqs = {[hash] = handledReqs}
-    elseif params.reqData and params.reqData.data.type == requirementType.CustomActor then
-        handledReqs = handledReqs or {}
-        handledReqs[""] = {}
-    end
 
-    objectTrackingData.markers[params.questId] = {
+    local markerData = {
         id = params.questId,
         index = params.questStage,
         groupName = qName,
@@ -310,8 +308,12 @@ function this.addMarker(params)
         itemCount = positionData.itemCount,
         actorCount = positionData.actorCount,
         parentObject = positionData.parentObject,
-        handledRequirements = handledReqs,
+        handledRequirements = nil,
     }
+
+    addHandledReqs(markerData)
+
+    objectTrackingData.markers[params.questId] = markerData
 
     local objects = {}
     if not params.reqData or params.reqData.data.type ~= requirementType.NotActorCell and
