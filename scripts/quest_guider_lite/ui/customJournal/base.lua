@@ -869,8 +869,12 @@ local function create(params)
             mouseRelease = async:callback(function(e, layout)
                 if meta.headerDragDistance < 20 and meta.headerPressed then
                     if params.createTrackingMenuFunc then
-                    params.createTrackingMenuFunc()
-                end
+                        if menuHandler.getMenu(commonData.trackingMenuId) then
+                            menuHandler.destroyMenu(commonData.trackingMenuId)
+                        else
+                            params.createTrackingMenuFunc()
+                        end
+                    end
                 end
                 headerEvents.mouseRelease(e)
             end),
@@ -987,7 +991,11 @@ local function create(params)
                             mouseRelease = async:callback(function(e, layout)
                                 if meta.headerDragDistance < 20 and meta.headerPressed then
                                     if params.createTopicMenuFunc then
-                                        params.createTopicMenuFunc()
+                                        if menuHandler.getMenu(commonData.topicsMenuId) then
+                                            menuHandler.destroyMenu(commonData.topicsMenuId)
+                                        else
+                                            params.createTopicMenuFunc()
+                                        end
                                     end
                                 end
                                 headerEvents.mouseRelease(e)
@@ -1289,6 +1297,7 @@ local function create(params)
                     text = "",
                     textColor = config.data.ui.defaultColor,
                     textSize = config.data.ui.fontSize * 0.8,
+                    alpha = 0.7,
                     size = util.vector2(params.size.x, 0),
                     multiline = true,
                     wordWrap = true,

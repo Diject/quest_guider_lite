@@ -196,6 +196,12 @@ function this.getTopicsMenuHotkeyInfoStr()
         }))
     end
 
+    if isKeyValidToShow(keyConfig.toggleTopTopics) then
+        table.insert(out, l10n("showMoreTopicsHotkeyStrFormat", {
+            hotkey = this.keyCombinationToString(keyConfig.toggleTopTopics),
+        }))
+    end
+
     if isKeyValidToShow(keyConfig.toggleAlphabetical) then
         table.insert(out, l10n("toggleAlphabeticalHotkeyStrFormat", {
             hotkey = this.keyCombinationToString(keyConfig.toggleAlphabetical),

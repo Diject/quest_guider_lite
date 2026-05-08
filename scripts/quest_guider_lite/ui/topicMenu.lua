@@ -181,7 +181,10 @@ topicMenuMeta.selectTopic = function (self, topicId)
     end
     local topicList = tableLib.keys(topicData)
 
+    local loadedAll = false
     local function updateTopicText(topicInfoContent, loadMore)
+        if loadMore and loadedAll then return end
+
         ---@type questGuider.ui.scrollBox
         local topicSBMeta = self:getTopicScrollBox().userData.scrollBoxMeta
         local mainFlex = topicSBMeta:getMainFlex()
@@ -219,6 +222,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
             if startIndex == 1 then
                 btnElem.props.visible = false
+                loadedAll = true
             else
                 btnElem.props.visible = true
             end
@@ -652,6 +656,7 @@ local function create(params)
 
     meta.menuHistory = {}
     meta.menuHistoryIndex = 0
+    meta.showMoreBtnLayout = nil
 
 
     local topicInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
@@ -964,6 +969,7 @@ local function create(params)
                     text = "",
                     textColor = config.data.ui.defaultColor,
                     textSize = config.data.ui.fontSize * 0.8,
+                    alpha = 0.7,
                     size = util.vector2(params.size.x, 0),
                     multiline = true,
                     wordWrap = true,
@@ -1171,6 +1177,7 @@ local function create(params)
         if not updateTextFunc then return end
 
         updateTextFunc(nil, true)
+        meta:update()
     end
 
 
