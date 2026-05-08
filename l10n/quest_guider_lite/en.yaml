@@ -230,6 +230,7 @@ questDataDisabled: "Quest data is disabled."
 questDataIncorrectFolderError: "Quest Guider Lite: Quest data is installed incorrectly. Quest data files must be in the \"questData\" folder."
 
 dateFormat: "%d %B 3E %Y, %H:%M"
+dateFormatWithoutTime: "%d %B 3E %Y"
 
 
 firstInitQuestDataFound: "Quest data detected. Select tracking preferences."

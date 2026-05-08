@@ -555,7 +555,7 @@ function this.getAndUpdateJournalQuestData(qName)
 
         local storRec = storData.list[pos]
         if index and (not storRec or storRec.diaId ~= entry.questId or storRec.index ~= index) then
-            local timestamp = dateLib.getTimestampByDate(entry.day) + i
+            local timestamp = dateLib.getTimestampByDate(entry.day)
 
             ---@type questGuider.playerQuest.storageQuestInfo
             local dt = {

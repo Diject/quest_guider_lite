@@ -12,6 +12,10 @@ local this = {}
 function this.getDateByTime(time)
     local result = calendar.formatGameTime(l10n("dateFormat"), time)
 
+    if result:sub(-5) == "00:00" then
+        result = calendar.formatGameTime(l10n("dateFormatWithoutTime"), time)
+    end
+
     return result
 end
 
