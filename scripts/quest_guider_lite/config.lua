@@ -77,7 +77,7 @@ this.default = {
         mapByDefault = true,
         useGlobalDate = true,
         firstInitMenu = true,
-        fuzzyTopicMatching = false,
+        fuzzyTopicMatching = true,
         bottomInfoText = {
             enabled = true,
         },
