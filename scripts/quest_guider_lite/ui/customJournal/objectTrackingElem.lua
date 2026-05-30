@@ -59,7 +59,7 @@ function this.addObjectPositionInfo(content, params)
         for _, pos in pairs(tableLib.getFirst(positionData.positions, 1)) do
             local descr, descrBck = stringLib.getPathToPosition(pos)
 
-            objectPosInfo[positionData.name or objId] = {
+            objectPosInfo[stringLib.utf8_lower(positionData.name or objId)] = {
                 id = objId,
                 descr = descr or "",
                 descrBackward = descrBck or descr or "",
@@ -104,19 +104,22 @@ function this.addObjectPositionInfo(content, params)
             for objId, diaId in pairs(trackedObjects) do
                 local obj = getObject(objId)
                 local name = obj and obj.name or objId
+                local nameLower = stringLib.utf8_lower(name)
 
-                local objTrackingData = tracking.getTrackedObjectData(objId)
+                if not objectPosInfo[nameLower] then
+                    local objTrackingData = tracking.getTrackedObjectData(objId)
 
-                if not objectPosInfo[name] and objTrackingData then
-                    local markerData = objTrackingData.markers[diaId]
+                    if objTrackingData then
+                        local markerData = objTrackingData.markers[diaId]
 
-                    if markerData then
-                        objectPosInfo[name] = {
-                            id = objId,
-                            name = name,
-                            diaId = diaId,
-                            diaInd = markerData.index,
-                        }
+                        if markerData then
+                            objectPosInfo[nameLower] = {
+                                id = objId,
+                                name = name,
+                                diaId = diaId,
+                                diaInd = markerData.index,
+                            }
+                        end
                     end
                 end
             end
