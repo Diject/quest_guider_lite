@@ -1378,7 +1378,7 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
             outD.inWorld = objectData.inWorld or 0
         end
 
-        foundValidPos = foundValidPos or fillLinkPositionData(positions, objectData, configData, outD)
+        foundValidPos = fillLinkPositionData(positions, objectData, configData, outD) or foundValidPos
 
         outD.positions = positions
         outD.foundValidPos = foundValidPos
