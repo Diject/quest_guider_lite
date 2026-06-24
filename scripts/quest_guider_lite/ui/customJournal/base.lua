@@ -7,6 +7,7 @@ local input = require('openmw.input')
 local I = require('openmw.interfaces')
 local vfs = require('openmw.vfs')
 local templates = require('openmw.interfaces').MWUI.templates
+local auxUi = require("openmw_aux.ui")
 local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 
 local config = require("scripts.quest_guider_lite.configLib")
@@ -412,7 +413,7 @@ function journalMeta.fillQuestsContent(self)
             {
                 type = ui.TYPE.Text,
                 props = {
-                    text = l10n("inactiveQuestsLabel"),
+                    text = l10n("inactiveQuestsLabelWithCount", {count = 0}),
                     textSize = (params.fontSize or 18) * 1.25,
                     autoSize = false,
                     size = self.inactiveLabelSize,
@@ -437,6 +438,9 @@ function journalMeta.fillQuestsContent(self)
             },
         }
     }
+    local activeLabelLayout = auxUi.deepLayoutCopy(inactiveLabelLayout)
+    activeLabelLayout.content[1].props.text = l10n("activeQuestsLabelWithCount", {count = 0})
+    activeLabelLayout.name = "QL_ActiveLabel"
 
     local showFinished = self:getQuestListFinishedCheckBox().userData.checked
     local showHidden = self:getQuestListHiddenCheckBox().userData.checked
@@ -446,6 +450,8 @@ function journalMeta.fillQuestsContent(self)
 
     self.hasInactiveLabel = false
     local addedQuests = 0
+    local activeQuestsCount = 0
+    local inactiveQuestsCount = 0
 
     for _, dt in pairs(sortedData) do
         if dt.disabled and not showHidden
@@ -472,13 +478,19 @@ function journalMeta.fillQuestsContent(self)
         end
 
         if addedQuests == 0 and not self.hasInactiveLabel then
-            content:add{
-                type = ui.TYPE.Image,
-                props = {
-                    resource = borders.textures[4],
-                    size = util.vector2(self.questListElementSize.x, 2),
-                },
-            }
+            if self.params.menuId == commonData.allQuestsMenuId then
+                content:add{
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = borders.textures[4],
+                        size = util.vector2(self.questListElementSize.x, 2),
+                    },
+                }
+                self.activeLabelHeight = 2
+            else
+                content:add(activeLabelLayout)
+                self.activeLabelHeight = self.inactiveLabelSize.y
+            end
         end
 
         local qName = dt.name or ""
@@ -624,11 +636,20 @@ function journalMeta.fillQuestsContent(self)
 
         content:add(contentData)
         addedQuests = addedQuests + 1
+        if self.hasInactiveLabel then
+            inactiveQuestsCount = inactiveQuestsCount + 1
+        else
+            activeQuestsCount = activeQuestsCount + 1
+        end
 
         ::continue::
     end
 
-    local height = 2 + addedQuests * self.questListElementSize.y + (self.hasInactiveLabel and self.inactiveLabelSize.y or 0)
+    inactiveLabelLayout.content[1].props.text = l10n("inactiveQuestsLabelWithCount", {count = inactiveQuestsCount})
+    activeLabelLayout.content[1].props.text = l10n("activeQuestsLabelWithCount", {count = activeQuestsCount})
+
+    local height = self.activeLabelHeight + addedQuests * self.questListElementSize.y +
+        (self.hasInactiveLabel and self.inactiveLabelSize.y or 0)
     sBoxMeta:setContentHeight(height)
     sBoxMeta:updateContent()
     local scrollPos = sBoxMeta:getScrollPosition()
@@ -1251,7 +1272,10 @@ local function create(params)
 
     meta.questListElementSize = util.vector2(sBoxMeta.innnerSize.x, meta.params.fontSize * 2 + 4)
     meta.inactiveLabelSize = util.vector2(meta.questListElementSize.x, math.floor(meta.questListElementSize.y * 1.5))
+    meta.activeLabelHeight = params.menuId == commonData.allQuestsMenuId and 2 or meta.inactiveLabelSize.y
     meta.hasInactiveLabel = false
+
+    sBoxMeta:setScrollPosition(meta.activeLabelHeight - 2)
 
     local bottomTextLayout = {
         template = {
@@ -1467,7 +1491,7 @@ local function create(params)
         pcall(function()
             local nextSelected = content[nextIndex]
             if nextSelected and nextSelected.name then
-                if nextSelected.name == "QL_InactiveLabel" then
+                if nextSelected.name == "QL_InactiveLabel" or nextSelected.name == "QL_ActiveLabel" then
                     nextSelected = content[nextIndex + step]
                 end
                 self:selectQuest(nextSelected.name, nil, true)
