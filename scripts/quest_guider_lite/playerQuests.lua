@@ -50,6 +50,7 @@ local this = {}
 ---@field timestamp number
 ---@field globalTime number?
 ---@field cellData tes3cellData?
+---@field jIndex integer? -- journal index
 
 ---@class questGuider.playerQuest.storageQuestData
 ---@field name string
@@ -60,6 +61,7 @@ local this = {}
 ---@field generated boolean? -- only for generated data
 ---@field timestamp number?
 ---@field globalTime number?
+---@field journalIndex integer? -- latest journal index when the quest was updated
 ---@field list questGuider.playerQuest.storageQuestInfo[]
 
 ---@class questGuider.playerQuest.storageData
@@ -404,6 +406,12 @@ function this.update(diaId, index)
 
     local questData = initStorageQuestData(dia.questName or "")
     if questData then
+        local journalIndex
+        if  core.API_REVISION >= 93 then
+            journalIndex = #playerFunc.journal(playerRef).journalTextEntries
+        end
+        questData.journalIndex = journalIndex
+
         local info = this.getQuestDialogueInfo(diaId, index)
 
         questData.finished = questData.finished or qDia.finished
@@ -424,6 +432,7 @@ function this.update(diaId, index)
             index = index,
             timestamp = core.getGameTime(),
             globalTime = timeLib.getGlobalTimestamp(),
+            jIndex = journalIndex,
             cellData = cellData.getCellData(playerRef.cell) ---@diagnostic disable-line: need-check-nil
         })
     end
@@ -529,20 +538,45 @@ function this.getAndUpdateJournalQuestData(qName)
         diaIds[diaDt.id] = true
     end
 
-    local storData
+    local storData = this.getQuestStorageData(qName)
+    local storDataPos = storData and storData.journalIndex or 0
+
+    local entries = playerFunc.journal(playerRef).journalTextEntries
+    local entriesCount = #entries
+
     local texts = {}
-    local added = {}
+
+    if storData then
+        for _, dt in pairs(storData.list) do
+            local text, id = this.getJournalText(dt.diaId, dt.index)
+
+            if dt.jIndex then
+                local entry = entries[dt.jIndex]
+                if entry and (not id or entry.id == id) then
+                    text = entry.text
+                    id = entry.id
+                end
+            end
+
+            if text and id then
+                texts[id] = text
+            end
+        end
+
+        storData.journalIndex = entriesCount
+    end
 
     local pos = 1
-    for i, entry in ipairs(playerFunc.journal(playerRef).journalTextEntries) do
+    for i = storDataPos + 1, entriesCount do
+        local entry = entries[i]
         if not diaIds[entry.questId or ""] then goto continue end
 
-        storData = storData or this.getQuestStorageData(qName)
         if not storData then
             ---@type questGuider.playerQuest.storageQuestData
             local dt = initStorageQuestData(qName)
             if not dt then return end
             dt.timestamp = dateLib.getTimestampByDate(entry.day)
+            dt.journalIndex = entriesCount
             storData = dt
         end
 
@@ -562,6 +596,7 @@ function this.getAndUpdateJournalQuestData(qName)
                 diaId = entry.questId,
                 index = index,
                 timestamp = timestamp,
+                jIndex = i,
             }
 
             table.insert(storData.list, pos, dt)
