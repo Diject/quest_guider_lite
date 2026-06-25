@@ -167,10 +167,10 @@ end
 
 controllerScrollTimer.callback = function (axisVal)
     axisVal = -axisVal
-    if axisVal > 0.5 then
-        onMouseWheel(1)
-    elseif axisVal < -0.5 then
-        onMouseWheel(-1)
+    if axisVal > 0.3 then
+        onMouseWheel((axisVal - 0.3) * 3)
+    elseif axisVal < -0.3 then
+        onMouseWheel((axisVal + 0.3) * 3)
     end
 end
 

@@ -448,9 +448,9 @@ return function(params)
             onMouseWheel = function (vertical)
                 if not contentData.userData.inFocus then return end
                 if vertical > 0 then
-                    meta:scrollUp(config.data.journal.mouseScrollAmount)
+                    meta:scrollUp(config.data.journal.mouseScrollAmount * vertical)
                 elseif vertical < 0 then
-                    meta:scrollDown(config.data.journal.mouseScrollAmount)
+                    meta:scrollDown(config.data.journal.mouseScrollAmount * -vertical)
                 end
             end,
         },

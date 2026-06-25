@@ -501,7 +501,7 @@ function this.new(params)
             meta = meta,
             onMouseWheel = function(value)
                 if not meta.layout.userData.inFocus then return end
-                meta:setZoom(value > 0 and meta.zoom * 1.25 or meta.zoom * 0.75)
+                meta:setZoom(meta.zoom * (1 + value * 0.25))
                 meta:update()
             end,
 
