@@ -1,47 +1,52 @@
 local world = require('openmw.world')
+local core = require("openmw.core")
+local types = require("openmw.types")
+local commonData = require("scripts.quest_guider_lite.common")
 local cellData = require("scripts.quest_guider_lite.core.cellData")
+
+local l10n = core.l10n(commonData.l10nKey)
 
 local this = {}
 
 this.skillName = {
-	[0] = "Block",
-	[1] = "Armorer",
-	[2] = "Medium Armor",
-	[3] = "Heavy Armor",
-	[4] = "Blunt Weapon",
-	[5] = "Long Blade",
-	[6] = "Axe",
-	[7] = "Spear",
-	[8] = "Athletics",
-	[9] = "Enchant",
-	[10] = "Destruction",
-	[11] = "Alteration",
-	[12] = "Illusion",
-	[13] = "Conjuration",
-	[14] = "Mysticism",
-	[15] = "Restoration",
-	[16] = "Alchemy",
-	[17] = "Unarmored",
-	[18] = "Security",
-	[19] = "Sneak",
-	[20] = "Acrobatics",
-	[21] = "Light Armor",
-	[22] = "Short Blade",
-	[23] = "Marksman",
-	[24] = "Mercantile",
-	[25] = "Speechcraft",
-	[26] = "Hand to Hand"
+	[0] = l10n("Block"),
+	[1] = l10n("Armorer"),
+	[2] = l10n("Medium Armor"),
+	[3] = l10n("Heavy Armor"),
+	[4] = l10n("Blunt Weapon"),
+	[5] = l10n("Long Blade"),
+	[6] = l10n("Axe"),
+	[7] = l10n("Spear"),
+	[8] = l10n("Athletics"),
+	[9] = l10n("Enchant"),
+	[10] = l10n("Destruction"),
+	[11] = l10n("Alteration"),
+	[12] = l10n("Illusion"),
+	[13] = l10n("Conjuration"),
+	[14] = l10n("Mysticism"),
+	[15] = l10n("Restoration"),
+	[16] = l10n("Alchemy"),
+	[17] = l10n("Unarmored"),
+	[18] = l10n("Security"),
+	[19] = l10n("Sneak"),
+	[20] = l10n("Acrobatics"),
+	[21] = l10n("Light Armor"),
+	[22] = l10n("Short Blade"),
+	[23] = l10n("Marksman"),
+	[24] = l10n("Mercantile"),
+	[25] = l10n("Speechcraft"),
+	[26] = l10n("Hand to Hand")
 }
 
 this.attributeName = {
-	[0] = "strength",
-	[1] = "intelligence",
-	[2] = "willpower",
-	[3] = "agility",
-	[4] = "speed",
-	[5] = "endurance",
-	[6] = "personality",
-	[7] = "luck",
+	[0] = l10n("Strength"),
+	[1] = l10n("Intelligence"),
+	[2] = l10n("Willpower"),
+	[3] = l10n("Agility"),
+	[4] = l10n("Speed"),
+	[5] = l10n("Endurance"),
+	[6] = l10n("Personality"),
+	[7] = l10n("Luck"),
 }
 
 this.weather = {
@@ -64,14 +69,32 @@ this.getObject = require("scripts.quest_guider_lite.core.getObject")
 ---@param id integer
 ---@return {name : string}
 function this.getMagicEffect(id)
-    return {name = string.format("magic effect: %d", id)}
+	local effect = core.magic.effects.records[id]
+	local effectName
+
+	if not effect then
+		effectName = string.format(l10n("magicEffectFormat"), id)
+	else
+		effectName = effect.name
+	end
+
+	return {name = effectName or ""}
 end
 
 
 ---@param id string
 ---@return {name : string}
 function this.findClass(id)
-    return {name = string.format("class: %s", id)}
+	local class = types.NPC.classes.record(id)
+	local className
+
+	if not class then
+		className = string.format(l10n("classFormat"), id)
+	else
+		className = class.name
+	end
+
+    return {name = className or ""}
 end
 
 
