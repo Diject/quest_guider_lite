@@ -50,7 +50,7 @@ scrollBoxMeta.scrollDown = function(self, val)
     local pos = fl.props.position
     if not pos then return end
 
-    fl.props.position = util.vector2(self.params.leftOffset, pos.y - val)
+    fl.props.position = util.vector2(self.params.leftOffset, math.max(-self.maxPositiveShift, pos.y - val))
 
     self:updateScrollPosition()
 
@@ -153,6 +153,7 @@ end
 ---@param value number
 scrollBoxMeta.setContentHeight = function (self, value)
     self.params.contentHeight = value
+    self.maxPositiveShift = math.floor(value - self.innnerSize.y * 0.25)
     self:updateScrollBarVisibility()
     self:updateScrollPosition()
 end
@@ -162,6 +163,7 @@ scrollBoxMeta.calcContentHeight = function (self)
     local mainFlex = self:getMainFlex()
     local height = uiUtils.getContentHeight(self.params.content)
     self.params.contentHeight = height
+    self.maxPositiveShift = math.floor(height - self.innnerSize.y * 0.25)
     self:updateScrollBarVisibility()
     self:updateScrollPosition()
 end
@@ -306,6 +308,7 @@ return function(params)
 
     if not params.leftOffset then params.leftOffset = 2 end
     params.maxNegativeShift = params.maxNegativeShift or (config.data.ui.scrollArrowSize * 4)
+    meta.maxPositiveShift = math.floor((params.contentHeight or 0) - params.size.y * 0.25)
 
     local flex = {
         type = ui.TYPE.Flex,
