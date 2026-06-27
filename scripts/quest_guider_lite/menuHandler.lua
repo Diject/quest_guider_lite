@@ -3,6 +3,8 @@ local async = require("openmw.async")
 local menuMode = require("scripts.quest_guider_lite.ui.menuMode")
 local controllerScrollTimer = require("scripts.quest_guider_lite.input.controllerScroll")
 
+local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
+
 local this = {}
 
 ---@type table<string, any>
@@ -48,6 +50,7 @@ function this.registerMenu(menuId, menu)
     if this.activeMenus[menuId] then
         this.activeMenus[menuId]:close()
     end
+    tooltip.destroyLast()
 
     this.activeMenus[menuId] = menu
     controllerScrollTimer.start()
@@ -70,6 +73,7 @@ function this.destroyMenu(menuId)
 
     if menuEl.menu and menuEl.menu.layout then
         menuEl:close()
+        tooltip.destroyLast()
     end
     this.activeMenus[menuId] = nil
 
@@ -105,6 +109,7 @@ function this.destroyAllMenus()
         handler:close()
         this.activeMenus[id] = nil
     end
+    tooltip.destroyLast()
     if menuMode.isActive() then
         deactivateMenuMode()
     end
