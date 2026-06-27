@@ -50,6 +50,9 @@ local nextStagesBlock = require("scripts.quest_guider_lite.ui.customJournal.next
 local simpleMap = require("scripts.quest_guider_lite.ui.mapMenu")
 local messageBox = require("scripts.quest_guider_lite.ui.messageBox")
 
+local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
+local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
+
 local l10n = core.l10n(commonData.l10nKey)
 
 
@@ -328,6 +331,8 @@ local function buildTrackingMenu()
         fontSize = config.data.ui.fontSize,
         sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01 - 0.1, config.data.journal.heightProportional * 0.01 - 0.1),
         relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
+        createSBFunc = scrollBox,
+        tooltipLib = tooltip,
     }
 end
 
