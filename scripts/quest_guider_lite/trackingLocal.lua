@@ -451,7 +451,8 @@ function this.addMarker(params)
                 color = config.data.tracking.colored and objectTrackingData.color or common.colorToArray(config.data.ui.defaultColor),
             },
             objectIds = listOfObjects,
-            itemId = not positionData.disableInventoryTracking and positionData.parentObject or nil,
+            itemId = not positionData.disableInventoryTracking and positionData.parentObject and itemLib.isItem(positionData.parentObject) and
+                positionData.parentObject or nil,
             hideDead = params.reqData and (params.reqData.data.type == requirementType.CustomActor or
                 params.reqData.data.type == requirementType.Dead),
         }
