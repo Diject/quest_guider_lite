@@ -378,7 +378,7 @@ local dataFuncs = {
         end
         if not types.NPC.objectIsInstance(ref) then return end
 
-        local skillFunc = skillFuncs[req.skill]
+        local skillFunc = skillFuncs[req.skill + 1]
         if not skillFunc then return end
 
         return operator.check(skillFunc(ref).modified, req.value, req.operator)
@@ -390,7 +390,7 @@ local dataFuncs = {
             ref = player or playerRef
         end
 
-        local attrFunc = attributeFuncs[req.attribute]
+        local attrFunc = attributeFuncs[req.attribute + 1]
         if not attrFunc then return end
 
         return operator.check(attrFunc(ref).modified, req.value, req.operator)
