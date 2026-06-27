@@ -242,7 +242,7 @@ function this.addMarker(params)
     local text
     local currentIndex = playerQuests.getCurrentIndex(params.questId)
     if currentIndex then
-        text = stringLib.removeSpecialCharactersFromJournalText(playerQuests.getJournalText(params.questId, currentIndex))
+        text = stringLib.removeSpecialCharactersFromJournalText(playerQuests.getPlayerJournalText(params.questId, currentIndex))
     end
     if text == qName then text = nil end
 

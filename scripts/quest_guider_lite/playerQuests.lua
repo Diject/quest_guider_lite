@@ -378,6 +378,42 @@ end
 
 
 ---@param diaId string
+---@param index integer
+---@return string?
+---@return string? topicId
+function this.getPlayerJournalText(diaId, index)
+    local dia = core.dialogue.journal.records[diaId]
+    if not dia then return end
+
+    local text, topicId
+
+    local qName = dia.questName or {}
+    local qStorData = this.getQuestStorageData(qName)
+    local entries = core.API_REVISION >= 93 and playerFunc.journal(playerRef).journalTextEntries or nil
+
+    if qStorData and entries then
+        for _, dt in pairs(qStorData.list) do
+            if diaId == dt.diaId and index == dt.index then
+                if dt.jIndex then
+                    local entry = entries[dt.jIndex]
+                    if entry then
+                        return entry.text, entry.id
+                    end
+                end
+                break
+            end
+        end
+    end
+
+    for _, info in pairs(dia.infos) do
+        if info.questStage == index then
+            return info.text, info.id
+        end
+    end
+end
+
+
+---@param diaId string
 ---@param topicId string
 function this.getJournalTopic(diaId, topicId)
     local dia = core.dialogue.journal.records[diaId]
@@ -583,7 +619,7 @@ function this.getAndUpdateJournalQuestData(qName)
         texts[entry.id] = entry.text
 
         local topic = this.getJournalTopic(entry.questId, entry.id)
-        if not topic then return storData, texts end
+        if not topic then goto continue end
 
         local index = topic.questStage
 
@@ -611,6 +647,8 @@ function this.getAndUpdateJournalQuestData(qName)
                     break
                 end
             end
+        elseif storRec and not storRec.jIndex and storRec.diaId == entry.questId and storRec.index == index then
+            storRec.jIndex = i
         end
 
         pos = pos + 1
@@ -619,6 +657,29 @@ function this.getAndUpdateJournalQuestData(qName)
     end
 
     return storData, texts
+end
+
+
+---@param qData questGuider.playerQuest.storageQuestData
+---@return table<string, string> res by info record id
+function this.getQuestDataTexts(qData)
+    local entries = core.API_REVISION >= 93 and playerFunc.journal(playerRef).journalTextEntries or nil
+    local res = {}
+    for _, dt in pairs(qData.list) do
+        if dt.jIndex and entries then
+            local entry = entries[dt.jIndex]
+            if entry then
+                res[entry.id] = entry.text
+            end
+        else
+            local text, id = this.getJournalText(dt.diaId, dt.index)
+            if text and id then
+                res[id] = text
+            end
+        end
+    end
+
+    return res
 end
 
 

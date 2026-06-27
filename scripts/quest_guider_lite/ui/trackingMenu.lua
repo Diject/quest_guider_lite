@@ -899,7 +899,7 @@ function topicMenuMeta.fillTrackingListContent(self)
                                 local index = playerQuests.getCurrentIndex(dId)
                                 if not index then goto continue end
 
-                                local t = playerQuests.getJournalText(dId, index)
+                                local t = playerQuests.getPlayerJournalText(dId, index)
                                 if not t then goto continue end
 
                                 ttext = string.format("%s%s%s", ttext or "", ttext and "\n\n" or "", t)

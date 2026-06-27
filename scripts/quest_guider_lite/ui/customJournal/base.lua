@@ -283,13 +283,15 @@ local function hasText(questData, text)
         return true
     end
 
-    for _, dt in pairs(questData.list) do
-        if dt.diaId:find(text, 1, true) then return true end
-
-        local journalText = stringLib.removeSpecialCharactersFromJournalText(playerQuests.getJournalText(dt.diaId, dt.index))
-        if journalText and stringLib.utf8_lower(journalText):find(text, 1, true) then
+    local texts = playerQuests.getQuestDataTexts(questData)
+    for _, t in pairs(texts) do
+        if stringLib.utf8_lower(t):find(text, 1, true) then
             return true
         end
+    end
+
+    for _, dt in pairs(questData.list) do
+        if dt.diaId:find(text, 1, true) then return true end
 
         local dateStr = timeLib.getDateByTime(timeLib.getTimestamp(dt))
         if stringLib.utf8_lower(dateStr):find(text, 1, true) then
