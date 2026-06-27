@@ -328,20 +328,24 @@ function journalMeta._addFlags(self, content, storageData)
         local maxMarks = config.data.journal.maxColorMarks
         for objectId, _ in pairs(objects) do
             local objData = tracking.getTrackedObjectData(objectId)
-            if objData and objData.color then
+            if objData then
+                local color = objData.color and util.color.rgb(objData.color[1], objData.color[2], objData.color[3]) or config.data.ui.defaultColor
                 if maxMarks > 0 then
                     maxMarks = maxMarks - 1
                 else
                     break
                 end
+
                 content:add{
                     type = ui.TYPE.Image,
                     props = {
                         resource = commonData.whiteTexture,
                         size = util.vector2(self.params.fontSize / 4, self.params.fontSize - 2),
-                        color = util.color.rgb(objData.color[1], objData.color[2], objData.color[3]),
+                        color = color,
                     },
                 }
+
+                if not objData.color then break end
             end
         end
     end

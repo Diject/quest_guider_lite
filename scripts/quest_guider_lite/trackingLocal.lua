@@ -460,8 +460,9 @@ function this.addMarker(params)
 
 
     if createAdvWMapMarkers then
-        local color = util.color.rgb(objectTrackingData.color[1], objectTrackingData.color[2], objectTrackingData.color[3])
-        color = config.data.tracking.colored and color or config.data.ui.defaultColor
+        local color = config.data.tracking.colored and
+            util.color.rgb(objectTrackingData.color[1], objectTrackingData.color[2], objectTrackingData.color[3]) or
+            config.data.ui.defaultColor
         local isActorReq = params.reqData and params.reqData.data.type == requirementType.CustomActor
         local coloredTrackingObjName = params.objectName and params.objectName ~= "" and
             string.format("@list:qgObjects@#%s%s", color:asHex(), params.objectName) or ""
