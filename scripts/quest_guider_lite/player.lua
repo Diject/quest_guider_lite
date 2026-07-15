@@ -853,35 +853,39 @@ return {
     engineHandlers = {
         onQuestUpdate = function(questId, stage)
             timeLib.requestTimeUpdate()
-            playerQuests.update(questId, stage)
-            realTimer.newTimer(1, function ()
-                advWMapIntegration.updateDoorMarkers()
-            end)
+
             core.sendGlobalEvent("QGL:clearCache")
             cacheLib.clear()
 
-            if not tracking.initialized then return end
-            if config.data.tracking.autoTrack then
-                local name = playerQuests.getQuestNameByDiaId(questId)
-                if name and name ~= "" then
-                    if playerQuests.isHidden(name) then
-                        tracking.removeMarker{ questId = questId, removeLinked = true }
-                    else
-                        realTimer.newTimer(0.01, function ()
-                            tracking.trackQuest(questId, stage)
-                        end)
+            realTimer.newTimer(0, function () -- delay 1 frame to avoid issues with quest jornal text not being updated
+                playerQuests.update(questId, stage)
+                realTimer.newTimer(1, function ()
+                    advWMapIntegration.updateDoorMarkers()
+                end)
+
+                if not tracking.initialized then return end
+                if config.data.tracking.autoTrack then
+                    local name = playerQuests.getQuestNameByDiaId(questId)
+                    if name and name ~= "" then
+                        if playerQuests.isHidden(name) then
+                            tracking.removeMarker{ questId = questId, removeLinked = true }
+                        else
+                            realTimer.newTimer(0.01, function ()
+                                tracking.trackQuest(questId, stage)
+                            end)
+                        end
                     end
                 end
-            end
-            if not onQuestUpdateTimerStarted then
-                onQuestUpdateTimerStarted = true
-                async:newUnsavableSimulationTimer(0.05, function()
-                    handleTracking()
-                    updateQuestGivers()
-                    tracking.updateTemporaryMarkers()
-                    onQuestUpdateTimerStarted = false
-                end)
-            end
+                if not onQuestUpdateTimerStarted then
+                    onQuestUpdateTimerStarted = true
+                    async:newUnsavableSimulationTimer(0.05, function()
+                        handleTracking()
+                        updateQuestGivers()
+                        tracking.updateTemporaryMarkers()
+                        onQuestUpdateTimerStarted = false
+                    end)
+                end
+            end)
         end,
         onTeleported = function ()
             async:newUnsavableSimulationTimer(0.1, function () -- delay for the player cell data to be updated

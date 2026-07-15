@@ -396,7 +396,7 @@ function this.getPlayerJournalText(diaId, index)
             if diaId == dt.diaId and index == dt.index then
                 if dt.jIndex then
                     local entry = entries[dt.jIndex]
-                    if entry then
+                    if entry and entry.questId == diaId then
                         return entry.text, entry.id
                     end
                 end
@@ -442,13 +442,23 @@ function this.update(diaId, index)
 
     local questData = initStorageQuestData(dia.questName or "")
     if questData then
-        local journalIndex
-        if  core.API_REVISION >= 93 then
-            journalIndex = #playerFunc.journal(playerRef).journalTextEntries
-        end
-        questData.journalIndex = journalIndex
-
         local info = this.getQuestDialogueInfo(diaId, index)
+
+        local journalEntryCount
+        local journalTextEntries
+        local journalIndex
+        if info and core.API_REVISION >= 93 then
+            journalTextEntries = playerFunc.journal(playerRef).journalTextEntries
+            journalEntryCount = #journalTextEntries
+            for i = journalEntryCount, math.max(0, journalEntryCount - 10), - 1 do
+                local entry = journalTextEntries[i]
+                if entry and diaId == entry.questId and info.id == entry.id then
+                    journalIndex = i
+                    break
+                end
+            end
+            questData.journalIndex = journalIndex or math.max(1, journalEntryCount - 10)
+        end
 
         questData.finished = questData.finished or qDia.finished
         if info and info.isQuestRestart and not qDia.finished then
@@ -605,7 +615,7 @@ function this.getAndUpdateJournalQuestData(qName)
     local pos = 1
     for i = storDataPos + 1, entriesCount do
         local entry = entries[i]
-        if not diaIds[entry.questId or ""] then goto continue end
+        if not entry or not diaIds[entry.questId or ""] then goto continue end
 
         if not storData then
             ---@type questGuider.playerQuest.storageQuestData
