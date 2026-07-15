@@ -77,6 +77,11 @@ local forbiddenCells = {
     ["t_test_wolli"] = true,
 }
 
+local forbiddenLocalVars = {
+    ["killonce"] = true,
+    ["journalonce"] = true,
+}
+
 
 ---@param questId string
 ---@return questDataGenerator.questData|nil
@@ -395,7 +400,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                     goto done
                 end
 
-                if cellRequirementTypes[requirement.type] then
+                if cellRequirementTypes[requirement.type] and type(value) == "string" then
                     local cell = tes.getCell{id = value}
                     if cell then
                         environment.valueObj = cell
@@ -429,13 +434,13 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                     goto done
                 end
 
-                if cellRequirementTypes[requirement.type] then
+                if cellRequirementTypes[requirement.type] and type(variable) == "string" then
                     local cell = tes.getCell{id = variable}
                     if cell then
                         environment.variableObj = cell
                         goto done
                     end
-                    local exCell = tes.getCell{name = value}
+                    local exCell = tes.getCell{name = variable}
                     if exCell then
                         environment.variableObj = exCell
                         goto done
@@ -637,7 +642,7 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
 
         objects["player"] = nil
 
-        if tableLib.size(objects) > 0 then
+        if next(objects) then
             reqOut.objects = objects
         end
 
@@ -716,9 +721,9 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                 local foundScripts = {}
                 local varData = this.getObjectData(requirement.variable)
                 -- TODO: dehardcode limit
-                if varData and varData.links and (varData.total or 0) <= 10 then
+                if varData and varData.links and (varData.total or 0) <= 6 then
                     local linkCount = #varData.links
-                    if linkCount < 10 then
+                    if linkCount <= 6 then
                         for _, dt in ipairs(varData.links) do
                             if dt[2] ~= nil then break end
 
@@ -901,7 +906,15 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
                     newPosData.type = 1
                 end
 
-                local exCellPos, doorPath, cellPath, isExterior, checkedCells = findExitPosFunc(useAdvCell and cell.id or cell)
+                local exCellPos, doorPath, cellPath, isExterior, checkedCells
+                if not cell:hasTag("QuasiExterior") then
+                    exCellPos, doorPath, cellPath, isExterior, checkedCells = findExitPosFunc(useAdvCell and cell.id or cell)
+                else
+                    exCellPos = util.vector3(x, y, z)
+                    cellPath = {tes.getCellData(cell)}
+                    isExterior = false
+                    checkedCells = {[cell.id] = cell}
+                end
 
                 if exCellPos then
 
@@ -1191,7 +1204,7 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
 
         if scrData and scrData[tableName] then
             for _, linkDt in pairs(scrData[tableName]) do
-                if linkDt[2] ~= nil and linkDt[2] >= configData.tracking.minChance * 0.01 then
+                -- if linkDt[2] ~= nil and linkDt[2] >= configData.tracking.minChance * 0.01 then
                     local objData = dataHandler.questObjects[linkDt[1]]
                     if objData and objData.type <= 2 then
                         local obj, tp = tes.getObject(linkDt[1])
@@ -1199,7 +1212,7 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
                             objects[linkDt[1]] = {obj, tp}
                         end
                     end
-                end
+                -- end
             end
         end
     end
@@ -1250,7 +1263,7 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
         local varData = this.getObjectData(requirement.variable)
 
         -- TODO: dehardcode limit
-        if varData and varData.links and (varData.total or 0) <= 10 and #varData.links <= 10 then
+        if varData and varData.links and (varData.total or 0) <= 6 and #varData.links <= 6 then
             for _, dt in ipairs(varData.links) do
                 if dt[2] ~= nil then break end
 
@@ -1289,6 +1302,32 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
             end
         end
 
+    elseif requirement.type == myTypes.requirementType.CustomLocal then
+        if requirement.object then
+            local obj, tp = tes.getObject(requirement.object)
+            if obj then
+                objects[requirement.object] = {obj, tp}
+            end
+        end
+
+        if requirement.script then
+            fillDataForScriptByTableName(requirement.script, "links")
+        end
+
+        if requirement.variable and not forbiddenLocalVars[requirement.variable] then
+            local varData = this.getObjectData(requirement.variable)
+            if varData and varData.type == 5 and varData.links and (varData.total or 0) <= 6 and #varData.links <= 6 then
+                for _, linkDt in ipairs(varData.links) do
+                    if linkDt[2] ~= nil then break end
+
+                    local objDt = this.getObjectData(linkDt[1])
+                    if objDt and objDt.type == 4 then
+                        fillDataForScriptByTableName(linkDt[1], "links")
+                    end
+                end
+            end
+        end
+
     elseif requirement.type == "SCR1" and requirement.value then
         fillDataForScriptByTableName(requirement.value, "contains")
 
@@ -1312,7 +1351,7 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
                     goto continue
                 end
 
-                if cellRequirementTypes[req.type] then
+                if cellRequirementTypes[req.type] and type(value) == "string" then
                     local cell = tes.getCell{id = value}
                     if cell then
                         cells[cell] = value
@@ -1394,7 +1433,7 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
         out[id].foundValidPos = next(out[id].positions) and true or false
     end
 
-    if tableLib.size(out) == 0 then
+    if not next(out) then
         return nil
     end
 

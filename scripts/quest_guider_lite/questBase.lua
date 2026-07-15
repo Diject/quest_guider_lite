@@ -268,7 +268,7 @@ function this.checkConditionsForQuest(questId, questIndex, ref, player, params)
 
     local requirements = stageData.requirements or {}
 
-    if #requirements == 0 then return true end
+    if not next(requirements) then return true end
 
     if not ref then
 
