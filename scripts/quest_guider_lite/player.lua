@@ -22,6 +22,7 @@ local config = require("scripts.quest_guider_lite.configLib")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local questLog = require("scripts.quest_guider_lite.questLog")
 local questLib = require("scripts.quest_guider_lite.questBase")
 local configLib = require("scripts.quest_guider_lite.configLib")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
@@ -30,6 +31,7 @@ local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local dateLib = require("scripts.quest_guider_lite.utils.date")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local keysModule = require("scripts.quest_guider_lite.input.keys")
+local playerInventory = require("scripts.quest_guider_lite.helpers.playerInventory")
 
 local menuMode = require("scripts.quest_guider_lite.ui.menuMode")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
@@ -133,6 +135,7 @@ local function onInit()
     dialogueTime.init()
     tracking.init()
     playerQuests.init()
+    questLog.init()
 end
 
 
@@ -150,6 +153,7 @@ local function onLoad(data)
     dialogueTime.init()
     tracking.init()
     playerQuests.init()
+    questLog.init()
     async:newUnsavableSimulationTimer(0.1, function ()
         teleportedCallback()
     end)
@@ -857,7 +861,12 @@ return {
             core.sendGlobalEvent("QGL:clearCache")
             cacheLib.clear()
 
-            realTimer.newTimer(0, function () -- delay 1 frame to avoid issues with quest jornal text not being updated
+            questLog.registerQuestDialogue(questId, stage)
+
+            -- delay 2 frames to avoid issues with quest jornal text not being updated and
+            -- to ensure that questLog.handleDialogueEvent triggers before the quest stage is updated
+            realTimer.newTimer(0, function () realTimer.newTimer(0, function ()
+                questLog.handleJournalEvent(questId, stage)
                 playerQuests.update(questId, stage)
                 realTimer.newTimer(1, function ()
                     advWMapIntegration.updateDoorMarkers()
@@ -885,7 +894,7 @@ return {
                         onQuestUpdateTimerStarted = false
                     end)
                 end
-            end)
+            end) end)
         end,
         onTeleported = function ()
             async:newUnsavableSimulationTimer(0.1, function () -- delay for the player cell data to be updated
@@ -917,6 +926,7 @@ return {
                 end
             elseif e.newMode == "Dialogue" then
                 dialogueMenuActor = e.arg
+                playerInventory.snapshot()
             elseif e.oldMode == "Container" or e.newMode == "Loading" or e.oldMode == "Interface" then
                 handleTracking()
             end
@@ -929,6 +939,8 @@ return {
         DialogueResponse = function(e)
             if e.type ~= "topic" then return end
             dialogueTime.updateDialogue(e.recordId)
+            playerInventory.snapshot()
+            questLog.handleDialogueEvent(e.actor, e.recordId, e.infoId)
         end,
 
         ["QGL:addMarker"] = function(data)
@@ -1073,6 +1085,8 @@ return {
             if tracking.handleObjectRequirements(data.object.recordId) then
                 handleTracking()
             end
+            print(data.object.recordId, killCounter.getKillCount(data.object.recordId))
+            questLog.handleDiedEvent(data.object.recordId)
         end,
 
         ["QGL:createMarkersForDoor"] = function (ref)

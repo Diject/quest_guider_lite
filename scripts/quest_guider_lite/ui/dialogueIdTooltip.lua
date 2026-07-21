@@ -16,7 +16,7 @@ local this = {}
 
 ---@param params {meta : questGuider.ui.questBoxMeta?, recordInfo : questGuider.playerQuest.storageQuestInfo?, fontSize : integer?, filter : string?}
 function this.getContentForTooltip(params)
-    if not params or (not params.meta and not params.recordInfo) then return ui.content{} end
+    if not params or (not params.meta and not params.recordInfo and not params.recordInfo.diaId) then return ui.content{} end
 
     local meta = params.meta
     local recordInfo = params.recordInfo
@@ -27,6 +27,8 @@ function this.getContentForTooltip(params)
         local arrayIndexByDiaId = {}
         local count = 1
         for _, info in ipairs(meta.params.playerQuestData.list) do
+            if not info.diaId then goto continue end
+
             if not arrayIndexByDiaId[info.diaId] then
                 arrayIndexByDiaId[info.diaId] = count
                 table.insert(list, {diaId = info.diaId, index = info.index})
@@ -34,6 +36,8 @@ function this.getContentForTooltip(params)
             else
                 list[arrayIndexByDiaId[info.diaId]].index = info.index
             end
+
+            ::continue::
         end
     elseif recordInfo then
         table.insert(list, {diaId = recordInfo.diaId, index = recordInfo.index})

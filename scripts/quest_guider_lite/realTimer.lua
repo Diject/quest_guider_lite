@@ -3,6 +3,7 @@ local core = require("openmw.core")
 local this = {}
 
 this.timers = {}
+this.frameCounter = 0
 this.nextTimerId = 0
 this.time = core.getRealTime()
 
@@ -24,6 +25,7 @@ end
 
 
 function this.updateTimers()
+    this.frameCounter = this.frameCounter + 1
     this.time = core.getRealTime()
     for i, timer in pairs(this.timers) do
         if this.time > timer.endTime then

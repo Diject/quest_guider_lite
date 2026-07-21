@@ -80,4 +80,16 @@ this.underlineBoxThin.content:add {
     }
 }
 
+this.longHorizontalLineThin = {
+    type = ui.TYPE.Image,
+    props = {
+        resource = ui.texture{ path = "textures/menu_thin_border_top.dds" },
+        tileH = true,
+        tileV = false,
+        size = util.vector2(0, 1),
+        relativeSize = util.vector2(0.8, 0),
+        relativePosition = util.vector2(0.1, 0),
+    },
+}
+
 return this

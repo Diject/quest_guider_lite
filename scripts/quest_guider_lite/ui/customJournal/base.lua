@@ -291,12 +291,14 @@ local function hasText(questData, text)
     end
 
     for _, dt in pairs(questData.list) do
+        if not dt.diaId then goto continue end
         if dt.diaId:find(text, 1, true) then return true end
 
         local dateStr = timeLib.getDateByTime(timeLib.getTimestamp(dt))
         if stringLib.utf8_lower(dateStr):find(text, 1, true) then
             return true
         end
+        ::continue::
     end
 
     return false

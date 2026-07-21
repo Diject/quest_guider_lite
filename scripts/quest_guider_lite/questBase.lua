@@ -546,5 +546,58 @@ function this.getQuestDiaPrimeDialogueIds(diaId, index)
 end
 
 
+---@param diaId string
+---@param filter (fun(objectData: questDataGenerator.objectInfo): boolean?)?
+---@return table<string, any>?
+function this.getQuestDiaVarValues(diaId, filter)
+    local questData = dataHandler.getQuestData(diaId)
+    if not questData then return end
+
+    local values = {}
+
+    local function addReqVal(val)
+        if not val or values[val] then return end
+        local objDt = dataHandler.getObjectData(val)
+        if objDt and objDt.type <= 4 then
+            if not filter or filter(objDt) then
+                values[val] = true
+            end
+        end
+    end
+
+    ---@param req questDataGenerator.requirementData
+    local function addFromReq(req)
+        addReqVal(req.object)
+        addReqVal(req.script)
+        addReqVal(req.value)
+        addReqVal(req.variable)
+    end
+
+    for ind, stageData in pairs(questData) do
+        local indexInt = tonumber(ind)
+        if not indexInt then goto continue end
+
+        for _, reqBlock in pairs(stageData.requirements or {}) do
+            for _, req in pairs(reqBlock) do
+                addFromReq(req)
+            end
+        end
+
+        ::continue::
+    end
+
+    for val, _ in pairs(values) do
+        if string.sub(val, 1, 6) == "#dia: " then
+            values[string.sub(val, 7)] = true
+            values[val] = nil
+        end
+    end
+
+    if not next(values) then return end
+
+    return values
+end
+
+
 
 return this

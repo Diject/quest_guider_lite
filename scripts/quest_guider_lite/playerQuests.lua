@@ -51,6 +51,12 @@ local this = {}
 ---@field globalTime number?
 ---@field cellData tes3cellData?
 ---@field jIndex integer? -- journal index
+---@field type integer? log entry type
+---@field dId string? -- dialogue id for log entry
+---@field dInfo string? -- dialogue info id for log entry
+---@field obj string? -- object record id for log entry
+---@field text string? -- text for log entry
+---@field userData any? -- user data for log entry
 
 ---@class questGuider.playerQuest.storageQuestData
 ---@field name string
@@ -63,9 +69,10 @@ local this = {}
 ---@field globalTime number?
 ---@field journalIndex integer? -- latest journal index when the quest was updated
 ---@field list questGuider.playerQuest.storageQuestInfo[]
+---@field logHashes table<string, integer>? -- hash values for log entries, key is hash value, value is index in list
 
 ---@class questGuider.playerQuest.storageData
----@field questData table<string, questGuider.playerQuest.storageQuestData>
+---@field questData table<string, questGuider.playerQuest.storageQuestData> by quest name
 
 
 ---@return questGuider.playerQuest.storageData?
@@ -85,7 +92,7 @@ local function initStorageData()
 end
 
 ---@return questGuider.playerQuest.storageQuestData?
-local function initStorageQuestData(qName)
+function this.initStorageQuestData(qName)
     local storageData = initStorageData()
     if not storageData then return end
 
@@ -96,7 +103,7 @@ local function initStorageQuestData(qName)
             disabled = false,
             finished = false,
             pinned = false,
-            timestamp = 0,
+            globalTime = 0,
         }
         storageData.questData[qName] = arr
         questData = arr
@@ -171,7 +178,7 @@ function this.init()
         if core.API_REVISION >= 93 and storageData then
 
             if not storageData.questData[qName] and qEntries[qName] then
-                local storageQuestData = initStorageQuestData(qName)
+                local storageQuestData = this.initStorageQuestData(qName)
 
                 if storageQuestData then
 
@@ -204,7 +211,7 @@ function this.init()
             end
 
         elseif storageData and not storageData.questData[qName] then
-            local storageQuestData = initStorageQuestData(qName)
+            local storageQuestData = this.initStorageQuestData(qName)
             if storageQuestData then
                 storageQuestData.finished = storageQuestData.finished or q.finished
                 storageQuestData.timestamp = core.getGameTime()
@@ -353,11 +360,13 @@ end
 
 ---@param diaId string
 ---@return questGuider.playerQuest.data?
+---@return string?
 function this.getQuestDataByDiaId(diaId)
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
-    return this.questData[dia.questName or ""]
+    local qName = dia.questName or ""
+    return this.questData[qName], qName
 end
 
 
@@ -440,7 +449,7 @@ function this.update(diaId, index)
 
     local data = this.getQuestDataByName(dia.questName or "")
 
-    local questData = initStorageQuestData(dia.questName or "")
+    local questData = this.initStorageQuestData(dia.questName or "")
     if questData then
         local info = this.getQuestDialogueInfo(diaId, index)
 
@@ -550,7 +559,7 @@ function this.getDialogueInfo(diaId, infoId)
 
     for _, info in pairs(dia.infos) do
         if info.id == infoId then
-            return info
+            return info, dia
         end
     end
 end
@@ -594,6 +603,8 @@ function this.getAndUpdateJournalQuestData(qName)
 
     if storData then
         for _, dt in pairs(storData.list) do
+            if not dt.diaId then goto continue end
+
             local text, id = this.getJournalText(dt.diaId, dt.index)
 
             if dt.jIndex then
@@ -610,6 +621,8 @@ function this.getAndUpdateJournalQuestData(qName)
         end
 
         storData.journalIndex = entriesCount
+
+        ::continue::
     end
 
     local pos = 1
@@ -619,7 +632,7 @@ function this.getAndUpdateJournalQuestData(qName)
 
         if not storData then
             ---@type questGuider.playerQuest.storageQuestData
-            local dt = initStorageQuestData(qName)
+            local dt = this.initStorageQuestData(qName)
             if not dt then return end
             dt.timestamp = dateLib.getTimestampByDate(entry.day)
             dt.journalIndex = entriesCount
@@ -654,6 +667,15 @@ function this.getAndUpdateJournalQuestData(qName)
                     dt.cellData = nxt.cellData
 
                     table.remove(storData.list, j)
+
+                    if storData.logHashes then
+                        for hash, idx in pairs(storData.logHashes) do
+                            if idx > j then
+                                storData.logHashes[hash] = idx - 1
+                            end
+                        end
+                    end
+
                     break
                 end
             end
@@ -676,6 +698,7 @@ function this.getQuestDataTexts(qData)
     local entries = core.API_REVISION >= 93 and playerFunc.journal(playerRef).journalTextEntries or nil
     local res = {}
     for _, dt in pairs(qData.list) do
+        if not dt.diaId then goto continue end
         if dt.jIndex and entries then
             local entry = entries[dt.jIndex]
             if entry then
@@ -687,6 +710,7 @@ function this.getQuestDataTexts(qData)
                 res[id] = text
             end
         end
+        ::continue::
     end
 
     return res

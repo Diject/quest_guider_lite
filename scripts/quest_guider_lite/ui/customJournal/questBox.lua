@@ -3,14 +3,17 @@ local async = require('openmw.async')
 local time = require('openmw_aux.time')
 local ui = require('openmw.ui')
 local util = require('openmw.util')
-local templates = require('openmw.interfaces').MWUI.templates
 local playerRef = require('openmw.self')
+local types = require("openmw.types")
+
+local NPC = types.NPC
 
 local log = require("scripts.quest_guider_lite.utils.log")
 
 local config = require("scripts.quest_guider_lite.configLib")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local questLog = require("scripts.quest_guider_lite.questLog")
 local questBase = require("scripts.quest_guider_lite.questBase")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
 local common = require('scripts.quest_guider_lite.common')
@@ -20,9 +23,12 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local getObject = require("scripts.quest_guider_lite.core.getObject")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
+local tags = require("scripts.quest_guider_lite.types.tag")
+local killCounter = require("scripts.quest_guider_lite.killCounter")
 
 local trackingElementLib = require("scripts.quest_guider_lite.ui.customJournal.objectTrackingElem")
 
+local templates = require("scripts.quest_guider_lite.ui.templates")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
@@ -101,7 +107,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             self:getButtonFlex().content:add(interval(self.params.fontSize, 0))
             self:getButtonFlex().content:add(button{
                 text = l10n("removeTracking"),
-                textSize = self.params.fontSize * 0.8,
+                textSize = math.floor(self.params.fontSize * 0.8),
                 visible = tracking.initialized,
                 parentScrollBoxUserData = self:getScrollBox().userData,
                 event = self.untrackObjectsFunc,
@@ -112,7 +118,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         else
             self:getButtonFlex().content:add(button{
                 text = l10n("trackObjects"),
-                textSize = self.params.fontSize * 0.8,
+                textSize = math.floor(self.params.fontSize * 0.8),
                 visible = tracking.initialized,
                 parentScrollBoxUserData = self:getScrollBox().userData,
                 event = self.trackObjectsFunc,
@@ -200,6 +206,14 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
         uiUtils.removeFromContent(self.content, layIndex)
     end
 
+    local firstEntryIndex = 2
+    for i, elem in ipairs(self.content) do
+        if elem.userData and elem.userData.type == "TR_Journal_Entry" then
+            firstEntryIndex = i
+            break
+        end
+    end
+
     local objectsFlexContent = ui.content{}
     local objectsContainerLayout = ui.content{}
 
@@ -267,7 +281,7 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
         }
     }
 
-    self.content:insert(3, objectsContainerLayout)
+    self.content:insert(firstEntryIndex + 1, objectsContainerLayout)
 end
 
 
@@ -278,13 +292,14 @@ function questBoxMeta._fillJournal(self, content, params)
     ---@type table<string, boolean>
     local addedDiaIds = {}
 
-    local playerQuestDataList, topicTexts
+    local playerQuestDataList, topicTexts, playerQuestDataListCount
     if self.params.isQuestList then
         playerQuestDataList, topicTexts = playerQuests.getQuestStorageData(params.questName or "")
     else
         playerQuestDataList, topicTexts = playerQuests.getAndUpdateJournalQuestData(params.questName or "")
     end
     playerQuestDataList = playerQuestDataList and playerQuestDataList.list or params.playerQuestData.list
+    playerQuestDataListCount = #playerQuestDataList
 
     local topicData = {}
     for _, topic in pairs(playerQuests.getTopicList() or {}) do
@@ -302,10 +317,173 @@ function questBoxMeta._fillJournal(self, content, params)
         return a < b
     end)
 
+
+    local thinLineLayout = {
+        props = {
+            size = util.vector2(self.scrollBoxContentSize.x, 1),
+        },
+        content = ui.content{
+            templates.longHorizontalLineThin
+        }
+    }
+
     local contentIndex = 2
+    local logText = ""
+
+    local function addLogEntryText(i)
+        local qInfo = playerQuestDataList[i]
+        if not qInfo.type then return end
+
+        local stepsToSkip = 0
+
+        if qInfo.type == questLog.eventType.dialogue then
+            if not qInfo.dId or not qInfo.dInfo then return end
+
+            local diaInfo, dialogue = playerQuests.getDialogueInfo(qInfo.dId, qInfo.dInfo)
+            if not dialogue or not diaInfo or not diaInfo.text then return end
+
+            local actor, actorObjType
+            if qInfo.obj then
+                actor, actorObjType = getObject(qInfo.obj)
+            end
+            local actorName = actor and actor.name or "???"
+            local text = string.format(l10n("dialogueLogPattern"),
+                config.data.ui.objectColor:asHex(),
+                actorName,
+                config.data.ui.defaultColor:asHex(),
+                dialogue.name or "???"
+            )
+
+            local diaTextsReversed = {}
+            for j = i, 1, -1 do
+                local qI = playerQuestDataList[j]
+                if not qI or not qI.type or qI.obj ~= qInfo.obj or qI.dId ~= qInfo.dId then break end
+
+                if qI.text then
+                    table.insert(diaTextsReversed, l10n("dialogueLogPrefix")..qI.text)
+                    stepsToSkip = stepsToSkip + 1
+                else
+                    local dInfo = playerQuests.getDialogueInfo(qI.dId, qI.dInfo)
+                    if dInfo then
+                        table.insert(diaTextsReversed,
+                            l10n("dialogueLogPrefix")..(actorObjType == NPC and tags.replaceInTextSimple(dInfo.text, actor) or dInfo.text))
+                        stepsToSkip = stepsToSkip + 1
+                    end
+                end
+            end
+
+            local diaTexts = {}
+            for j = #diaTextsReversed, 1, -1 do
+                table.insert(diaTexts, diaTextsReversed[j])
+            end
+
+            local dialogueText = table.concat(diaTexts, "\n")
+
+            local topicPoss = config.data.journal.fuzzyTopicMatching and stringLib.findPhrases(dialogueText, topicList) or
+            stringLib.findPhrasesExact(dialogueText, topicList)
+
+            local linkColor = "#"..config.data.ui.linkColor:asHex()
+            local defaultColor = "#"..config.data.ui.defaultColor:asHex()
+            dialogueText = uiUtils.colorizeFromPhrasePositions(dialogueText, topicPoss, linkColor, defaultColor)
+
+            text = text..dialogueText
+
+            logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
+
+        elseif qInfo.type == questLog.eventType.died then
+            local actor, actorObjType = getObject(qInfo.obj)
+            local actorName = actor and actor.name or "???"
+
+            local text = l10n(actorObjType == NPC and "npcDiedLogPattern" or "creatureDiedLogPattern", {
+                actor = string.format("#%s%s#%s",
+                    config.data.ui.objectColor:asHex(),
+                    actorName,
+                    config.data.ui.defaultColor:asHex()
+                ),
+                count = killCounter.getKillCount(qInfo.obj or "") or 0
+            })
+
+            logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
+            stepsToSkip = stepsToSkip + 1
+
+        elseif qInfo.type == questLog.eventType.itemAdded or qInfo.type == questLog.eventType.itemRemoved then
+            local item = getObject(qInfo.obj)
+            local itemName = item.name or "???"
+            local text = l10n(
+                qInfo.type == questLog.eventType.itemAdded and "itemAddedLogPattern" or "itemRemovedLogPattern",
+                {
+                    item = itemName,
+                    count = qInfo.userData
+                }
+            )
+
+            logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
+            stepsToSkip = stepsToSkip + 1
+        end
+
+        return stepsToSkip - 1
+    end
+
+
+    local function addLogEntryElement()
+        if logText == "" then return end
+        local tHeight = uiUtils.getTextHeight(logText, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, 3, true)
+        local textElemSize = util.vector2(self.scrollBoxContentSize.x, tHeight)
+        local element = {
+            type = ui.TYPE.Flex,
+            props = {
+                autoSize = true,
+                horizontal = false,
+            },
+            userData = {
+                contentIndex = contentIndex,
+            },
+            content = ui.content {
+                {
+                    type = ui.TYPE.Text,
+                    userData = {},
+                    props = {
+                        text = uiUtils.colorizeNested(logText, self.parent.textFilter,
+                                "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
+                        textColor = config.data.ui.defaultColor,
+                        autoSize = false,
+                        size = textElemSize,
+                        textSize = params.fontSize or 18,
+                        multiline = true,
+                        wordWrap = true,
+                        textAlignV = ui.ALIGNMENT.Center,
+                    },
+                    -- events = {
+                    --     mouseMove = async:callback(function(coord, layout)
+                    --         local scrollMeta = self.getLayout().userData.scrollBoxMeta
+                    --         scrollMeta:mouseMove(coord)
+                    --         tooltip.createOrMove(coord, layout, tooltipContent)
+                    --     end),
+
+                    --     focusLoss = async:callback(function(e, layout)
+                    --         local scrollMeta = self.getLayout().userData.scrollBoxMeta
+                    --         scrollMeta:focusLoss(e)
+                    --         tooltip.destroy(layout)
+                    --     end),
+                    -- },
+                },
+            }
+        }
+
+        content:add(thinLineLayout)
+        content:add(element)
+        contentIndex = contentIndex + 2
+        logText = ""
+    end
+
+
     local function addElement(i)
+        addLogEntryElement()
+
         local qInfo = playerQuestDataList[i]
         if not qInfo then goto continue end
+
+        if not qInfo.diaId then return end
 
         if params.showOnlyFirstDiaEntry and addedDiaIds[qInfo.diaId] then return end
 
@@ -329,9 +507,9 @@ function questBoxMeta._fillJournal(self, content, params)
                 if not checkedInfos[dt.topicId] then
                     local diaInfo = playerQuests.getDialogueInfo(dt.diaId, dt.topicId)
                     if diaInfo then
-                        local actorName
+                        local actor, actorName
                         if dt.actorId then
-                            local actor = getObject(dt.actorId)
+                            actor = getObject(dt.actorId)
                             if actor then
                                 actorName = actor.name
                             end
@@ -353,9 +531,9 @@ function questBoxMeta._fillJournal(self, content, params)
                         if next(texts) then
                             local diaText = table.concat(texts, "\n\n")
                             if not linkedTexts[diaText] then
-                                linkedTexts[diaText] = {[actorName] = true}
+                                linkedTexts[diaText] = {[actorName] = actor or true}
                             else
-                                linkedTexts[diaText][actorName] = true
+                                linkedTexts[diaText][actorName] = actor or true
                             end
                         end
                     end
@@ -380,18 +558,9 @@ function questBoxMeta._fillJournal(self, content, params)
                 local tag = string.format("__ACTORNAME%d__", tagCnt)
                 tagCnt = tagCnt + 1
                 actorsStrTags[tag] = table.concat(actorNamesArr, ", ")
-                table.insert(tt, string.format("%s: %s",
-                        tag,
-                        stringLib.replaceGameTags(
-                            stringLib.removeSpecialCharactersFromJournalText(t),
-                            {
-                                ["PCName"] = playerName,
-                                ["PCRace"] = playerRace,
-                                ["PCClass"] = playerClass,
-                                ["name"] = #actorNamesArr == 1 and actorNamesArr[1] or nil
-                            }
-                        )
-                    )
+                local _, actor = next(actors)
+                t = tags.replaceInTextSimple(t, type(actor) ~= "boolean" and actor or nil)
+                table.insert(tt, string.format("%s: %s", tag, t)
                 )
             end
 
@@ -673,6 +842,7 @@ function questBoxMeta._fillJournal(self, content, params)
                 horizontal = false,
             },
             userData = {
+                type = "TR_Journal_Entry",
                 contentIndex = contentIndex,
                 info = qInfo,
                 topicData = topicPoss,
@@ -777,22 +947,24 @@ function questBoxMeta._fillJournal(self, content, params)
             }
         }
 
+        content:add(thinLineLayout)
         content:add(element)
-
-        contentIndex = contentIndex + 1
+        contentIndex = contentIndex + 2
 
         ::continue::
     end
 
     if self.params.isQuestList then
-        for i = 1, #playerQuestDataList do
+        for i = 1, playerQuestDataListCount do
             if params.showOnlyMainDia then
                 local qInfo = playerQuestDataList[i]
                 if not qInfo then goto continue end
 
-                local mainDias = questBase.getQuestMainDialogueIdsMap(qInfo.diaId)
-                if mainDias[qInfo.diaId] then
-                    addElement(i)
+                if qInfo.diaId then
+                    local mainDias = questBase.getQuestMainDialogueIdsMap(qInfo.diaId)
+                    if mainDias[qInfo.diaId] then
+                        addElement(i)
+                    end
                 end
             else
                 addElement(i)
@@ -801,13 +973,22 @@ function questBoxMeta._fillJournal(self, content, params)
             ::continue::
         end
     else
-        for i = #playerQuestDataList, 1, -1 do
-            addElement(i)
+        local i = playerQuestDataListCount
+        while i > 0 do
+            local qInfo = playerQuestDataList[i]
+            if qInfo.type then
+                i = i - (addLogEntryText(i) or 0)
+            else
+                addElement(i)
+            end
+            i = i - 1
         end
+        addLogEntryElement()
     end
 
     -- add missing dialogues if they have tracked objects
     for i, dt in pairs(playerQuestDataList) do
+        if not dt.diaId then goto continue end
         local id = dt.diaId..tostring(dt.index)
         if not self.dialogueInfo[id] and tracking.isDialogueHasTracked{diaId = dt.diaId, index = dt.index} then
             self.dialogueInfo[id] = {
@@ -816,6 +997,7 @@ function questBoxMeta._fillJournal(self, content, params)
                 contentIndex = 1000 + i, -- use a nonexistent index to filter these entries later
             }
         end
+        ::continue::
     end
 
     local sb = self:getScrollBoxMeta()
@@ -936,8 +1118,11 @@ function this.create(params)
 
     local tooltipContent = dialogueIDTooltipLib.getContentForTooltip{meta = meta, filter = meta.parent.textFilter}
 
-    local headerSize = util.vector2(meta.scrollBoxContentSize.x, params.fontSize * 4)
-    local checkBoxBlockSize = util.vector2(meta.scrollBoxContentSize.x, params.fontSize * 2)
+    local headerPadding = math.floor(params.fontSize / 3)
+    local headerFontSize = math.floor(params.fontSize * 1.2)
+    local smallBtnFontSize = math.floor(params.fontSize * 0.8)
+    local checkBoxBlockSize = util.vector2(meta.scrollBoxContentSize.x, smallBtnFontSize * 2 + params.fontSize + 16)
+    local headerSize = util.vector2(meta.scrollBoxContentSize.x, headerFontSize + headerPadding + checkBoxBlockSize.y + 4)
     local header
 
     local pinnedCB = checkBox{
@@ -1018,8 +1203,8 @@ function this.create(params)
                         "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
                     textColor = config.data.ui.defaultColor,
                     autoSize = false,
-                    size = util.vector2(meta.scrollBoxContentSize.x, (params.fontSize or 18) * 1.2),
-                    textSize = (params.fontSize or 18) * 1.2,
+                    size = util.vector2(meta.scrollBoxContentSize.x, headerFontSize),
+                    textSize = headerFontSize,
                     multiline = false,
                     wordWrap = false,
                     textAlignH = ui.ALIGNMENT.Center,
@@ -1041,7 +1226,7 @@ function this.create(params)
                     end),
                 },
             },
-            interval(0, params.fontSize / 3),
+            interval(0, headerPadding),
             {
                 type = ui.TYPE.Widget,
                 props = {
@@ -1053,8 +1238,7 @@ function this.create(params)
                         props = {
                             autoSize = true,
                             horizontal = true,
-                            anchor = util.vector2(0, 0.5),
-                            position = util.vector2(0, checkBoxBlockSize.y / 2),
+                            position = util.vector2(0, smallBtnFontSize + 8),
                         },
                         content = ui.content{
                             pinnedCB,
@@ -1069,11 +1253,24 @@ function this.create(params)
                         props = {
                             autoSize = true,
                             horizontal = true,
-                            anchor = util.vector2(1, 0.5),
-                            position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 3, checkBoxBlockSize.y / 2),
+                            anchor = util.vector2(1, 0),
+                            position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 2, smallBtnFontSize + params.fontSize + 8),
                         },
                         content = ui.content{}
                     },
+                    -- TODO: add functionality to toggle between showing log and hiding it
+                    -- button{
+                    --     text = l10n("showLogBtn"),
+                    --     textSize = smallBtnFontSize,
+                    --     anchor = util.vector2(1, 0),
+                    --     position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 2, 0),
+                    --     visible = true,
+                    --     parentScrollBoxUserData = journalEntries.userData, ---@diagnostic disable-line: need-check-nil
+                    --     -- event = self.untrackObjectsFunc,
+                    --     updateFunc = function ()
+                    --         meta.params.updateFunc()
+                    --     end
+                    -- }
                 }
             },
         }
