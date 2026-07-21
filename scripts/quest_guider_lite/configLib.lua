@@ -12,11 +12,14 @@ local this = {}
 
 this.data = configData.data
 
+local defaultStorage = storage.playerSection(commonData.configMiscSectionName)
+
 this.storageSections = {
     storage.playerSection(commonData.configJournalSectionName),
     storage.playerSection(commonData.configUISectionName),
     storage.playerSection(commonData.configTrackingSectionName),
     storage.playerSection(commonData.configInputSectionName),
+    defaultStorage,
 }
 
 
@@ -55,12 +58,17 @@ end
 
 
 function this.setValue(str, val)
+    local wasSet = false
     for _, section in pairs(this.storageSections) do
         if section:get(str) ~= nil then
             section:set(str, val)
+            wasSet = true
         end
     end
-    return tableLib.setValueByPath(this.data, str, val)
+    if not wasSet then
+        defaultStorage:set(str, val)
+    end
+    return true
 end
 
 function this.getValue(str)

@@ -17,6 +17,7 @@ this.configQuestDataSectionName = "Settings:QGL:QuestData"
 this.configTrackingSectionName = "Settings:QGL:Tracking"
 this.settingStorageToRemoveId = "Settings:QGL:ToRemove"
 this.configInputSectionName = "Settings:QGL:Input"
+this.configMiscSectionName = "Settings:QGL:Misc"
 
 this.miscPalyerStorage = "QuestGuider:MiscPlayerStorage"
 
