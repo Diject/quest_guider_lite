@@ -25,6 +25,7 @@ local realTimer = require("scripts.quest_guider_lite.realTimer")
 local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
 local tags = require("scripts.quest_guider_lite.types.tag")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
+local contextMenus = require("scripts.quest_guider_lite.ui.contextMenus")
 
 local trackingElementLib = require("scripts.quest_guider_lite.ui.customJournal.objectTrackingElem")
 
@@ -34,6 +35,7 @@ local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
 local button = require("scripts.quest_guider_lite.ui.button")
 local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
+local contextMenu = require("scripts.quest_guider_lite.ui.contextMenu")
 
 local dialogueIDTooltipLib = require("scripts.quest_guider_lite.ui.dialogueIdTooltip")
 
@@ -288,6 +290,8 @@ end
 ---@param params questGuider.ui.questBox.params
 function questBoxMeta._fillJournal(self, content, params)
 
+    local scrollBoxMeta = self:getScrollBoxMeta()
+
     self.dialogueInfo = {}
     ---@type table<string, boolean>
     local addedDiaIds = {}
@@ -302,10 +306,12 @@ function questBoxMeta._fillJournal(self, content, params)
     playerQuestDataListCount = #playerQuestDataList
 
     local topicData = {}
+    local topicIdByName = {}
     for _, topic in pairs(playerQuests.getTopicList() or {}) do
         topicData[topic.id or ""] = {
             topic = topic
         }
+        topicIdByName[topic.name or ""] = topic.id or ""
     end
     local topicList = tableLib.keys(topicData)
     table.sort(topicList, function (a, b)
@@ -329,6 +335,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
     local contentIndex = 2
     local logText = ""
+    local logContextMenuDialogues = {}
 
     local function addLogEntryText(i)
         local qInfo = playerQuestDataList[i]
@@ -388,6 +395,14 @@ function questBoxMeta._fillJournal(self, content, params)
 
             text = text..dialogueText
 
+            logContextMenuDialogues[dialogue.name] = true
+            for diaId, _ in pairs(topicPoss) do
+                local dt = topicData[diaId]
+                if dt then
+                    logContextMenuDialogues[dt.topic.name or ""] = true
+                end
+            end
+
             logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
 
         elseif qInfo.type == questLog.eventType.died then
@@ -424,11 +439,15 @@ function questBoxMeta._fillJournal(self, content, params)
         return stepsToSkip - 1
     end
 
+    local contextMenuEvents = contextMenus.getDialogueTextEvents(scrollBoxMeta)
 
     local function addLogEntryElement()
         if logText == "" then return end
         local tHeight = uiUtils.getTextHeight(logText, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, 3, true)
         local textElemSize = util.vector2(self.scrollBoxContentSize.x, tHeight)
+
+        local contextMenuData = contextMenus.getDialogueTextData(logContextMenuDialogues, topicIdByName)
+
         local element = {
             type = ui.TYPE.Flex,
             props = {
@@ -437,7 +456,10 @@ function questBoxMeta._fillJournal(self, content, params)
             },
             userData = {
                 contentIndex = contentIndex,
+                clickTimestamp = 0,
+                contextMenuData = next(contextMenuData) and contextMenuData,
             },
+            events = contextMenuEvents,
             content = ui.content {
                 {
                     type = ui.TYPE.Text,
@@ -453,19 +475,6 @@ function questBoxMeta._fillJournal(self, content, params)
                         wordWrap = true,
                         textAlignV = ui.ALIGNMENT.Center,
                     },
-                    -- events = {
-                    --     mouseMove = async:callback(function(coord, layout)
-                    --         local scrollMeta = self.getLayout().userData.scrollBoxMeta
-                    --         scrollMeta:mouseMove(coord)
-                    --         tooltip.createOrMove(coord, layout, tooltipContent)
-                    --     end),
-
-                    --     focusLoss = async:callback(function(e, layout)
-                    --         local scrollMeta = self.getLayout().userData.scrollBoxMeta
-                    --         scrollMeta:focusLoss(e)
-                    --         tooltip.destroy(layout)
-                    --     end),
-                    -- },
                 },
             }
         }
@@ -474,6 +483,7 @@ function questBoxMeta._fillJournal(self, content, params)
         content:add(element)
         contentIndex = contentIndex + 2
         logText = ""
+        logContextMenuDialogues = {}
     end
 
 
@@ -614,10 +624,12 @@ function questBoxMeta._fillJournal(self, content, params)
         local detailsContent = ui.content{}
 
         local textTopics = {}
+        local contextMenuDialogues = {}
         for id, dt in pairs(topicPoss) do
             if topicData[id] then
                 local topic = topicData[id].topic
                 textTopics[topic.id] = topic
+                contextMenuDialogues[topic.name or ""] = true
             end
         end
 
@@ -835,6 +847,8 @@ function questBoxMeta._fillJournal(self, content, params)
             end
         }
 
+        local contextMenuData = contextMenus.getDialogueTextData(contextMenuDialogues, topicIdByName)
+
         element = {
             type = ui.TYPE.Flex,
             props = {
@@ -849,7 +863,9 @@ function questBoxMeta._fillJournal(self, content, params)
                 detailsContent = detailsContent,
                 detailsBtn = detailsBtn,
                 isQuestList = params.isQuestList,
+                contextMenuData = next(contextMenuData) and contextMenuData,
             },
+            events = contextMenuEvents,
             content = ui.content {
                 interval(0, params.fontSize),
                 {

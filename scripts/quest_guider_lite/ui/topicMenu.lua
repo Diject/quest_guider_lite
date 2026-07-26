@@ -17,6 +17,7 @@ local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
 local keysModule = require("scripts.quest_guider_lite.input.keys")
+local contextMenus = require("scripts.quest_guider_lite.ui.contextMenus")
 
 local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -29,6 +30,7 @@ local button = require("scripts.quest_guider_lite.ui.button")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
+local contextMenu = require("scripts.quest_guider_lite.ui.contextMenu")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
 
@@ -56,6 +58,10 @@ end
 
 topicMenuMeta.getTopicScrollBox = function (self)
     return self:getTopicMain().content[2]
+end
+
+topicMenuMeta.getTopicScrollBoxMeta = function (self)
+    return self:getTopicMain().content[2].userData.scrollBoxMeta
 end
 
 topicMenuMeta.resetTopicListColors = function (self)
@@ -174,12 +180,16 @@ topicMenuMeta.selectTopic = function (self, topicId)
     local nestedTopics = {}
 
     local topicData = {}
+    local topicIdByName = {}
     for _, topic in pairs(playerQuests.getTopicList() or {}) do
         topicData[topic.id or ""] = {
             topic = topic
         }
+        topicIdByName[topic.name or ""] = topic.id or ""
     end
     local topicList = tableLib.keys(topicData)
+
+    local contextMenuDialogues = {}
 
     local loadedAll = false
     local function updateTopicText(topicInfoContent, loadMore)
@@ -252,6 +262,13 @@ topicMenuMeta.selectTopic = function (self, topicId)
                     tostring(#actorNames),
                     entryText
                 )
+
+                for diaId, _ in pairs(topicPoss) do
+                    local dt = topicData[diaId]
+                    if dt then
+                        contextMenuDialogues[dt.topic.name or ""] = true
+                    end
+                end
 
                 ::continue::
             end
@@ -361,6 +378,9 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
         end
 
+        local contextMenuData = contextMenus.getDialogueTextData(contextMenuDialogues, topicIdByName)
+        textElem.userData.contextMenuData = next(contextMenuData) and contextMenuData
+
         textElem.props.text = newText..textElem.props.text
     end
 
@@ -419,6 +439,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 interval(params.fontSize * 0.25, 0),
                 {
                     type = ui.TYPE.Text,
+                    userData = {},
                     props = {
                         text = "",
                         textColor = config.data.ui.defaultColor,
@@ -430,6 +451,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                         wordWrap = true,
                         -- textAlignH = ui.ALIGNMENT.Center,
                     },
+                    events = contextMenus.getDialogueTextEvents(self:getTopicScrollBoxMeta())
                 },
             },
         },
