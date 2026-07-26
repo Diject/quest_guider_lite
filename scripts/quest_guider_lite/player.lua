@@ -35,6 +35,7 @@ local playerInventory = require("scripts.quest_guider_lite.helpers.playerInvento
 
 local menuMode = require("scripts.quest_guider_lite.ui.menuMode")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
+local menuBuilders = require("scripts.quest_guider_lite.ui.menuBuilders")
 
 local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
 local advWMapIntegration = require("scripts.quest_guider_lite.map.advWMapIntegration")
@@ -328,6 +329,7 @@ local function buildTopicMenu()
         relativePosition = util.vector2(config.data.journal.position.x * 0.01 + 0.05, config.data.journal.position.y * 0.01 + 0.05),
     }
 end
+menuBuilders.topicMenu = buildTopicMenu
 
 
 local function buildTrackingMenu()
@@ -339,6 +341,7 @@ local function buildTrackingMenu()
         tooltipLib = tooltip,
     }
 end
+menuBuilders.trackingMenu = buildTrackingMenu
 
 
 local function buildMainQuestMenu(nearbyMode)
@@ -381,6 +384,7 @@ local function buildMainQuestMenu(nearbyMode)
 
     return createQuestMenu(params)
 end
+menuBuilders.mainQuestMenu = buildMainQuestMenu
 
 
 local function buildAllQuestsMenu()
@@ -407,6 +411,7 @@ local function buildAllQuestsMenu()
         allEntriesDefault = true,
     }
 end
+menuBuilders.allQuestsMenu = buildAllQuestsMenu
 
 
 local function toggleMenu(withoutMenuMode)
