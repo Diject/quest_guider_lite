@@ -98,6 +98,8 @@ function this.handleJournalEvent(diaId, diaIndex)
     storageData = storageData or playerQuests.getQuestStorageData(qName) or playerQuests.initStorageQuestData(qName)
     if not storageData or storageData.finished then return end
 
+    local isFirstEntry = #storageData.list == 0
+
     local tmData = this.questDialogueTimestamps[diaId]
     if tmData then
         if math.abs(tmData.tm - realTimer.frameCounter) <= 5 then
@@ -145,6 +147,8 @@ function this.handleJournalEvent(diaId, diaIndex)
                 this.trackedQuestDiaData[dId] = nil
             end
         end
+    elseif isFirstEntry then
+        this.handleInventory(true)
     end
 end
 
@@ -258,8 +262,8 @@ function this.handleDialogueInventory(storageData, infoId)
 end
 
 
-function this.handleInventory()
-    for itemId, count in pairs(playerInventory.difference) do
+function this.handleInventory(useCurrentInventory)
+    for itemId, count in pairs(useCurrentInventory and playerInventory.items or playerInventory.difference) do
         if count <= 0 then goto continue end
 
         local data = this.trackedObjects[itemId]
