@@ -89,7 +89,8 @@ pcall(function ()
     this.whiteTexture = constants.whiteTexture
 end)
 
-this.playerQuestDataLabel = "playerQuests"
+this.playerQuestDataLabel = "playerQuestsV1"
+this.playerQuestDataLabel_OLD = "playerQuests"
 this.killCounterDataLabel = "killCounter"
 this.trackingDataLabel = "tracking"
 this.aWMIntegrationDataLabel = "advWMapIntegration"

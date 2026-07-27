@@ -75,6 +75,14 @@ local this = {}
 ---@field questData table<string, questGuider.playerQuest.storageQuestData> by quest name
 
 
+local function migrateData()
+    local oldStorageData = localStorage.data[commonData.playerQuestDataLabel_OLD]
+    if oldStorageData then
+        localStorage.data[commonData.playerQuestDataLabel_OLD] = nil
+        localStorage.data[commonData.playerQuestDataLabel] = oldStorageData
+    end
+end
+
 ---@return questGuider.playerQuest.storageData?
 local function getStorageData()
     return localStorage.data[commonData.playerQuestDataLabel]
@@ -129,6 +137,8 @@ local initialized = false
 
 function this.init()
     if initialized then return end
+
+    migrateData()
 
     local storageData = initStorageData()
 
