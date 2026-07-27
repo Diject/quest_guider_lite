@@ -1,12 +1,14 @@
 local async = require("openmw.async")
 local core = require("openmw.core")
 
-local config = require("scripts.quest_guider_lite.config")
+local config = require("scripts.quest_guider_lite.configLib")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local menuBuilders = require("scripts.quest_guider_lite.ui.menuBuilders")
 local common = require("scripts.quest_guider_lite.common")
 local contextMenu = require("scripts.quest_guider_lite.ui.contextMenu")
+
+local l10n = core.l10n(common.l10nKey)
 
 
 local this = {}
@@ -67,6 +69,27 @@ function this.getDialogueTextEvents(scrollBoxMeta)
     }
 
     return contextMenuEvents
+end
+
+
+---@param updateFunc fun()?
+---@return questGuider.ui.contextMenu.create.params.element[] contextMenuData
+function this.getOptionsData(updateFunc)
+    ---@type questGuider.ui.contextMenu.create.params.element[]
+    local out = {
+        {type = 1, text = l10n("questLogContextLabel"), fontSize = config.data.ui.fontSize * 1.1},
+        {type = 0},
+        {type = 3, text = l10n("questLogContextDialogueInfo"), data = config.data.journal.questLog.dialogueInfo, callback = function (checked, layout)
+            config.setValue("journal.questLog.dialogueInfo", checked)
+            if updateFunc then updateFunc() end
+        end},
+        {type = 3, text = l10n("questLogContextObjectInfo"), data = config.data.journal.questLog.objectInfo, callback = function (checked, layout)
+            config.setValue("journal.questLog.objectInfo", checked)
+            if updateFunc then updateFunc() end
+        end},
+    }
+
+    return out
 end
 
 

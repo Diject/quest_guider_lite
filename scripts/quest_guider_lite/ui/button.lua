@@ -66,7 +66,7 @@ local mouseRelease = async:callback(function(e, layout)
     end
 
     if userData.pressed and userData.params.event then
-        userData.params.event(layout)
+        userData.params.event(layout, e)
     end
 
     userData.pressed = false
@@ -117,7 +117,7 @@ end)
 ---@field iconColor any?
 ---@field alpha number?
 ---@field visible boolean?
----@field event fun(layout : any)?
+---@field event fun(layout : any, e: any)?
 ---@field mousePress fun(layout : any)?
 ---@field mouseRelease fun(layout : any)?
 ---@field mouseMove fun(layout : any)?

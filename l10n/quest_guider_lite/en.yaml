@@ -237,8 +237,10 @@ itemObtainedLogPattern: "{count, plural, one {\"{item}\"} other {{count} of \"{i
 itemGivenLogPattern: "{count, plural, one {\"{item}\"} other {{count} of \"{item}\"}}"
 itemAcquiredLogPattern: "\"{item}\"{count, plural, one {} other { ({count})}}"
 itemLostLogPattern: "\"{item}\"{count, plural, one {} other { ({count})}}"
-showLogBtn: "Show log"
-hideLogBtn: "Hide log"
+questBoxOptionsBtn: "Options"
+questLogContextLabel: "Quest History:"
+questLogContextDialogueInfo: "Conversations"
+questLogContextObjectInfo: "Loot & Kills"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."

@@ -22,6 +22,7 @@ local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
 ---@field anchor any? util.vector2
 ---@field textAlignH any?
 ---@field textAlignV any?
+---@field inheritAlpha boolean?
 ---@field tooltipContent any?
 ---@field getScrollBoxMeta (fun() : questGuider.ui.scrollBox)?
 ---@field event fun(checked : boolean, layout : any)?
@@ -117,7 +118,7 @@ return function(params)
                         props = {
                             resource = texture,
                             size = boxSize,
-                            inheritAlpha = false,
+                            inheritAlpha = params.inheritAlpha or false,
                             alpha = params.checked and 1 or 0,
                             color = configData.data.ui.defaultColor,
                         },

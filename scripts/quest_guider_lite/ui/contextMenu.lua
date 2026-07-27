@@ -139,12 +139,14 @@ function this.create(params)
             },
             events = {
                 mouseMove = async:callback(function(coord, layout)
+                    if not this.menu then return end
                     template.content[1].content[1].props.alpha = 0.2
                     this.inFocus = true
                     this.menu:update()
                 end),
 
                 focusLoss = async:callback(function(e, layout)
+                    if not this.menu then return end
                     template.content[1].content[1].props.alpha = 0
                     this.inFocus = false
                     this.menu:update()
@@ -190,6 +192,7 @@ function this.create(params)
                 text = data.text or "",
                 textSize = data.fontSize or params.fontSize or config.data.ui.fontSize,
                 visible = true,
+                inheritAlpha = true,
                 position = util.vector2(4, 4),
                 event = data.callback,
             }

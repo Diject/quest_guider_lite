@@ -346,6 +346,7 @@ function questBoxMeta._fillJournal(self, content, params)
         local stepsToSkip = 0
 
         if qInfo.type == questLog.eventType.dialogue then
+            if not config.data.journal.questLog.dialogueInfo then return end
             if not qInfo.dId or not qInfo.dInfo then return end
 
             local diaInfo, dialogue = playerQuests.getDialogueInfo(qInfo.dId, qInfo.dInfo)
@@ -408,6 +409,7 @@ function questBoxMeta._fillJournal(self, content, params)
             logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
 
         elseif qInfo.type == questLog.eventType.died then
+            if not config.data.journal.questLog.objectInfo then return end
             local actor, actorObjType = getObject(qInfo.obj)
             local actorName = actor and actor.name or "???"
 
@@ -425,6 +427,7 @@ function questBoxMeta._fillJournal(self, content, params)
             lastLogTextType = questLog.eventType.died
 
         elseif qInfo.type == questLog.eventType.itemObtained or qInfo.type == questLog.eventType.itemGiven then
+            if not config.data.journal.questLog.dialogueInfo then return end
             local texts = {}
             for j = i, 1, -1 do
                 local qI = playerQuestDataList[j]
@@ -452,6 +455,7 @@ function questBoxMeta._fillJournal(self, content, params)
             logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
 
         elseif qInfo.type == questLog.eventType.item then
+            if not config.data.journal.questLog.objectInfo then return end
             local texts = {}
             for j = i, 1, -1 do
                 local qI = playerQuestDataList[j]
@@ -1319,19 +1323,31 @@ function this.create(params)
                         },
                         content = ui.content{}
                     },
-                    -- TODO: add functionality to toggle between showing log and hiding it
-                    -- button{
-                    --     text = l10n("showLogBtn"),
-                    --     textSize = smallBtnFontSize,
-                    --     anchor = util.vector2(1, 0),
-                    --     position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 2, 0),
-                    --     visible = true,
-                    --     parentScrollBoxUserData = journalEntries.userData, ---@diagnostic disable-line: need-check-nil
-                    --     -- event = self.untrackObjectsFunc,
-                    --     updateFunc = function ()
-                    --         meta.params.updateFunc()
-                    --     end
-                    -- }
+                    button{
+                        text = l10n("questBoxOptionsBtn"),
+                        textSize = smallBtnFontSize,
+                        anchor = util.vector2(1, 0),
+                        position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 2, 0),
+                        visible = true,
+                        parentScrollBoxUserData = journalEntries.userData, ---@diagnostic disable-line: need-check-nil
+                        updateFunc = function ()
+                            meta.params.updateFunc()
+                        end,
+                        event = function (layout, e)
+                            if contextMenu.getActiveMenuId() and layout.userData.contextMenuId == contextMenu.getActiveMenuId() then
+                                contextMenu.destroy()
+                                return
+                            end
+                            layout.userData.contextMenuId = contextMenu.create{
+                                position = e.position,
+                                fontSize = config.data.ui.fontSize,
+                                elements = contextMenus.getOptionsData(function ()
+                                    local selectedQuest = meta.parent:getQuestListSelectedFladValue()
+                                    meta.parent:selectQuest(selectedQuest, true, true)
+                                end),
+                            }
+                        end
+                    }
                 }
             },
         }

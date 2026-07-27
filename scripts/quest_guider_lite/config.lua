@@ -81,6 +81,10 @@ this.default = {
         bottomInfoText = {
             enabled = true,
         },
+        questLog = {
+            dialogueInfo = true, -- settingless
+            objectInfo = false, -- settingless
+        },
     },
     ui = {
         fontSize = 20,
