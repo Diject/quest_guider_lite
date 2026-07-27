@@ -25,6 +25,7 @@ local realTimer = require("scripts.quest_guider_lite.realTimer")
 local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
 local tags = require("scripts.quest_guider_lite.types.tag")
 local killCounter = require("scripts.quest_guider_lite.killCounter")
+local playerInventory = require("scripts.quest_guider_lite.helpers.playerInventory")
 local contextMenus = require("scripts.quest_guider_lite.ui.contextMenus")
 
 local trackingElementLib = require("scripts.quest_guider_lite.ui.customJournal.objectTrackingElem")
@@ -336,6 +337,7 @@ function questBoxMeta._fillJournal(self, content, params)
     local contentIndex = 2
     local logText = ""
     local logContextMenuDialogues = {}
+    local lastLogTextType = nil
 
     local function addLogEntryText(i)
         local qInfo = playerQuestDataList[i]
@@ -364,7 +366,7 @@ function questBoxMeta._fillJournal(self, content, params)
             local diaTextsReversed = {}
             for j = i, 1, -1 do
                 local qI = playerQuestDataList[j]
-                if not qI or not qI.type or qI.obj ~= qInfo.obj or qI.dId ~= qInfo.dId then break end
+                if not qI or not qI.type or qI.type ~= qInfo.type or qI.obj ~= qInfo.obj or qI.dId ~= qInfo.dId then break end
 
                 if qI.text then
                     table.insert(diaTextsReversed, l10n("dialogueLogPrefix")..qI.text)
@@ -420,21 +422,64 @@ function questBoxMeta._fillJournal(self, content, params)
 
             logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
             stepsToSkip = stepsToSkip + 1
+            lastLogTextType = questLog.eventType.died
 
-        elseif qInfo.type == questLog.eventType.itemAdded or qInfo.type == questLog.eventType.itemRemoved then
-            local item = getObject(qInfo.obj)
-            local itemName = item.name or "???"
-            local text = l10n(
-                qInfo.type == questLog.eventType.itemAdded and "itemAddedLogPattern" or "itemRemovedLogPattern",
-                {
-                    item = itemName,
-                    count = qInfo.userData
-                }
-            )
+        elseif qInfo.type == questLog.eventType.itemObtained or qInfo.type == questLog.eventType.itemGiven then
+            local texts = {}
+            for j = i, 1, -1 do
+                local qI = playerQuestDataList[j]
+                if not qI or not qI.type or qI.type ~= qInfo.type or not qI.obj then break end
+
+                local item = getObject(qI.obj)
+                local itemName = item and item.name or "???"
+
+                table.insert(texts, l10n(
+                    qInfo.type == questLog.eventType.itemObtained and "itemObtainedLogPattern" or "itemGivenLogPattern",
+                    {
+                        item = itemName,
+                        count = qInfo.userData or 0
+                    }
+                ))
+                stepsToSkip = stepsToSkip + 1
+            end
+
+            if not next(texts) then return end
+
+            local text = l10n(qInfo.type == questLog.eventType.itemObtained and "logHeaderObtained" or "logHeaderGiven", {
+                items = table.concat(texts, ", ")
+            })
 
             logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
-            stepsToSkip = stepsToSkip + 1
+
+        elseif qInfo.type == questLog.eventType.item then
+            local texts = {}
+            for j = i, 1, -1 do
+                local qI = playerQuestDataList[j]
+                if not qI or not qI.type or qI.type ~= qInfo.type or not qI.obj then break end
+
+                local item = getObject(qI.obj)
+                local itemName = item and item.name or "???"
+
+                table.insert(texts, l10n(
+                    (qInfo.userData or 0) >= 0 and "itemAcquiredLogPattern" or "itemLostLogPattern",
+                    {
+                        item = itemName,
+                        count = playerInventory.getCount(qInfo.obj)
+                    }
+                ))
+                stepsToSkip = stepsToSkip + 1
+            end
+
+            if not next(texts) then return end
+
+            local text = l10n((qInfo.userData or 0) >= 0 and "logHeaderAcquired" or "logHeaderLost", {
+                items = table.concat(texts, ", ")
+            })
+
+            logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
         end
+
+        lastLogTextType = qInfo.type
 
         return stepsToSkip - 1
     end

@@ -439,12 +439,22 @@ local function toggleMenu(withoutMenuMode)
 end
 
 
+local function handleInventoryItems()
+    playerInventory.snapshot()
+    questLog.handleInventory()
+end
+
+
 I.DijectKeyBindings.action.register(commonData.journalMenuTriggerId, function()
+    handleInventoryItems()
+
     toggleMenu()
 end)
 
 
 I.DijectKeyBindings.action.register(commonData.allQuestsTriggerId, function()
+    handleInventoryItems()
+
     menuHandler.destroyMenu(commonData.allQuestsMenuId)
     menuHandler.destroyMenu(commonData.journalMenuId)
     menuHandler.activateMenuMode()
@@ -474,6 +484,8 @@ end)
 if config.data.journal.overrideJournal then
     I.UI.registerWindow("Journal",
         function()
+            handleInventoryItems()
+
             toggleMenu(true)
             menuMode.setActivatedFlag(true)
         end,
@@ -902,6 +914,8 @@ return {
             end) end)
         end,
         onTeleported = function ()
+            handleInventoryItems()
+
             async:newUnsavableSimulationTimer(0.1, function () -- delay for the player cell data to be updated
                 updateQuestGivers()
                 teleportedCallback()
@@ -931,7 +945,7 @@ return {
                 end
             elseif e.newMode == "Dialogue" then
                 dialogueMenuActor = e.arg
-                playerInventory.snapshot()
+                handleInventoryItems()
             elseif e.oldMode == "Container" or e.newMode == "Loading" or e.oldMode == "Interface" then
                 handleTracking()
             end

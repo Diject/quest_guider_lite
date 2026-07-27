@@ -35,4 +35,9 @@ function this.snapshot()
 end
 
 
+function this.getCount(itemId)
+    return inventory:countOf(itemId) or 0
+end
+
+
 return this

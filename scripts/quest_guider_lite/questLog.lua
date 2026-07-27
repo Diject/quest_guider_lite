@@ -23,15 +23,21 @@ this.eventType = {
     died = 1,
     dialogue = 2,
     item = 3,
-    itemAdded = 4,
-    itemRemoved = 5,
+    itemObtained = 4,
+    itemGiven = 5,
     finished = 99,
 }
 
 local forbiddenForTracking = {
     [this.eventType.finished] = true,
-    [this.eventType.itemAdded] = true,
-    [this.eventType.itemRemoved] = true,
+    [this.eventType.itemObtained] = true,
+    [this.eventType.itemGiven] = true,
+}
+
+this.itemTypes = {
+    [this.eventType.item] = true,
+    [this.eventType.itemObtained] = true,
+    [this.eventType.itemGiven] = true,
 }
 
 
@@ -171,7 +177,7 @@ function this.handleDialogueEvent(actor, diaId, infoId)
             this.trackedObjects[actor.recordId] = this.trackedObjects[actor.recordId] or {}
             this.trackedObjects[actor.recordId][storageData] = true
 
-            this.handleInventory(storageData, infoId)
+            this.handleDialogueInventory(storageData, infoId)
 
             :: continue::
         end
@@ -188,6 +194,25 @@ function this.handleDialogueEvent(actor, diaId, infoId)
 end
 
 
+local function insertToData(storageData, objId, hash, dt)
+    if not storageData.logHashes[hash] then
+        table.insert(storageData.list, dt)
+        storageData.logHashes[hash] = #storageData.list
+
+        this.trackedObjects[objId] = this.trackedObjects[objId] or {}
+        this.trackedObjects[objId][storageData] = true
+    else
+        local pos = storageData.logHashes[hash]
+        local listCount = #storageData.list
+        for i = pos, listCount - 1 do
+            storageData.list[i] = storageData.list[i + 1]
+        end
+        storageData.list[listCount] = dt
+        storageData.logHashes[hash] = listCount
+    end
+end
+
+
 function this.handleDiedEvent(objId)
     local data = this.trackedObjects[objId]
     if not data then return end
@@ -200,49 +225,62 @@ function this.handleDiedEvent(objId)
         local dt = {
             type = this.eventType.died,
             globalTime = timeLib.getGlobalTimestamp(),
-            cellData = cellData.getCellData(playerRef.cell),
             obj = objId,
         }
 
-        if not storageData.logHashes[hash] then
-            table.insert(storageData.list, dt)
-            storageData.logHashes[hash] = #storageData.list
-
-            this.trackedObjects[objId] = this.trackedObjects[objId] or {}
-            this.trackedObjects[objId][storageData] = true
-        else
-            local pos = storageData.logHashes[hash]
-            local listCount = #storageData.list
-            for i = pos, listCount - 1 do
-                storageData.list[i] = storageData.list[i + 1]
-            end
-            storageData.list[listCount] = dt
-            storageData.logHashes[hash] = listCount
-        end
+        insertToData(storageData, objId, hash, dt)
 
         :: continue::
     end
 end
 
 
-function this.handleInventory(storageData, infoId)
+function this.handleDialogueInventory(storageData, infoId)
     for itemId, count in pairs(playerInventory.difference) do
-        local dtType = count > 0 and this.eventType.itemAdded or this.eventType.itemRemoved
+        local dtType = count > 0 and this.eventType.itemObtained or this.eventType.itemGiven
 
         if not storageData.logHashes then storageData.logHashes = {} end
-        local hash = this.getHashVal(this.eventType.dtType, itemId, infoId)
+        local hash = this.getHashVal(dtType, itemId, infoId)
         if storageData.logHashes[hash] then goto continue end
 
         local dt = {
             type = dtType,
             globalTime = timeLib.getGlobalTimestamp(),
-            cellData = cellData.getCellData(playerRef.cell),
             obj = itemId,
             userData = math.abs(count)
         }
 
         table.insert(storageData.list, dt)
         storageData.logHashes[hash] = #storageData.list
+
+        ::continue::
+    end
+end
+
+
+function this.handleInventory()
+    for itemId, count in pairs(playerInventory.difference) do
+        if count <= 0 then goto continue end
+
+        local data = this.trackedObjects[itemId]
+        if not data then goto continue end
+
+        local dtType = this.eventType.item
+
+        local hash = this.getHashVal(dtType, itemId)
+
+        for storageData, _ in pairs(data) do
+            if not storageData.logHashes then storageData.logHashes = {} end
+
+            local dt = {
+                type = dtType,
+                globalTime = timeLib.getGlobalTimestamp(),
+                obj = itemId,
+                userData = 1
+            }
+
+            insertToData(storageData, itemId, hash, dt)
+        end
 
         ::continue::
     end
