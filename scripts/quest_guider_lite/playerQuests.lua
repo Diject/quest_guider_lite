@@ -77,9 +77,20 @@ local this = {}
 
 local function migrateData()
     local oldStorageData = localStorage.data[commonData.playerQuestDataLabel_OLD]
+    local newStorageData = localStorage.data[commonData.playerQuestDataLabel]
     if oldStorageData then
         localStorage.data[commonData.playerQuestDataLabel_OLD] = nil
-        localStorage.data[commonData.playerQuestDataLabel] = oldStorageData
+        if newStorageData then
+            if oldStorageData.questData and newStorageData.questData then
+                for id, data in pairs(oldStorageData.questData) do
+                    if not newStorageData.questData[id] then
+                        newStorageData.questData[id] = data
+                    end
+                end
+            end
+        else
+            localStorage.data[commonData.playerQuestDataLabel] = oldStorageData
+        end
     end
 end
 
