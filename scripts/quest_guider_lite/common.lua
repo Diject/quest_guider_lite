@@ -60,6 +60,9 @@ this.trackingMenuLayer = this.topicMenuLayer
 this.defaultColorData = {202/255, 165/255, 96/255}
 this.defaultColor = util.color.rgb(this.defaultColorData[1], this.defaultColorData[2], this.defaultColorData[3])
 
+this.defaultAltColorData = {223/255, 201/255, 129/255}
+this.defaultAltColor = util.color.rgb(this.defaultAltColorData[1], this.defaultAltColorData[2], this.defaultAltColorData[3])
+
 this.selectedColorData = {0.2, 1, 0.2}
 this.selectedColor = util.color.rgb(this.selectedColorData[1], this.selectedColorData[2], this.selectedColorData[3])
 
@@ -118,6 +121,11 @@ this.mapGiverMarkerPath = "textures/icons/quest_guider/exclamationMarkM.dds"
 this.mapGiverMarkerUpPath = "textures/icons/quest_guider/exclamationMarkUpM.dds"
 this.mapGiverMarkerDownPath = "textures/icons/quest_guider/exclamationMarkDownM.dds"
 this.mapWidgetIcoPath = "textures/icons/quest_guider/mapWidgetIco.png"
+
+this.initMenuColoredMarkersImagePath = "textures/icons/quest_guider/initMenu/coloredMarkers.png"
+this.initMenuMapMarkersImagePath = "textures/icons/quest_guider/initMenu/mapMarkers.png"
+this.initMenuProximityMarkersImagePath = "textures/icons/quest_guider/initMenu/proximityMarkers.png"
+this.initMenuHudMarkersImagePath = "textures/icons/quest_guider/initMenu/hudMarkers.png"
 
 this.questGiverGroup = "~__QGL:GIVER__"
 

@@ -14,6 +14,7 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 
+local templates = require("scripts.quest_guider_lite.ui.templates")
 local borders = require("scripts.quest_guider_lite.ui.borders")
 local button = require("scripts.quest_guider_lite.ui.button")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -45,8 +46,13 @@ function this.new(params)
 
     params.fontSize = params.fontSize or config.data.ui.fontSize
 
-    params.size = params.size or util.vector2(screenSize.x * 0.6, screenSize.y * 0.6)
+    params.size = params.size or util.vector2(screenSize.x * 0.6, screenSize.y * 0.7)
     params.relativePosition = util.vector2(0.5, 0.5)
+
+    local xLimit = math.floor(screenSize.x * 0.4)
+    local imLimit = math.floor(math.min(screenSize.x * 0.2, params.fontSize * 12))
+
+    local previewImageSize = util.vector2(imLimit, imLimit * 0.5)
 
 
     ---@class questGuider.ui.firstInitMenu
@@ -79,7 +85,7 @@ function this.new(params)
                 text = headetText,
                 textSize = params.fontSize,
                 autoSize = false,
-                size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 4),
+                size = util.vector2(xLimit, params.fontSize * 4),
                 textColor = config.data.ui.defaultColor,
                 multiline = true,
                 wordWrap = true,
@@ -137,82 +143,224 @@ function this.new(params)
     local sbContent
     sbContent = ui.content {
         {
-            type = ui.TYPE.Flex,
+            type = ui.TYPE.Text,
             props = {
-                horizontal = false,
-                arrange = ui.ALIGNMENT.Center,
-            },
-            userData = {},
-            content = ui.content{
-                {
-                    type = ui.TYPE.Text,
-                    props = {
-                        text = l10n("firstInitQuestDataFound"),
-                        textSize = params.fontSize,
-                        autoSize = false,
-                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 3),
-                        textColor = config.data.ui.defaultColor,
-                        multiline = true,
-                        wordWrap = true,
-                        textAlignH = ui.ALIGNMENT.Center,
-                        textAlignV = ui.ALIGNMENT.Center,
-                    },
-                },
-                interval(0, params.fontSize * 0.5),
-                checkBox{
-                    updateFunc = meta.update,
-                    text = l10n("firstInitDisableAutoTracking"),
-                    textSize = params.fontSize,
-                    getScrollBoxMeta = function() return sBoxMeta end,
-                    checked = not config.data.tracking.autoTrack,
-                    event = function (checked, layout)
-                        config.setValue("tracking.autoTrack", not checked)
-                    end
-                },
-                interval(0, params.fontSize / 2),
-                {
-                    type = ui.TYPE.Text,
-                    props = {
-                        text = l10n("firstInitNote0"),
-                        textSize = params.fontSize,
-                        autoSize = false,
-                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 5),
-                        textColor = config.data.ui.defaultColor,
-                        multiline = true,
-                        wordWrap = true,
-                        textAlignH = ui.ALIGNMENT.Center,
-                        textAlignV = ui.ALIGNMENT.Center,
-                    },
-                },
-                interval(0, params.fontSize / 2),
-                insertLabelToContent(l10n("firstInitMapMarkersCategory")),
-                interval(0, params.fontSize / 2),
-                insertCBToContent(config.data.tracking.advWMapMarkers, "tracking.advWMapMarkers"),
-                interval(0, params.fontSize),
-                insertLabelToContent(l10n("firstInitProximityMarkersCategory")),
-                interval(0, params.fontSize / 2),
-                insertCBToContent(config.data.tracking.proximityMarkers, "tracking.proximityMarkers"),
-                interval(0, params.fontSize),
-                insertLabelToContent(l10n("firstInitHUDMarkersCategory")),
-                interval(0, params.fontSize / 2),
-                insertCBToContent(config.data.tracking.hudMarkers, "tracking.hudMarkers"),
-                interval(0, params.fontSize * 2),
-                {
-                    type = ui.TYPE.Text,
-                    props = {
-                        text = l10n("firstInitNote1"),
-                        textSize = params.fontSize,
-                        autoSize = false,
-                        size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 5),
-                        textColor = config.data.ui.defaultColor,
-                        multiline = true,
-                        wordWrap = true,
-                        textAlignH = ui.ALIGNMENT.Center,
-                        textAlignV = ui.ALIGNMENT.Center,
-                    },
-                },
+                text = l10n("firstInitQuestDataFound"),
+                textSize = math.floor(params.fontSize * 1.2),
+                autoSize = false,
+                size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 4),
+                textColor = config.data.ui.defaultColor,
+                multiline = true,
+                wordWrap = true,
+                textAlignH = ui.ALIGNMENT.Center,
+                textAlignV = ui.ALIGNMENT.Center,
             },
         },
+        interval(0, params.fontSize * 0.25),
+        customTemplates.fullHorizontalLineThin,
+        interval(0, params.fontSize * 0.25),
+        checkBox{
+            updateFunc = meta.update,
+            text = l10n("firstInitDisableAutoTracking"),
+            textSize = params.fontSize,
+            textElementSize = util.vector2(sbSize.x - params.fontSize, params.fontSize * 2),
+            getScrollBoxMeta = function() return sBoxMeta end,
+            checked = not config.data.tracking.autoTrack,
+            event = function (checked, layout)
+                config.setValue("tracking.autoTrack", not checked)
+            end
+        },
+        interval(0, params.fontSize * 0.25),
+        customTemplates.fullHorizontalLineThin,
+        interval(0, params.fontSize * 0.25),
+        {
+            type = ui.TYPE.Flex,
+            props = {
+                horizontal = true,
+                arrange = ui.ALIGNMENT.Start,
+            },
+            content = ui.content{
+                {
+                    type = ui.TYPE.Flex,
+                    content = ui.content{
+                        checkBox{
+                            updateFunc = meta.update,
+                            text = l10n("useColoredMarkersDescriptionInitMenu"),
+                            textSize = params.fontSize,
+                            textElementSize = util.vector2(xLimit, params.fontSize * 2),
+                            getScrollBoxMeta = function() return sBoxMeta end,
+                            checked = config.data.tracking.colored,
+                            event = function (checked, layout)
+                                config.setValue("tracking.colored", checked)
+                            end
+                        },
+                    }
+                },
+                {
+                    props = {
+                        size = previewImageSize,
+                    },
+                    content = ui.content{
+                        {
+                            type = ui.TYPE.Image,
+                            props = {
+                                resource = ui.texture{ path = commonData.initMenuColoredMarkersImagePath },
+                                size = previewImageSize,
+                            },
+                        },
+                        {
+                            type = ui.TYPE.Text,
+                            props = {
+                                text = l10n("On"),
+                                textSize = params.fontSize * 1.5,
+                                textColor = config.data.ui.defaultColor,
+                                textShadow = true,
+                                textShadowColor = config.data.ui.shadowColor,
+                            }
+                        },
+                        {
+                            type = ui.TYPE.Text,
+                            props = {
+                                text = l10n("Off"),
+                                position = util.vector2(previewImageSize.x * 0.5, 0),
+                                textSize = params.fontSize * 1.5,
+                                textColor = config.data.ui.defaultColor,
+                                textShadow = true,
+                                textShadowColor = config.data.ui.shadowColor,
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        interval(0, params.fontSize * 0.25),
+        customTemplates.fullHorizontalLineThin,
+        interval(0, params.fontSize * 0.25),
+        {
+            type = ui.TYPE.Text,
+            props = {
+                text = l10n("firstInitNote0"),
+                textSize = params.fontSize,
+                autoSize = false,
+                size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 7),
+                textColor = config.data.ui.defaultColor,
+                multiline = true,
+                wordWrap = true,
+                textAlignH = ui.ALIGNMENT.Center,
+                textAlignV = ui.ALIGNMENT.Center,
+            },
+        },
+        interval(0, params.fontSize * 0.25),
+        customTemplates.fullHorizontalLineThin,
+        interval(0, params.fontSize * 0.25),
+        {
+            type = ui.TYPE.Flex,
+            props = {
+                horizontal = true,
+                arrange = ui.ALIGNMENT.End,
+            },
+            content = ui.content{
+                {
+                    type = ui.TYPE.Flex,
+                    props = {
+                        anchor = util.vector2(0, 1),
+                        arrange = ui.ALIGNMENT.Center,
+                    },
+                    content = ui.content{
+                        insertLabelToContent(l10n("firstInitMapMarkersCategory")),
+                        interval(0, params.fontSize / 2),
+                        insertCBToContent(config.data.tracking.advWMapMarkers, "tracking.advWMapMarkers"),
+                    }
+                },
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = ui.texture{ path = commonData.initMenuMapMarkersImagePath },
+                        size = previewImageSize,
+                        anchor = util.vector2(0, 1)
+                    },
+                }
+            }
+        },
+        interval(0, params.fontSize * 0.5),
+        {
+            type = ui.TYPE.Flex,
+            props = {
+                horizontal = true,
+                arrange = ui.ALIGNMENT.End,
+            },
+            content = ui.content{
+                {
+                    type = ui.TYPE.Flex,
+                    props = {
+                        anchor = util.vector2(0, 1),
+                        arrange = ui.ALIGNMENT.Center,
+                    },
+                    content = ui.content{
+                        insertLabelToContent(l10n("firstInitProximityMarkersCategory")),
+                        interval(0, params.fontSize / 2),
+                        insertCBToContent(config.data.tracking.proximityMarkers, "tracking.proximityMarkers"),
+                    }
+                },
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = ui.texture{ path = commonData.initMenuProximityMarkersImagePath },
+                        size = previewImageSize,
+                        anchor = util.vector2(0, 1)
+                    },
+                }
+            }
+        },
+        interval(0, params.fontSize * 0.5),
+        {
+            type = ui.TYPE.Flex,
+            props = {
+                horizontal = true,
+                arrange = ui.ALIGNMENT.End,
+            },
+            content = ui.content{
+                {
+                    type = ui.TYPE.Flex,
+                    props = {
+                        anchor = util.vector2(0, 1),
+                        arrange = ui.ALIGNMENT.Center,
+                    },
+                    content = ui.content{
+                        insertLabelToContent(l10n("firstInitHUDMarkersCategory")),
+                        interval(0, params.fontSize / 2),
+                        insertCBToContent(config.data.tracking.hudMarkers, "tracking.hudMarkers"),
+                    }
+                },
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = ui.texture{ path = commonData.initMenuHudMarkersImagePath },
+                        size = previewImageSize,
+                        anchor = util.vector2(0, 1)
+                    },
+                }
+            }
+        },
+        interval(0, params.fontSize * 0.25),
+        customTemplates.fullHorizontalLineThin,
+        interval(0, params.fontSize * 0.5),
+        {
+            type = ui.TYPE.Text,
+            props = {
+                text = l10n("firstInitNote1"),
+                textSize = params.fontSize,
+                autoSize = false,
+                size = util.vector2(sbSize.x - params.fontSize, params.fontSize * 5),
+                textColor = config.data.ui.defaultColor,
+                multiline = true,
+                wordWrap = true,
+                textAlignH = ui.ALIGNMENT.Center,
+                textAlignV = ui.ALIGNMENT.Center,
+            },
+        },
+        interval(0, params.fontSize * 0.5),
+        customTemplates.fullHorizontalLineThin,
     }
 
     local contentSB = scrollBox{
@@ -230,11 +378,8 @@ function this.new(params)
 
     local layout = {
         type = ui.TYPE.Widget,
-        layer = commonData.messageLayer,
         props = {
             size = params.size,
-            anchor = util.vector2(0.5, 0.5),
-            relativePosition = params.relativePosition,
         },
         userData = {
             meta = meta,
@@ -308,12 +453,23 @@ function this.new(params)
                     },
                 }
             },
-            borders.thick(),
         }
     }
 
+    local layoutWithBorders = {
+        template = templates.boxSolidThick,
+        layer = commonData.messageLayer,
+        props = {
+            size = params.size,
+            anchor = util.vector2(0.5, 0.5),
+            relativePosition = params.relativePosition,
+        },
+        content = ui.content {
+            layout
+        }
+    }
 
-    meta.menu = ui.create(layout)
+    meta.menu = ui.create(layoutWithBorders)
     sBoxMeta:setScrollPosition(0)
 
     local function onMouseWheelCallback(content, value)
@@ -354,6 +510,8 @@ function this.new(params)
     I.DijectKeyBindings.keybind.register("C_X", meta.btnRecreateFunction)
     I.DijectKeyBindings.keybind.register("X", meta.btnRecreateFunction)
     I.DijectKeyBindings.keybind.register("Enter", meta.btnFunction)
+
+    config.setValue("journal.firstInitMenu", false)
 
     return meta
 end

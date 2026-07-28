@@ -92,4 +92,17 @@ this.longHorizontalLineThin = {
     },
 }
 
+this.fullHorizontalLineThin = {
+    type = ui.TYPE.Image,
+    props = {
+        resource = ui.texture{ path = "textures/menu_thin_border_top.dds" },
+        tileH = true,
+        tileV = false,
+        size = util.vector2(0, 1),
+        relativeSize = util.vector2(1, 0),
+        relativePosition = util.vector2(0.1, 0),
+    },
+}
+
+
 return this
