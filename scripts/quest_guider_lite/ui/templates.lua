@@ -104,5 +104,39 @@ this.fullHorizontalLineThin = {
     },
 }
 
+this.journalEntryBackgroundContainer = {
+    type = ui.TYPE.Container,
+    content = ui.content{
+        {
+            type = ui.TYPE.Image,
+            props = {
+                resource = uiUtils.whiteTexture,
+                color = config.data.ui.defaultColor,
+                relativeSize = util.vector2(1, 1),
+                size = util.vector2(6, 6),
+                alpha = 0.25,
+            },
+        },
+        {
+            type = ui.TYPE.Image,
+            props = {
+                resource = uiUtils.whiteTexture,
+                color = config.data.ui.backgroundColor,
+                relativeSize = util.vector2(1, 1),
+                size = util.vector2(2, 2),
+                position = util.vector2(2, 2),
+            },
+        },
+        {
+            external = { slot = true },
+            props = {
+                position = util.vector2(3, 3),
+                relativeSize = util.vector2(1, 1),
+                size = util.vector2(3, 3),
+            }
+        }
+    },
+}
+
 
 return this

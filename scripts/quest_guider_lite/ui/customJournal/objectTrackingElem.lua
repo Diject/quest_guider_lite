@@ -27,7 +27,7 @@ local l10n = core.l10n(commonData.l10nKey)
 
 local this = {}
 
-local typeLabel = "Object_Tracking_Layout"
+this.typeLabel = "Object_Tracking_Layout"
 
 
 ---@class questGuider.ui.addObjectPositionInfo.params
@@ -44,6 +44,7 @@ local typeLabel = "Object_Tracking_Layout"
 ---@field parentContent table
 ---@field addMissingTrackingObjects boolean?
 ---@field questName string? -- required for addMissingTrackingObjects
+---@field groupLabel string?
 
 ---@param params questGuider.ui.addObjectPositionInfo.params
 function this.addObjectPositionInfo(content, params)
@@ -151,7 +152,7 @@ function this.addObjectPositionInfo(content, params)
 
         local trackingData = tracking.markerByObjectId[objId]
 
-        local objectColor = config.data.ui.defaultColor
+        local objectColor = config.data.ui.defaultAltColor
         if trackingData then
             if trackingData.color then
                 objectColor = util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
@@ -248,6 +249,7 @@ function this.addObjectPositionInfo(content, params)
                     props = {
                         anchor = util.vector2(0, 1),
                         relativePosition = util.vector2(0, 1),
+                        position = isObjectTracked() and util.vector2(10, 0) or nil,
                     },
                     content = ui.content{
                         {
@@ -291,6 +293,16 @@ function this.addObjectPositionInfo(content, params)
                         --         wordWrap = false,
                         --     },
                         -- },
+                    }
+                },
+                {
+                    type = ui.TYPE.Image,
+                    props = {
+                        resource = commonData.whiteTexture,
+                        color = config.data.ui.defaultColor,
+                        size = util.vector2(5, params.fontSize * 1.2 + 2),
+                        alpha = getDisabledState() and 0.5 or 1,
+                        visible = isObjectTracked(),
                     }
                 },
             }
@@ -341,7 +353,8 @@ function this.addObjectPositionInfo(content, params)
                 horizontal = false,
             },
             userData = {
-                type = typeLabel,
+                type = this.typeLabel,
+                groupLabel = params.groupLabel,
                 objectId = objId,
                 diaId = diaId,
                 useDiaId = hasDiaId,
@@ -370,20 +383,29 @@ function this.updateObjectTrackingElements(content)
     for _, elem in pairs(content) do
         if elem.userData then
 
-            if elem.userData.type == typeLabel and elem.userData.objectId then
+            if elem.userData.type == this.typeLabel and elem.userData.objectId then
                 local useDiaId = elem.userData.useDiaId
                 local disabledState = tracking.getDisabledState{objectId = elem.userData.objectId, questId = useDiaId and elem.userData.diaId or nil}
                 local trackedState = tracking.isObjectTracked{diaId = useDiaId and elem.userData.diaId or nil, objectId = elem.userData.objectId}
                 local trackingData = tracking.markerByObjectId[elem.userData.objectId]
 
-                local textElem = elem.content[1].content[2].content[1]
+                local textElemContainer = elem.content[1].content[2]
+                local textElem = textElemContainer.content[1]
+                local trackedLabel = elem.content[1].content[4]
+                trackedLabel.props.alpha = 1
+                trackedLabel.props.visible = true
                 if not trackedState or not trackingData then
                     textElem.props.textColor = config.data.ui.defaultColor
+                    textElemContainer.props.position = nil
+                    trackedLabel.props.visible = false
                 elseif not disabledState then
                     textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
                         or config.data.ui.defaultColor
+                    textElemContainer.props.position = util.vector2(10, 0)
                 elseif disabledState then
                     textElem.props.textColor = config.data.ui.disabledColor
+                    textElemContainer.props.position = util.vector2(10, 0)
+                    trackedLabel.props.alpha = 0.5
                 end
 
                 local trackBtnMeta = elem.userData.trackBtnLayout.userData.meta

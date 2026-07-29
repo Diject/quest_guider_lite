@@ -89,6 +89,7 @@ this.default = {
     ui = {
         fontSize = 20,
         defaultColor = commonData.defaultColor,
+        defaultAltColor = commonData.defaultAltColor,
         backgroundColor = commonData.backgroundColor,
         disabledColor = commonData.disabledColor,
         dateColor = commonData.journalDateColor,

@@ -32,6 +32,8 @@ local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
 local tooltip = require("scripts.quest_guider_lite.ui.tooltip")
 local mapWidget = require("scripts.quest_guider_lite.ui.mapWidget")
+local headerParts = require("scripts.quest_guider_lite.ui.header.headerParts")
+local borders = require("scripts.quest_guider_lite.ui.borders")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
 
@@ -46,7 +48,7 @@ topicMenuMeta.menu = nil
 
 
 topicMenuMeta.getTrackingList = function (self)
-    return self.trackingListLayout.content[3]
+    return self.trackingListLayout.content[4]
 end
 
 topicMenuMeta.getSearchBar = function (self)
@@ -58,7 +60,7 @@ topicMenuMeta.getMain = function (self)
 end
 
 topicMenuMeta.getTrackingInfoScrollBox = function (self)
-    return self:getMain().content[2]
+    return self:getMain().content[3]
 end
 
 topicMenuMeta.resetListColors = function (self)
@@ -146,8 +148,8 @@ topicMenuMeta.updateListElements = function (self)
         if not trackedState or not trackingData then
             textElem.props.textColor = config.data.ui.defaultColor
         elseif not disabledState then
-            textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
-                or config.data.ui.defaultColor
+            textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3]) or
+                commonData.defaultColor
             textElem.props.alpha = 1
         elseif disabledState then
             textElem.props.alpha = 0.4
@@ -181,7 +183,7 @@ topicMenuMeta.showMainMap = function (self)
 
     local mainFlex = self:getMain()
     local content = ui.content{}
-    mainFlex.content[2].content = content
+    mainFlex.content[3].content = content
 
     content:add{
         type = ui.TYPE.Widget,
@@ -233,8 +235,8 @@ topicMenuMeta.showMainMap = function (self)
 
         local object = getObject(id)
 
-        local objectColor = util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
-            or commonData.defaultColor
+        local objectColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3]) or
+            commonData.defaultColor
 
         local diaIds = tableLib.keys(trackingData.markers)
         local qNames = ""
@@ -307,7 +309,8 @@ topicMenuMeta.selectTracked = function (self, trackedId)
 
     local object = getObject(trackedId)
     local objectName = object and object.name or trackedId
-    local objectColor = util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
+    local objectColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3]) or
+        commonData.defaultColor
 
     ---@type questGuider.ui.scrollBox
     local topicListSBMeta = self:getTrackingList().userData.scrollBoxMeta
@@ -698,7 +701,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
     end
 
 
-    qMainLay.content[2] = params.createSBFunc {
+    qMainLay.content[3] = params.createSBFunc {
         updateFunc = function ()
             self:update()
         end,
@@ -712,6 +715,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
         contentHeight = 0,
         leftOffset = params.fontSize / 3,
         autoOptimize = true,
+        withoutBorders = true,
     }
 
     updateContent(elementContent)
@@ -719,7 +723,7 @@ topicMenuMeta.selectTracked = function (self, trackedId)
     drawPositionInfo(self.positions and self.positions[trackedId])
 
     ---@type questGuider.ui.scrollBox
-    local sb = qMainLay.content[2].userData.scrollBoxMeta
+    local sb = qMainLay.content[3].userData.scrollBoxMeta
     sb:calcContentHeight()
     sb:updateContent()
 
@@ -850,8 +854,8 @@ function topicMenuMeta.fillTrackingListContent(self)
 
         local trackingData = dt.id and tracking.getTrackedObjectData(dt.id)
 
-        local textColor = trackingData and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
-            or config.data.ui.defaultColor
+        local textColor = trackingData and trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3]) or
+            config.data.ui.defaultColor
 
         local text = dt.name == "" and dt.id and string.format("(%s)", dt.id) or dt.name or "???"
         text = trackingData and "  "..text or text
@@ -1128,7 +1132,11 @@ function this.createContent(params)
     meta.positions = {}
 
 
-    local trackingInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
+    local leftPartWidth = math.floor(params.size.x * config.data.journal.listRelativeSize * 0.005) * 2
+    local rightPartWidth = math.floor(params.size.x * (100 - config.data.journal.listRelativeSize) * 0.005) * 2
+    params.size = util.vector2(leftPartWidth + rightPartWidth + 2, params.size.y)
+
+    local trackingInfoSize = util.vector2(rightPartWidth - 2, params.size.y)
     meta.trackingInfoPanelSize = trackingInfoSize
     local topicInfo = {
         type = ui.TYPE.Flex,
@@ -1145,10 +1153,33 @@ function this.createContent(params)
         }
     }
 
+    local headerBacgroundLayout
+    if config.data.ui.headerBackgroundAlpha > 0 then
+        headerBacgroundLayout = {
+            props = {
+                relativeSize = util.vector2(1, 1),
+                alpha = config.data.ui.headerBackgroundAlpha * 0.01
+            },
+            content = ui.content(headerParts.full),
+        }
+    else
+        headerBacgroundLayout = {
+            type = ui.TYPE.Image,
+            props = {
+                resource = ui.texture{ path = "white" },
+                relativeSize = util.vector2(1, 1),
+                color = config.data.ui.backgroundColor
+            }
+        }
+    end
+
+    local headerHeight = math.max(18, math.floor(params.fontSize * 0.6) * 2)
+    local headerBigTextHeight = headerHeight - 4
+
     local mainHeader = not params.listMode and {
         type = ui.TYPE.Widget,
         props = {
-            size = util.vector2(params.size.x + 6, params.fontSize * 1.5),
+            size = util.vector2(params.size.x, headerHeight),
         },
         userData = {},
         events = {
@@ -1176,37 +1207,31 @@ function this.createContent(params)
             end),
         },
         content = ui.content{
-            {
-                type = ui.TYPE.Image,
-                props = {
-                    resource = uiUtils.whiteTexture,
-                    relativeSize = util.vector2(1, 1),
-                    color = config.data.ui.backgroundColor,
-                    alpha = config.data.ui.headerBackgroundAlpha / 100,
-                }
-            },
+            headerBacgroundLayout,
             {
                 type = ui.TYPE.Text,
                 props = {
                     text = params.headerName and params.headerName or l10n("tracking"),
-                    textSize = params.fontSize * 1.5,
+                    textSize = headerBigTextHeight,
                     autoSize = true,
-                    textColor = config.data.ui.defaultColor,
+                    textColor = config.data.ui.defaultAltColor,
                     textShadow = true,
-                    textShadowColor = config.data.ui.shadowColor,
+                    textShadowColor = config.data.ui.backgroundColor,
+                    position = util.vector2(6, 2),
                 },
             },
             {
                 type = ui.TYPE.Text,
                 props = {
                     text = l10n("close"),
-                    textSize = params.fontSize * 1.25,
+                    textSize = headerBigTextHeight,
                     autoSize = true,
                     anchor = util.vector2(1, 1),
                     relativePosition = util.vector2(1, 1),
-                    textColor = config.data.ui.defaultColor,
+                    position = util.vector2(-4, -2),
+                    textColor = config.data.ui.defaultAltColor,
                     textShadow = true,
-                    textShadowColor = config.data.ui.shadowColor,
+                    textShadowColor = config.data.ui.backgroundColor,
                     propagateEvents = false,
                 },
                 userData = {},
@@ -1219,8 +1244,15 @@ function this.createContent(params)
         },
     } or nil
 
+    local mainHeaderContainer = not params.listMode and {
+        template = customTemplates.boxSolidThick,
+        content = ui.content{
+            mainHeader
+        }
+    } or nil
+
     local trackingListSize = not params.listMode and
-        util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y) or params.size
+        util.vector2(leftPartWidth, params.size.y) or params.size
     local searchBar
     searchBar = {
         type = ui.TYPE.Widget,
@@ -1275,7 +1307,7 @@ function this.createContent(params)
                 text = l10n("filter"),
                 textSize = params.fontSize,
                 useDefaultBtnTemplate = true,
-                position = util.vector2(trackingListSize.x - 2, (params.fontSize + 10) / 2),
+                position = util.vector2(trackingListSize.x - 4, (params.fontSize + 10) / 2),
                 anchor = util.vector2(1, 0.5),
                 event = function (layout)
                     local selectedQuest = meta:getQuestListSelectedFladValue()
@@ -1332,7 +1364,7 @@ function this.createContent(params)
     }
 
     local isHidden = true
-    local bottomBtnsSize = util.vector2(trackingListSize.x - 2, params.fontSize * 2)
+    local bottomBtnsSize = util.vector2(trackingListSize.x, params.fontSize * 2)
     local bottomBtns = {
         type = ui.TYPE.Widget,
         props = {
@@ -1387,7 +1419,7 @@ function this.createContent(params)
 
     local trackingListBox = params.createSBFunc {
         updateFunc = updateFunc,
-        size = util.vector2(trackingListSize.x - 2, trackingListSize.y - params.fontSize * 5 - 10),
+        size = util.vector2(trackingListSize.x, trackingListSize.y - params.fontSize * 5 - 12),
         scrollAmount = params.size.y / 5,
         content = trackingContent,
         contentHeight = 0,
@@ -1405,7 +1437,9 @@ function this.createContent(params)
         content = ui.content {
             searchBar,
             mapBtnBlock,
+            templates.horizontalLine,
             trackingListBox,
+            templates.horizontalLine,
             bottomBtns,
         }
     }
@@ -1436,6 +1470,13 @@ function this.createContent(params)
                 },
                 content = ui.content {
                     trackingList,
+                    {
+                        type = ui.TYPE.Image,
+                        props = {
+                            resource = borders.textures[1],
+                            size = util.vector2(2, trackingInfoSize.y),
+                        },
+                    },
                     topicInfo
                 }
             }
@@ -1457,7 +1498,8 @@ function this.createContent(params)
 
         },
         content = ui.content {
-            mainHeader,
+            mainHeaderContainer,
+            interval(0, 1),
             mainWindow,
         }
     } or trackingList

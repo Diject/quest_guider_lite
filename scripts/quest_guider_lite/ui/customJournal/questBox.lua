@@ -63,7 +63,7 @@ local this = {}
 local questBoxMeta = {}
 questBoxMeta.__index = questBoxMeta
 
----@type table<string, {diaId : string, index : integer, contentIndex : integer}>
+---@type table<string, {diaId : string, index : integer, contentIndex : string}>
 questBoxMeta.dialogueInfo = {}
 
 questBoxMeta.trackObjectsFunc = nil
@@ -197,6 +197,18 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
 end
 
 
+function questBoxMeta:removeObjectTrackingPosElements(groupLabel)
+    local contentLength = #self.content
+    for i = contentLength, 1, -1 do
+        local elem = self.content[i]
+        if elem and elem.userData and elem.userData.type == trackingElementLib.typeLabel and
+                elem.userData.groupLabel == groupLabel then
+            uiUtils.removeFromContent(self.content, i)
+        end
+    end
+end
+
+
 ---@param data table<string, questGuider.quest.getRequirementPositionData.returnData>
 ---@param questDiaLinks table<string, table<string, any>> by objectId, by quest dialogue id
 function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
@@ -218,7 +230,7 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
     end
 
     local objectsFlexContent = ui.content{}
-    local objectsContainerLayout = ui.content{}
+    local objectsContainerLayout
 
     local objectsBtn = button{
         text = l10n("questObjectsBtn"),
@@ -233,9 +245,11 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
         event = function (layout)
             layout.userData.opened = not layout.userData.opened
             if layout.userData.opened then
-                objectsContainerLayout.content[2].content = objectsFlexContent
+                for i, elem in ipairs(objectsFlexContent) do
+                    self.content:insert(firstEntryIndex + i + 1, elem)
+                end
             else
-                objectsContainerLayout.content[2].content = ui.content{}
+                self:removeObjectTrackingPosElements()
             end
 
             self:getScrollBoxMeta():calcContentHeight()
@@ -258,33 +272,14 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
         updateFunc = self.update,
     })
 
-
-    objectsContainerLayout = {
-        type = ui.TYPE.Flex,
-        name = "TR_Objects_Flex",
-        userData = {
-            objectsFlexContent = objectsFlexContent,
+    self.content:insert(firstEntryIndex + 1, {
+        props = {
+            size = util.vector2(self.params.size.x, config.data.ui.fontSize * 2),
         },
         content = ui.content{
-            {
-                props = {
-                    size = util.vector2(self.params.size.x, config.data.ui.fontSize * 2),
-                },
-                content = ui.content{
-                    objectsBtn,
-                },
-            },
-            {
-                type = ui.TYPE.Flex,
-                props = {
-                    horizontal = false,
-                },
-                content = ui.content{},
-            }
-        }
-    }
-
-    self.content:insert(firstEntryIndex + 1, objectsContainerLayout)
+            objectsBtn,
+        },
+    })
 end
 
 
@@ -333,13 +328,16 @@ function questBoxMeta._fillJournal(self, content, params)
             templates.longHorizontalLineThin
         }
     }
+    content:add(thinLineLayout)
 
-    local contentIndex = 2
+    local contentIndex = 3
     local logText = ""
     local logContextMenuDialogues = {}
     local lastLogTextType = nil
 
     local function addLogEntryText(i)
+        if not self.params.showQuestLog then return end
+
         local qInfo = playerQuestDataList[i]
         if not qInfo.type then return end
 
@@ -357,12 +355,10 @@ function questBoxMeta._fillJournal(self, content, params)
                 actor, actorObjType = getObject(qInfo.obj)
             end
             local actorName = actor and actor.name or "???"
-            local text = string.format(l10n("dialogueLogPattern"),
-                config.data.ui.objectColor:asHex(),
-                actorName,
-                config.data.ui.defaultColor:asHex(),
-                dialogue.name or "???"
-            )
+            local text = l10n("dialogueLogPattern", {
+                actor = string.format("#%s%s#%s", config.data.ui.objectColor:asHex(), actorName, config.data.ui.defaultColor:asHex()),
+                dialogue = dialogue.name or "???"
+            })
 
             local diaTextsReversed = {}
             for j = i, 1, -1 do
@@ -439,7 +435,11 @@ function questBoxMeta._fillJournal(self, content, params)
                 table.insert(texts, l10n(
                     qInfo.type == questLog.eventType.itemObtained and "itemObtainedLogPattern" or "itemGivenLogPattern",
                     {
-                        item = itemName,
+                        item = string.format("#%s%s#%s",
+                            config.data.ui.defaultAltColor:asHex(),
+                            itemName,
+                            config.data.ui.defaultColor:asHex()
+                        ),
                         count = qInfo.userData or 0
                     }
                 ))
@@ -467,7 +467,11 @@ function questBoxMeta._fillJournal(self, content, params)
                 table.insert(texts, l10n(
                     (qInfo.userData or 0) >= 0 and "itemAcquiredLogPattern" or "itemLostLogPattern",
                     {
-                        item = itemName,
+                        item = string.format("#%s%s#%s",
+                            config.data.ui.defaultAltColor:asHex(),
+                            itemName,
+                            config.data.ui.defaultColor:asHex()
+                        ),
                         count = playerInventory.getCount(qInfo.obj)
                     }
                 ))
@@ -503,8 +507,9 @@ function questBoxMeta._fillJournal(self, content, params)
                 autoSize = true,
                 horizontal = false,
             },
+            name = string.format("id:%d", contentIndex),
             userData = {
-                contentIndex = contentIndex,
+                type = "TR_Journal_Log_Entry",
                 clickTimestamp = 0,
                 contextMenuData = next(contextMenuData) and contextMenuData,
             },
@@ -528,9 +533,9 @@ function questBoxMeta._fillJournal(self, content, params)
             }
         }
 
-        content:add(thinLineLayout)
+        -- content:add(thinLineLayout)
         content:add(element)
-        contentIndex = contentIndex + 2
+        contentIndex = contentIndex + 1
         logText = ""
         logContextMenuDialogues = {}
     end
@@ -626,6 +631,8 @@ function questBoxMeta._fillJournal(self, content, params)
             text = string.format("%s\n\n\n%s", table.concat(tt, "\n\n"), text or "")
         end
 
+        local contentNameId = string.format("id:%d", contentIndex)
+
         if self.params.showReqsForAll or not addedDiaIds[qInfo.diaId] then
             addedDiaIds[qInfo.diaId] = true
             local id = qInfo.diaId..tostring(qInfo.index)
@@ -633,7 +640,7 @@ function questBoxMeta._fillJournal(self, content, params)
                 self.dialogueInfo[id] = {
                     diaId = qInfo.diaId,
                     index = qInfo.index,
-                    contentIndex = contentIndex,
+                    contentIndex = contentNameId,
                 }
             end
         end
@@ -808,6 +815,9 @@ function questBoxMeta._fillJournal(self, content, params)
             mouseMove = function (layout)
                 if topicsBtnTooltipContent ~= nil then return end
 
+                -- disable the tooltip.
+                do return end
+
                 if not topicsTooltipTimer then
                     topicsTooltipTimer = realTimer.newTimer(config.data.ui.tooltipDelay, function ()
                         local t = getTopicsText(1, true)
@@ -906,7 +916,6 @@ function questBoxMeta._fillJournal(self, content, params)
             },
             userData = {
                 type = "TR_Journal_Entry",
-                contentIndex = contentIndex,
                 info = qInfo,
                 topicData = topicPoss,
                 detailsContent = detailsContent,
@@ -1012,9 +1021,18 @@ function questBoxMeta._fillJournal(self, content, params)
             }
         }
 
-        content:add(thinLineLayout)
-        content:add(element)
-        contentIndex = contentIndex + 2
+        local container = {
+            template = templates.journalEntryBackgroundContainer,
+            userData = element.userData,
+            name = contentNameId,
+            content = ui.content{
+                element
+            }
+        }
+
+        -- content:add(thinLineLayout)
+        content:add(container)
+        contentIndex = contentIndex + 1
 
         ::continue::
     end
@@ -1059,7 +1077,7 @@ function questBoxMeta._fillJournal(self, content, params)
             self.dialogueInfo[id] = {
                 diaId = dt.diaId,
                 index = dt.index,
-                contentIndex = 1000 + i, -- use a nonexistent index to filter these entries later
+                contentIndex = string.format("id:%d", 1000 + i), -- use a nonexistent index to filter these entries later
             }
         end
         ::continue::
@@ -1138,6 +1156,7 @@ end
 ---@field showReqsForAll boolean?
 ---@field showOnlyMainDia boolean?
 ---@field showOnlyFirstDiaEntry boolean?
+---@field showQuestLog boolean?
 ---@field updateFunc function
 ---@field parent questGuider.ui.customJournal
 ---@field userData table
@@ -1172,7 +1191,8 @@ function this.create(params)
     local journalEntries = scrollBox{
         name = params.questName,
         updateFunc = params.updateFunc,
-        size = util.vector2(params.size.x, params.size.y - 2),
+        withoutBorders = true,
+        size = util.vector2(params.size.x, params.size.y),
         leftOffset = 8,
         scrollAmount = params.size.y / 5,
         content = journalContent,
@@ -1328,7 +1348,7 @@ function this.create(params)
                         textSize = smallBtnFontSize,
                         anchor = util.vector2(1, 0),
                         position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 2, 0),
-                        visible = true,
+                        visible = meta.params.showQuestLog,
                         parentScrollBoxUserData = journalEntries.userData, ---@diagnostic disable-line: need-check-nil
                         updateFunc = function ()
                             meta.params.updateFunc()

@@ -31,6 +31,7 @@ local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
 local borders = require("scripts.quest_guider_lite.ui.borders")
+local headerParts = require("scripts.quest_guider_lite.ui.header.headerParts")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
 
@@ -45,19 +46,19 @@ journalMeta.menu = nil
 
 
 journalMeta.getQuestList = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[4]
+    return self.menu.layout.content[3].content[1].content[1].content[5]
 end
 
 journalMeta.getQuestMain = function (self)
-    return self.menu.layout.content[2].content[1]
+    return self.menu.layout.content[3].content[1]
 end
 
 journalMeta.getQuestScrollBox = function (self)
-    return self:getQuestMain().content[2]
+    return self:getQuestMain().content[3]
 end
 
 journalMeta.getQuestListCheckBoxFlex = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[2]
+    return self.menu.layout.content[3].content[1].content[1].content[2]
 end
 
 journalMeta.getQuestListFinishedCheckBox = function (self)
@@ -195,7 +196,7 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
     local function createQuestBox()
         local hideStageText = self.params.hideStageText and self.firstEntryMode or not playerHasQuest and
             self.params.menuId == commonData.journalMenuId
-        qMainLay.content[2] = questBox.create{
+        qMainLay.content[3] = questBox.create{
             parent = self,
             fontSize = self.params.fontSize or 18,
             playerQuestData = selectedLayout.userData.playerQuestData,
@@ -206,6 +207,7 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
             showOnlyFirstDiaEntry = self.firstEntryMode or not playerHasQuest and self.params.menuId == commonData.journalMenuId,
             showReqDiaEntryText = not playerHasQuest or self.params.menuId ~= commonData.journalMenuId,
             showFullReqDiaEntryText = not hideStageText,
+            showQuestLog = not self.params.isQuestList,
             questName = selectedLayout.userData.questName,
             size = self.questInfoPanelSize,
             userData = {
@@ -764,8 +766,11 @@ local function create(params)
     meta.storageTypeQuestData = meta.params.allQuestsMode and meta.nearbyMode and {} or
         (params.questList and playerQuests.generateStorageQuestDataByDiaIdList(params.questList))
 
+    local leftPartWidth = math.floor(params.size.x * config.data.journal.listRelativeSize * 0.005) * 2
+    local rightPartWidth = math.floor(params.size.x * (100 - config.data.journal.listRelativeSize) * 0.005) * 2
+    params.size = util.vector2(leftPartWidth + rightPartWidth + 2, params.size.y)
 
-    local questInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
+    local questInfoSize = util.vector2(rightPartWidth, params.size.y)
     meta.questInfoPanelSize = questInfoSize
     local questInfo = {
         type = ui.TYPE.Flex,
@@ -777,15 +782,7 @@ local function create(params)
         userData = {
             size = questInfoSize,
         },
-        content = ui.content {
-            {
-                type = ui.TYPE.Image,
-                props = {
-                    resource = borders.textures[1],
-                    size = util.vector2(2, questInfoSize.y),
-                },
-            }
-        }
+        content = ui.content {}
     }
 
     local function toggleNearbyMenu()
@@ -830,6 +827,9 @@ local function create(params)
     end
 
     local mainHeader
+    local headerHeight = math.max(18, math.floor(params.fontSize * 0.6) * 2)
+    local headerBigTextHeight = headerHeight - 4
+    local headerNormalTextHeight = headerBigTextHeight - 2
     meta.headerDragDistance = 0
     meta.headerPressed = false
 
@@ -847,7 +847,7 @@ local function create(params)
             mainHeader.userData.lastMousePos = nil
 
             if mainHeader.userData.contentBackup then
-                meta:getQuestMain().content[2] = mainHeader.userData.contentBackup
+                meta:getQuestMain().content[3] = mainHeader.userData.contentBackup
                 mainHeader.userData.contentBackup = nil
             end
             meta.headerDragDistance = 0
@@ -867,7 +867,7 @@ local function create(params)
             if meta.headerDragDistance > 20 then
                 if not mainHeader.userData.contentBackup then
                     mainHeader.userData.contentBackup = meta:getQuestScrollBox()
-                    meta:getQuestMain().content[2] = questInfo
+                    meta:getQuestMain().content[3] = questInfo
                 end
                 props.relativePosition = props.relativePosition - (mainHeader.userData.lastMousePos - e.position):ediv(screenSize)
             end
@@ -883,11 +883,11 @@ local function create(params)
         props = {
             text = l10n("tracking"),
             visible = tracking.hasTrackedObjects() and params.createTrackingMenuFunc and true or false,
-            textSize = params.fontSize * 1.15,
+            textSize = headerNormalTextHeight,
             autoSize = true,
-            textColor = config.data.ui.defaultColor,
+            textColor = config.data.ui.defaultAltColor,
             textShadow = true,
-            textShadowColor = config.data.ui.shadowColor,
+            textShadowColor = config.data.ui.backgroundColor,
             propagateEvents = false,
         },
         userData = {},
@@ -913,39 +913,52 @@ local function create(params)
         }
     }
 
+    local headerBacgroundLayout
+    if config.data.ui.headerBackgroundAlpha > 0 then
+        headerBacgroundLayout = {
+            props = {
+                relativeSize = util.vector2(1, 1),
+                alpha = config.data.ui.headerBackgroundAlpha * 0.01
+            },
+            content = ui.content(headerParts.full),
+        }
+    else
+        headerBacgroundLayout = {
+            type = ui.TYPE.Image,
+            props = {
+                resource = ui.texture{ path = "white" },
+                relativeSize = util.vector2(1, 1),
+                color = config.data.ui.backgroundColor
+            }
+        }
+    end
+
     mainHeader = {
         type = ui.TYPE.Widget,
         props = {
-            size = util.vector2(params.size.x + 6, params.fontSize * 1.5),
+            size = util.vector2(params.size.x, headerHeight),
         },
         userData = {},
         events = headerEvents,
         content = ui.content{
-            {
-                type = ui.TYPE.Image,
-                props = {
-                    resource = uiUtils.whiteTexture,
-                    relativeSize = util.vector2(1, 1),
-                    color = config.data.ui.backgroundColor,
-                    alpha = config.data.ui.headerBackgroundAlpha / 100,
-                }
-            },
+            headerBacgroundLayout,
             {
                 type = ui.TYPE.Flex,
                 props = {
                     horizontal = true,
-                    arrange = ui.ALIGNMENT.End
+                    arrange = ui.ALIGNMENT.End,
+                    position = util.vector2(6, 0)
                 },
                 content = ui.content{
                     {
                         type = ui.TYPE.Text,
                         props = {
                             text = params.headerName and params.headerName or l10n("journal"),
-                            textSize = params.fontSize * 1.4,
+                            textSize = headerBigTextHeight,
                             autoSize = true,
-                            textColor = config.data.ui.defaultColor,
+                            textColor = config.data.ui.defaultAltColor,
                             textShadow = true,
-                            textShadowColor = config.data.ui.shadowColor,
+                            textShadowColor = config.data.ui.backgroundColor,
                         },
                     },
                     {
@@ -966,6 +979,8 @@ local function create(params)
                     horizontal = true,
                     anchor = util.vector2(1, 1),
                     relativePosition = util.vector2(1, 1),
+                    position = util.vector2(-4, -2),
+                    arrange = ui.ALIGNMENT.End,
                 },
                 content = ui.content {
                     meta.trackiingBtnLayout,
@@ -976,11 +991,11 @@ local function create(params)
                             text = params.menuId == commonData.journalMenuId and l10n("nearby") or l10n("journal"),
                             visible = not params.hideJournalBtn and
                                 (params.menuId == commonData.allQuestsMenuId or params.menuId == commonData.journalMenuId) or false,
-                            textSize = params.fontSize * 1.15,
+                            textSize = headerNormalTextHeight,
                             autoSize = true,
-                            textColor = config.data.ui.defaultColor,
+                            textColor = config.data.ui.defaultAltColor,
                             textShadow = true,
-                            textShadowColor = config.data.ui.shadowColor,
+                            textShadowColor = config.data.ui.backgroundColor,
                             propagateEvents = false,
                         },
                         userData = {},
@@ -1005,11 +1020,11 @@ local function create(params)
                         props = {
                             text = l10n("topics"),
                             visible = core.API_REVISION >= 93 and params.createTopicMenuFunc and true or false,
-                            textSize = params.fontSize * 1.15,
+                            textSize = headerNormalTextHeight,
                             autoSize = true,
-                            textColor = config.data.ui.defaultColor,
+                            textColor = config.data.ui.defaultAltColor,
                             textShadow = true,
-                            textShadowColor = config.data.ui.shadowColor,
+                            textShadowColor = config.data.ui.backgroundColor,
                             propagateEvents = false,
                         },
                         userData = {},
@@ -1039,11 +1054,11 @@ local function create(params)
                         type = ui.TYPE.Text,
                         props = {
                             text = l10n("close"),
-                            textSize = params.fontSize * 1.25,
+                            textSize = headerBigTextHeight,
                             autoSize = true,
-                            textColor = config.data.ui.defaultColor,
+                            textColor = config.data.ui.defaultAltColor,
                             textShadow = true,
-                            textShadowColor = config.data.ui.shadowColor,
+                            textShadowColor = config.data.ui.backgroundColor,
                             propagateEvents = false,
                         },
                         userData = {},
@@ -1058,6 +1073,13 @@ local function create(params)
         },
     }
 
+    local mainHeaderContainer = {
+        template = customTemplates.boxSolidThick,
+        content = ui.content{
+            mainHeader
+        }
+    }
+
     meta.updateMarkersDisabledMessage = function(self)
         mainHeader.content[2].content[2].props.visible = (tracking.storageData ~= nil) and (tracking.storageData.hideAllMarkers == true) or false
         if self.menu and self.menu.layout then
@@ -1067,7 +1089,7 @@ local function create(params)
 
     meta:updateMarkersDisabledMessage()
 
-    local questListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y)
+    local questListSize = util.vector2(leftPartWidth, params.size.y)
     local searchBtnWidth = stringLib.length(l10n("filter")) * config.data.ui.fontSize * config.data.journal.textHeightMulRecord + 16
     local searchBar
     searchBar = {
@@ -1265,10 +1287,11 @@ local function create(params)
 
     local questsContent = ui.content{}
 
-    local questListBoxYOffset = questListSize.y - params.fontSize * 2 - 13 -
+    local questListBoxYOffset = questListSize.y - params.fontSize * 2 - 12 -
         (meta.params.allQuestsMode and params.fontSize or 0)
     local questListBox = scrollBox{
         updateFunc = updateFunc,
+        withoutBorders = true,
         size = util.vector2(questListSize.x - 2, questListBoxYOffset),
         anchor = util.vector2(0, 0.5),
         scrollAmount = params.size.y / 5,
@@ -1299,17 +1322,6 @@ local function create(params)
                     },
                 },
                 {
-                    type = ui.TYPE.Image,
-                    props = {
-                        resource = uiUtils.whiteTexture,
-                        color = config.data.ui.backgroundColor,
-                        size = util.vector2(0, 2),
-                        relativeSize = util.vector2(1, 0),
-                        position = util.vector2(4, 0),
-                        relativePosition = util.vector2(0, 1),
-                    },
-                },
-                {
                     external = { slot = true },
                     props = {
                         position = util.vector2(4, 0),
@@ -1330,7 +1342,7 @@ local function create(params)
                     textColor = config.data.ui.defaultColor,
                     textSize = config.data.ui.fontSize * 0.8,
                     alpha = 0.7,
-                    size = util.vector2(params.size.x, 0),
+                    size = util.vector2(params.size.x - 2, 0),
                     multiline = true,
                     wordWrap = true,
                     textAlignH = ui.ALIGNMENT.Center,
@@ -1339,6 +1351,13 @@ local function create(params)
                     autoSize = true,
                 },
             }
+        }
+    }
+
+    local bottomTextContainer = {
+        template = customTemplates.journalEntryBackgroundContainer,
+        content = ui.content{
+            bottomTextLayout,
         }
     }
 
@@ -1355,6 +1374,7 @@ local function create(params)
             searchBar,
             checkBoxes,
             checkBoxesSecondLine,
+            templates.horizontalLine,
             questListBox,
         }
     }
@@ -1374,6 +1394,13 @@ local function create(params)
                 },
                 content = ui.content {
                     questList,
+                    {
+                        type = ui.TYPE.Image,
+                        props = {
+                            resource = borders.textures[1],
+                            size = util.vector2(2, questInfoSize.y),
+                        },
+                    },
                     questInfo
                 }
             }
@@ -1393,8 +1420,10 @@ local function create(params)
 
         },
         content = ui.content {
-            mainHeader,
+            mainHeaderContainer,
+            interval(0, 1),
             mainWindow,
+            interval(0, 1),
             {},
         }
     }
@@ -1415,7 +1444,7 @@ local function create(params)
         if bottomTextLayout.props.alpha > 0 then
             bottomTextTimer = realTimer.newTimer(0.03, decreaseBottomTextAlpha, time)
         else
-            mainFlex.content[3] = {}
+            mainFlex.content[5] = {}
             bottomTextTimer = nil
         end
         meta:update()
@@ -1443,7 +1472,7 @@ local function create(params)
         end
 
         bottomTextLayout.content[1].props.text = text
-        mainFlex.content[3] = bottomTextLayout
+        mainFlex.content[5] = bottomTextContainer
         bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
     end
 

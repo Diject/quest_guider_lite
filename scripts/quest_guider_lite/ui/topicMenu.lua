@@ -31,6 +31,8 @@ local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
 local checkBox = require("scripts.quest_guider_lite.ui.checkBox")
 local contextMenu = require("scripts.quest_guider_lite.ui.contextMenu")
+local headerParts = require("scripts.quest_guider_lite.ui.header.headerParts")
+local borders = require("scripts.quest_guider_lite.ui.borders")
 
 local questBox = require("scripts.quest_guider_lite.ui.customJournal.questBox")
 
@@ -45,23 +47,23 @@ topicMenuMeta.menu = nil
 
 
 topicMenuMeta.getTopicList = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[4]
+    return self.menu.layout.content[3].content[1].content[1].content[5]
 end
 
 topicMenuMeta.getSearchBar = function (self)
-    return self.menu.layout.content[2].content[1].content[1].content[1]
+    return self.menu.layout.content[3].content[1].content[1].content[1]
 end
 
 topicMenuMeta.getTopicMain = function (self)
-    return self.menu.layout.content[2].content[1]
+    return self.menu.layout.content[3].content[1]
 end
 
 topicMenuMeta.getTopicScrollBox = function (self)
-    return self:getTopicMain().content[2]
+    return self:getTopicMain().content[3]
 end
 
 topicMenuMeta.getTopicScrollBoxMeta = function (self)
-    return self:getTopicMain().content[2].userData.scrollBoxMeta
+    return self:getTopicMain().content[3].userData.scrollBoxMeta
 end
 
 topicMenuMeta.resetTopicListColors = function (self)
@@ -424,7 +426,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                     position = util.vector2(headerSize.x / 2, params.fontSize * 2 + 8),
                     event = function (layout)
                         updateTopicText(nil, true)
-                        qMainLay.content[2].userData.scrollBoxMeta:calcContentHeight()
+                        qMainLay.content[3].userData.scrollBoxMeta:calcContentHeight()
                     end
                 },
             },
@@ -458,7 +460,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
     }
 
 
-    qMainLay.content[2] = scrollBox{
+    qMainLay.content[3] = scrollBox{
         updateFunc = function ()
             self.menu:update()
         end,
@@ -470,6 +472,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
         content = topicContent,
         contentHeight = 0,
         autoOptimize = true,
+        withoutBorders = true,
     }
 
     updateTopicText(topicContent, true)
@@ -477,7 +480,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
     topicContent[3].content[1].userData.parentScrollBoxUserData = self:getTopicScrollBox().userData
 
     ---@type questGuider.ui.scrollBox
-    local sb = qMainLay.content[2].userData.scrollBoxMeta
+    local sb = qMainLay.content[3].userData.scrollBoxMeta
     sb:calcContentHeight()
     sb:updateContent()
 
@@ -681,7 +684,11 @@ local function create(params)
     meta.showMoreBtnLayout = nil
 
 
-    local topicInfoSize = util.vector2(params.size.x * (1 - config.data.journal.listRelativeSize * 0.01), params.size.y)
+    local leftPartWidth = math.floor(params.size.x * config.data.journal.listRelativeSize * 0.005) * 2
+    local rightPartWidth = math.floor(params.size.x * (100 - config.data.journal.listRelativeSize) * 0.005) * 2
+    params.size = util.vector2(leftPartWidth + rightPartWidth + 2, params.size.y)
+
+    local topicInfoSize = util.vector2(rightPartWidth, params.size.y)
     meta.questInfoPanelSize = topicInfoSize
     local topicInfo = {
         type = ui.TYPE.Flex,
@@ -698,16 +705,39 @@ local function create(params)
         }
     }
 
+    local headerBacgroundLayout
+    if config.data.ui.headerBackgroundAlpha > 0 then
+        headerBacgroundLayout = {
+            props = {
+                relativeSize = util.vector2(1, 1),
+                alpha = config.data.ui.headerBackgroundAlpha * 0.01
+            },
+            content = ui.content(headerParts.full),
+        }
+    else
+        headerBacgroundLayout = {
+            type = ui.TYPE.Image,
+            props = {
+                resource = ui.texture{ path = "white" },
+                relativeSize = util.vector2(1, 1),
+                color = config.data.ui.backgroundColor
+            }
+        }
+    end
+
+    local headerHeight = math.max(18, math.floor(params.fontSize * 0.6) * 2)
+    local headerBigTextHeight = headerHeight - 4
+
     local mainHeader = {
         type = ui.TYPE.Widget,
         props = {
-            size = util.vector2(params.size.x + 6, params.fontSize * 1.5),
+            size = util.vector2(params.size.x, headerHeight),
         },
         userData = {},
         events = {
             mousePress = async:callback(function(coord, layout)
                 layout.userData.contentBackup = meta:getTopicScrollBox()
-                meta:getTopicMain().content[2] = topicInfo
+                meta:getTopicMain().content[3] = topicInfo
 
                 layout.userData.doDrag = true
                 local screenSize = uiUtils.getScaledScreenSize()
@@ -720,7 +750,7 @@ local function create(params)
                 config.setValue("journal.topic.position.y", math.max(0, math.min(100, relativePos.y * 100)))
                 layout.userData.lastMousePos = nil
 
-                meta:getTopicMain().content[2] = layout.userData.contentBackup
+                meta:getTopicMain().content[3] = layout.userData.contentBackup
                 layout.userData.contentBackup = nil
                 meta:update()
             end),
@@ -739,37 +769,31 @@ local function create(params)
             end),
         },
         content = ui.content{
-            {
-                type = ui.TYPE.Image,
-                props = {
-                    resource = uiUtils.whiteTexture,
-                    relativeSize = util.vector2(1, 1),
-                    color = config.data.ui.backgroundColor,
-                    alpha = config.data.ui.headerBackgroundAlpha / 100,
-                }
-            },
+            headerBacgroundLayout,
             {
                 type = ui.TYPE.Text,
                 props = {
                     text = params.headerName and params.headerName or l10n("topics"),
-                    textSize = params.fontSize * 1.5,
+                    textSize = headerBigTextHeight,
                     autoSize = true,
-                    textColor = config.data.ui.defaultColor,
+                    textColor = config.data.ui.defaultAltColor,
                     textShadow = true,
-                    textShadowColor = config.data.ui.shadowColor,
+                    textShadowColor = config.data.ui.backgroundColor,
+                    position = util.vector2(6, 2)
                 },
             },
             {
                 type = ui.TYPE.Text,
                 props = {
                     text = l10n("close"),
-                    textSize = params.fontSize * 1.25,
+                    textSize = headerBigTextHeight,
                     autoSize = true,
                     anchor = util.vector2(1, 1),
                     relativePosition = util.vector2(1, 1),
-                    textColor = config.data.ui.defaultColor,
+                    position = util.vector2(-4, -2),
+                    textColor = config.data.ui.defaultAltColor,
                     textShadow = true,
-                    textShadowColor = config.data.ui.shadowColor,
+                    textShadowColor = config.data.ui.backgroundColor,
                     propagateEvents = false,
                 },
                 userData = {},
@@ -782,7 +806,14 @@ local function create(params)
         },
     }
 
-    local topictListSize = util.vector2(params.size.x * config.data.journal.listRelativeSize * 0.01, params.size.y)
+    local mainHeaderContainer = {
+        template = customTemplates.boxSolidThick,
+        content = ui.content{
+            mainHeader
+        }
+    }
+
+    local topictListSize = util.vector2(leftPartWidth, params.size.y)
     local searchBar
     searchBar = {
         type = ui.TYPE.Widget,
@@ -924,11 +955,12 @@ local function create(params)
 
     local topicListBox = scrollBox{
         updateFunc = updateFunc,
-        size = util.vector2(topictListSize.x - 2, topictListSize.y - params.fontSize * 3.5 - 20),
+        size = util.vector2(topictListSize.x, topictListSize.y - params.fontSize * 3.5 - 22),
         scrollAmount = params.size.y / 5,
         content = topicsContent,
         contentHeight = 0,
         autoOptimize = true,
+        withoutBorders = true,
     }
 
     local topicList = {
@@ -942,6 +974,7 @@ local function create(params)
             searchBar,
             checkBoxes,
             nextPrevBlock,
+            templates.horizontalLine,
             topicListBox,
         }
     }
@@ -958,17 +991,6 @@ local function create(params)
                         color = config.data.ui.backgroundColor,
                         relativeSize = util.vector2(1, 1),
                         position = util.vector2(4, 0),
-                    },
-                },
-                {
-                    type = ui.TYPE.Image,
-                    props = {
-                        resource = uiUtils.whiteTexture,
-                        color = config.data.ui.backgroundColor,
-                        size = util.vector2(0, 2),
-                        relativeSize = util.vector2(1, 0),
-                        position = util.vector2(4, 0),
-                        relativePosition = util.vector2(0, 1),
                     },
                 },
                 {
@@ -992,7 +1014,7 @@ local function create(params)
                     textColor = config.data.ui.defaultColor,
                     textSize = config.data.ui.fontSize * 0.8,
                     alpha = 0.7,
-                    size = util.vector2(params.size.x, 0),
+                    size = util.vector2(params.size.x - 2, 0),
                     multiline = true,
                     wordWrap = true,
                     textAlignH = ui.ALIGNMENT.Center,
@@ -1004,6 +1026,12 @@ local function create(params)
         }
     }
 
+    local bottomTextContainer = {
+        template = customTemplates.journalEntryBackgroundContainer,
+        content = ui.content{
+            bottomTextLayout,
+        }
+    }
 
     local mainWindow = {
         template = customTemplates.boxSolidThick,
@@ -1028,6 +1056,13 @@ local function create(params)
                 },
                 content = ui.content {
                     topicList,
+                    {
+                        type = ui.TYPE.Image,
+                        props = {
+                            resource = borders.textures[1],
+                            size = util.vector2(2, topicInfoSize.y),
+                        },
+                    },
                     topicInfo
                 }
             }
@@ -1047,8 +1082,10 @@ local function create(params)
 
         },
         content = ui.content {
-            mainHeader,
+            mainHeaderContainer,
+            interval(0, 1),
             mainWindow,
+            interval(0, 1),
         }
     }
 
@@ -1063,7 +1100,7 @@ local function create(params)
         if bottomTextLayout.props.alpha > 0 then
             bottomTextTimer = realTimer.newTimer(0.03, decreaseBottomTextAlpha, time)
         else
-            mainFlex.content[3] = {}
+            mainFlex.content[5] = {}
             bottomTextTimer = nil
         end
         meta:update()
@@ -1091,7 +1128,7 @@ local function create(params)
         end
 
         bottomTextLayout.content[1].props.text = text
-        mainFlex.content[3] = bottomTextLayout
+        mainFlex.content[5] = bottomTextContainer
         bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
     end
 
