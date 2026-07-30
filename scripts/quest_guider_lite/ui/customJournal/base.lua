@@ -285,6 +285,10 @@ local function hasText(questData, text)
         return true
     end
 
+    if questData.note and stringLib.utf8_lower(questData.note):find(text, 1, true) then
+        return true
+    end
+
     local texts = playerQuests.getQuestDataTexts(questData)
     for _, t in pairs(texts) do
         if stringLib.utf8_lower(t):find(text, 1, true) then
@@ -317,41 +321,52 @@ function journalMeta._addFlags(self, content, storageData)
         tableLib.copy(tracking.getDiaTrackedObjects(diaId) or {}, objects)
     end
 
-    if not next(objects) then return end
+    if next(objects) then
+        if not config.data.journal.trackedColorMarks then
+            content:add{
+                type = ui.TYPE.Image,
+                props = {
+                    resource = commonData.whiteTexture,
+                    size = util.vector2(self.params.fontSize / 3, self.params.fontSize - 2),
+                    color = config.data.ui.defaultColor,
+                },
+            }
+        else
+            local maxMarks = config.data.journal.maxColorMarks
+            for objectId, _ in pairs(objects) do
+                local objData = tracking.getTrackedObjectData(objectId)
+                if objData then
+                    local color = objData.color and util.color.rgb(objData.color[1], objData.color[2], objData.color[3]) or config.data.ui.defaultColor
+                    if maxMarks > 0 then
+                        maxMarks = maxMarks - 1
+                    else
+                        break
+                    end
 
-    if not config.data.journal.trackedColorMarks then
+                    content:add{
+                        type = ui.TYPE.Image,
+                        props = {
+                            resource = commonData.whiteTexture,
+                            size = util.vector2(self.params.fontSize / 4, self.params.fontSize - 2),
+                            color = color,
+                        },
+                    }
+
+                    if not objData.color then break end
+                end
+            end
+        end
+    end
+
+    if storageData.note then
         content:add{
             type = ui.TYPE.Image,
             props = {
-                resource = commonData.whiteTexture,
-                size = util.vector2(self.params.fontSize / 3, self.params.fontSize - 2),
+                resource = ui.texture{path = commonData.noteLabelIcoPath},
+                size = util.vector2(self.params.fontSize / 2, self.params.fontSize - 2),
                 color = config.data.ui.defaultColor,
             },
         }
-    else
-        local maxMarks = config.data.journal.maxColorMarks
-        for objectId, _ in pairs(objects) do
-            local objData = tracking.getTrackedObjectData(objectId)
-            if objData then
-                local color = objData.color and util.color.rgb(objData.color[1], objData.color[2], objData.color[3]) or config.data.ui.defaultColor
-                if maxMarks > 0 then
-                    maxMarks = maxMarks - 1
-                else
-                    break
-                end
-
-                content:add{
-                    type = ui.TYPE.Image,
-                    props = {
-                        resource = commonData.whiteTexture,
-                        size = util.vector2(self.params.fontSize / 4, self.params.fontSize - 2),
-                        color = color,
-                    },
-                }
-
-                if not objData.color then break end
-            end
-        end
     end
 end
 
@@ -382,9 +397,14 @@ function journalMeta.fillQuestsContent(self)
     local pinnedAddVal = 20000000000
 
     local compareVals = {}
-    for _, dt in pairs(questData) do
+    for i, dt in pairs(questData) do
         local val = timeLib.getTimestamp(dt)
         local hasTracked = tracking.hasTrackedObjectsForQuestName(dt.name)
+
+        if not hasTracked and self.params.menuId == commonData.journalMenuId and not next(dt.list) then
+            questData[i] = nil
+            goto continue
+        end
 
         val = dt.pinned and val + pinnedAddVal or
             dt.generated and val - generatedSubVal or
@@ -393,6 +413,8 @@ function journalMeta.fillQuestsContent(self)
             dt.disabled and val - disabledSubVal or val
 
         compareVals[dt.name] = val
+
+        ::continue::
     end
 
     local function compareFunc(a, b)

@@ -5,6 +5,8 @@ local ui = require('openmw.ui')
 local util = require('openmw.util')
 local playerRef = require('openmw.self')
 local types = require("openmw.types")
+local input = require("openmw.input")
+local defaultTemplates = require('openmw.interfaces').MWUI.templates
 
 local NPC = types.NPC
 
@@ -104,14 +106,26 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     end
 
     local function updateTrackButton(hasTracked)
-        self:getButtonFlex().content = ui.content{}
+        local content = self:getButtonFlex().content
+        local ss, index = pcall(function()
+            local elem = content["TR_QuestBox_TrackAllBtn"]
+            if elem then
+                return content:indexOf(elem)
+            end
+        end)
+
+        if index then
+            uiUtils.removeFromContent(self:getButtonFlex().content, index)
+        else
+            content:add(interval(self.params.fontSize, 0))
+        end
 
         if hasTracked then
-            self:getButtonFlex().content:add(interval(self.params.fontSize, 0))
-            self:getButtonFlex().content:add(button{
+            content:insert(index or (#content + 1), button{
                 text = l10n("removeTracking"),
                 textSize = math.floor(self.params.fontSize * 0.8),
                 visible = tracking.initialized,
+                layoutName = "TR_QuestBox_TrackAllBtn",
                 parentScrollBoxUserData = self:getScrollBox().userData,
                 event = self.untrackObjectsFunc,
                 updateFunc = function ()
@@ -119,10 +133,11 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
                 end
             })
         else
-            self:getButtonFlex().content:add(button{
+            content:insert(index or (#content + 1), button{
                 text = l10n("trackObjects"),
                 textSize = math.floor(self.params.fontSize * 0.8),
                 visible = tracking.initialized,
+                layoutName = "TR_QuestBox_TrackAllBtn",
                 parentScrollBoxUserData = self:getScrollBox().userData,
                 event = self.trackObjectsFunc,
                 updateFunc = function ()
@@ -221,7 +236,7 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
         uiUtils.removeFromContent(self.content, layIndex)
     end
 
-    local firstEntryIndex = 2
+    local firstEntryIndex = #self.content
     for i, elem in ipairs(self.content) do
         if elem.userData and elem.userData.type == "TR_Journal_Entry" then
             firstEntryIndex = i
@@ -274,7 +289,7 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
 
     self.content:insert(firstEntryIndex + 1, {
         props = {
-            size = util.vector2(self.params.size.x, config.data.ui.fontSize * 2),
+            size = util.vector2(self.scrollBoxContentSize.x + 8, config.data.ui.fontSize * 2),
         },
         content = ui.content{
             objectsBtn,
@@ -298,7 +313,9 @@ function questBoxMeta._fillJournal(self, content, params)
     else
         playerQuestDataList, topicTexts = playerQuests.getAndUpdateJournalQuestData(params.questName or "")
     end
-    playerQuestDataList = playerQuestDataList and playerQuestDataList.list or params.playerQuestData.list
+    playerQuestDataList = playerQuestDataList and next(playerQuestDataList.list or {}) and playerQuestDataList.list or
+        params.playerQuestData.list
+    if not playerQuestDataList then return end
     playerQuestDataListCount = #playerQuestDataList
 
     local topicData = {}
@@ -330,7 +347,9 @@ function questBoxMeta._fillJournal(self, content, params)
     }
     content:add(thinLineLayout)
 
-    local contentIndex = 3
+    content:add(self.noteBlockLayout)
+
+    local contentIndex = 4
     local logText = ""
     local logContextMenuDialogues = {}
     local lastLogTextType = nil
@@ -1070,17 +1089,31 @@ function questBoxMeta._fillJournal(self, content, params)
     end
 
     -- add missing dialogues if they have tracked objects
-    for i, dt in pairs(playerQuestDataList) do
-        if not dt.diaId then goto continue end
-        local id = dt.diaId..tostring(dt.index)
-        if not self.dialogueInfo[id] and tracking.isDialogueHasTracked{diaId = dt.diaId, index = dt.index} then
-            self.dialogueInfo[id] = {
-                diaId = dt.diaId,
-                index = dt.index,
-                contentIndex = string.format("id:%d", 1000 + i), -- use a nonexistent index to filter these entries later
-            }
+    local questData = playerQuests.getQuestDataByName(self.params.questName)
+    local ind = 0
+    for diaId, _ in pairs(questData and questData.records or {}) do
+
+        local trackedObjects = tracking.getDiaTrackedObjects(diaId)
+        for _, objIds in pairs(trackedObjects or {}) do
+            for _, objId in pairs(objIds) do
+
+                local data = tracking.getTrackedObjectData(objId)
+                if data and data.markers then
+                    for _, dt in pairs(data.markers) do
+                        local id = dt.id..tostring(dt.index)
+                        if not self.dialogueInfo[id] then
+                            self.dialogueInfo[id] = {
+                                diaId = dt.id,
+                                index = dt.index,
+                                contentIndex = string.format("id:%d", 1000 + ind), -- use a nonexistent index to filter these entries later
+                            }
+                            ind = ind + 1
+                        end
+                    end
+                end
+
+            end
         end
-        ::continue::
     end
 
     local sb = self:getScrollBoxMeta()
@@ -1141,6 +1174,39 @@ function questBoxMeta:setTrackingDisabledState(state)
             tracking.updateMarkers()
         end
     end
+end
+
+
+---@param visibility boolean?
+function questBoxMeta:setNoteVisibility(visibility)
+    self.noteEditMode = false
+    local data = playerQuests.getQuestStorageData(self.params.questName)
+    if not visibility or not data or not data.note or data.note == "" then
+        self.noteBlockLayout.content = ui.content{}
+        self:getScrollBoxMeta():calcContentHeight()
+        return
+    else
+        local props = self.noteBlockContent[1].props
+        local tWidth = self.scrollBoxContentSize.x + 8
+        local tHeight = uiUtils.getTextHeight(data.note, self.params.fontSize, tWidth,
+            config.data.journal.textHeightMulRecord, 2, true)
+        local textElemSize = util.vector2(tWidth, tHeight)
+        props.size = textElemSize
+        props.text = uiUtils.colorizeNested(data.note, self.parent.textFilter,
+            "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
+
+        self.noteBlockLayout.content = self.noteBlockContent
+        self:getScrollBoxMeta():calcContentHeight()
+    end
+end
+
+
+function questBoxMeta:showNoteEdit()
+    local data = playerQuests.getQuestStorageData(self.params.questName)
+    self.noteEditContent[2].content[1].props.text = data and data.note or ""
+    self.noteBlockLayout.content = self.noteEditContent
+    self:getScrollBoxMeta():calcContentHeight()
+    self.noteEditMode = true
 end
 
 
@@ -1261,6 +1327,8 @@ function this.create(params)
             return meta:getScrollBoxMeta()
         end,
         event = function (checked, layout)
+            local playerQuestData = playerQuests.getOrInitQuestStorageData(params.questName)
+            playerQuestData.disabled = checked
             params.playerQuestData.disabled = checked
             meta:setTrackingDisabledState(checked)
             local selectedQuest = meta.parent:getQuestListSelectedFladValue()
@@ -1272,6 +1340,140 @@ function this.create(params)
     meta.finishedCheckboxLayot = finishedCB
     meta.hiddenCheckboxLayout = hiddenCB
     meta.pinnedCheckboxLayout = pinnedCB
+
+    meta.noteEditMode = false
+    meta.noteBlockLayout = {
+        type = ui.TYPE.Flex,
+        name = "TR_Note_Flex",
+        userData = {},
+        props = {
+            autoSize = true,
+            horizontal = false,
+            arrange = ui.ALIGNMENT.Center,
+        },
+        content = ui.content{}
+    }
+
+    meta.noteBlockContent = ui.content{
+        {
+            type = ui.TYPE.Text,
+            userData = {},
+            props = {
+                text = "",
+                textColor = config.data.ui.defaultColor,
+                autoSize = false,
+                size = util.vector2(0, 0),
+                textSize = params.fontSize or 18,
+                multiline = true,
+                wordWrap = true,
+                textAlignV = ui.ALIGNMENT.Center,
+                textAlignH = ui.ALIGNMENT.Center,
+            },
+        },
+        {
+            props = {
+                size = util.vector2(meta.scrollBoxContentSize.x + 8, 1),
+            },
+            content = ui.content{
+                templates.longHorizontalLineThin
+            }
+        }
+    }
+
+    meta.noteEditContent = ui.content{
+        interval(0, params.fontSize * 0.5),
+        {
+            template = defaultTemplates.box,
+            props = {
+                anchor = util.vector2(0.5, 0),
+            },
+            userData = {
+                height = math.floor(meta.scrollBoxContentSize.y * 0.25) + 4,
+            },
+            content = ui.content {
+                {
+                    template = defaultTemplates.textEditLine,
+                    props = {
+                        text = params.playerQuestData.note or "",
+                        autoSize = false,
+                        textSize = params.fontSize,
+                        size = util.vector2(meta.scrollBoxContentSize.x + 6, math.floor(meta.scrollBoxContentSize.y * 0.25)),
+                        multiline = true,
+                        wordWrap = true,
+                        textColor = config.data.ui.defaultColor,
+                        textAlignH = ui.ALIGNMENT.Center,
+                    },
+                    userData = {
+                        text = params.playerQuestData.note or ""
+                    },
+                    events = {
+                        textChanged = async:callback(function(text, layout)
+                            layout.userData.text = text
+                        end),
+                        focusLoss = async:callback(function(e, layout)
+                            meta.noteEditContent[2].content[1].props.text = layout.userData.text
+                        end),
+                    },
+                },
+            }
+        },
+        interval(0, params.fontSize * 0.5),
+        {
+            type = ui.TYPE.Flex,
+            props = {
+                horizontal = true,
+                arrange = ui.ALIGNMENT.Center,
+                align = ui.ALIGNMENT.Center,
+            },
+            content = ui.content{
+                button{
+                    text = l10n("noteApplyBtn"),
+                    textSize = math.floor(params.fontSize * 0.8),
+                    anchor = util.vector2(0.5, 0.5),
+                    parentScrollBoxUserData = journalEntries.userData, ---@diagnostic disable-line: need-check-nil
+                    updateFunc = function ()
+                        meta.params.updateFunc()
+                    end,
+                    event = function (layout, e)
+                        local data = playerQuests.getOrInitQuestStorageData(params.questName)
+                        if data then
+                            local text = meta.noteEditContent[2].content[1].props.text
+                            data.note = text ~= "" and text or nil
+                        end
+                        meta:setNoteVisibility(config.data.journal.notes.visible)
+                        meta.parent:updateQuestListTrackedColors()
+                    end
+                },
+                interval(params.fontSize * 4, 0),
+                button{
+                    text = l10n("noteRemoveBtn"),
+                    textSize = math.floor(params.fontSize * 0.8),
+                    anchor = util.vector2(0.5, 0.5),
+                    parentScrollBoxUserData = journalEntries.userData, ---@diagnostic disable-line: need-check-nil
+                    updateFunc = function ()
+                        meta.params.updateFunc()
+                    end,
+                    event = function (layout, e)
+                        local data = playerQuests.getQuestStorageData(params.questName)
+                        if data then
+                            data.note = nil
+                        end
+                        meta:setNoteVisibility(config.data.journal.notes.visible)
+                        meta.parent:updateQuestListTrackedColors()
+                    end
+                },
+            }
+        },
+        interval(0, params.fontSize * 0.5),
+        {
+            props = {
+                size = util.vector2(meta.scrollBoxContentSize.x + 8, 1),
+            },
+            content = ui.content{
+                templates.longHorizontalLineThin
+            }
+        },
+    }
 
     header = {
         type = ui.TYPE.Flex,
@@ -1341,14 +1543,41 @@ function this.create(params)
                             anchor = util.vector2(1, 0),
                             position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 2, smallBtnFontSize + params.fontSize + 8),
                         },
-                        content = ui.content{}
+                        content = ui.content{
+                            interval(params.fontSize, 0),
+                            button{
+                                text = l10n("noteBtn"),
+                                textSize = math.floor(params.fontSize * 0.8),
+                                visible = true,
+                                parentScrollBoxUserData = journalEntries.userData, ---@diagnostic disable-line: need-check-nil
+                                updateFunc = function ()
+                                    meta.params.updateFunc()
+                                end,
+                                event = function (layout, e)
+                                    if contextMenu.getActiveMenuId() and layout.userData.contextMenuId == contextMenu.getActiveMenuId() then
+                                        contextMenu.destroy()
+                                        return
+                                    end
+                                    layout.userData.contextMenuId = contextMenu.create{
+                                        position = e.position,
+                                        fontSize = config.data.ui.fontSize,
+                                        elements = contextMenus.getNoteData{
+                                            parent = meta,
+                                            updateFunc = function ()
+                                                meta:update()
+                                            end
+                                        },
+                                    }
+                                end
+                            }
+                        }
                     },
                     button{
                         text = l10n("questBoxOptionsBtn"),
                         textSize = smallBtnFontSize,
                         anchor = util.vector2(1, 0),
                         position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 2, 0),
-                        visible = meta.params.showQuestLog,
+                        visible = true,
                         parentScrollBoxUserData = journalEntries.userData, ---@diagnostic disable-line: need-check-nil
                         updateFunc = function ()
                             meta.params.updateFunc()
@@ -1361,10 +1590,14 @@ function this.create(params)
                             layout.userData.contextMenuId = contextMenu.create{
                                 position = e.position,
                                 fontSize = config.data.ui.fontSize,
-                                elements = contextMenus.getOptionsData(function ()
-                                    local selectedQuest = meta.parent:getQuestListSelectedFladValue()
-                                    meta.parent:selectQuest(selectedQuest, true, true)
-                                end),
+                                elements = contextMenus.getOptionsData{
+                                    parent = meta,
+                                    logBlock = meta.params.showQuestLog,
+                                    updateFunc = function ()
+                                        local selectedQuest = meta.parent:getQuestListSelectedFladValue()
+                                        meta.parent:selectQuest(selectedQuest, true, true)
+                                    end
+                                },
                             }
                         end
                     }
@@ -1382,6 +1615,7 @@ function this.create(params)
     meta.content = journalContent
 
     meta:_fillJournal(meta.content, params)
+    meta:setNoteVisibility(config.data.journal.notes.visible)
 
 
     meta.toggleQuestObjectsBtn = function (self)

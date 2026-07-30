@@ -70,6 +70,7 @@ local this = {}
 ---@field journalIndex integer? -- latest journal index when the quest was updated
 ---@field list questGuider.playerQuest.storageQuestInfo[]
 ---@field logHashes table<string, integer>? -- hash values for log entries, key is hash value, value is index in list
+---@field note string?
 
 ---@class questGuider.playerQuest.storageData
 ---@field questData table<string, questGuider.playerQuest.storageQuestData> by quest name
@@ -304,6 +305,8 @@ function this.generateStorageQuestDataByDiaIdList(list)
 
         local plData = this.getQuestStorageData(qName)
 
+        local startedFlag = plData and next(plData.list or {}) and true or false
+
         ---@type questGuider.playerQuest.storageQuestData
         local storDt = res[qName]
         if not storDt then
@@ -317,8 +320,8 @@ function this.generateStorageQuestDataByDiaIdList(list)
                 disabled = plData and plData.disabled,
                 finished = plData and plData.finished,
                 pinned = plData and plData.pinned,
-                started = plData and true or false,
-                generated = not plData and true or false,
+                started = startedFlag,
+                generated = (not plData or not startedFlag) and true or false,
             }
             res[qName] = storDt
         end
@@ -376,6 +379,21 @@ function this.getQuestStorageData(qName)
     if not storageData then return end
 
     return storageData.questData[qName]
+end
+
+
+---@param qName string
+---@return questGuider.playerQuest.storageQuestData?
+function this.getOrInitQuestStorageData(qName)
+    local storageData = initStorageData()
+    if not storageData then return end
+
+    local data = storageData.questData[qName]
+    if not data then
+        data = this.initStorageQuestData(qName)
+    end
+
+    return data
 end
 
 

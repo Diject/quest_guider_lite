@@ -7,6 +7,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local menuBuilders = require("scripts.quest_guider_lite.ui.menuBuilders")
 local common = require("scripts.quest_guider_lite.common")
 local contextMenu = require("scripts.quest_guider_lite.ui.contextMenu")
+local playerQuests = require("scripts.quest_guider_lite.playerQuests")
 
 local l10n = core.l10n(common.l10nKey)
 
@@ -72,22 +73,82 @@ function this.getDialogueTextEvents(scrollBoxMeta)
 end
 
 
----@param updateFunc fun()?
+---@class questGuider.ui.contextMenu.getOptionsData.params
+---@field parent questGuider.ui.questBoxMeta
+---@field updateFunc fun()
+---@field logBlock boolean? defaults to true
+---@field noteBlock boolean? defaults to true
+
+---@param params questGuider.ui.contextMenu.getOptionsData.params
 ---@return questGuider.ui.contextMenu.create.params.element[] contextMenuData
-function this.getOptionsData(updateFunc)
+function this.getOptionsData(params)
+    params = params or {}
+    ---@type questGuider.ui.contextMenu.create.params.element[]
+    local out = {}
+
+    if params.logBlock ~= false then
+        table.insert(out, {type = 1, text = l10n("questLogContextLabel"), fontSize = config.data.ui.fontSize * 1.1})
+        table.insert(out, {type = 0})
+        table.insert(out, {type = 3, text = l10n("questLogContextDialogueInfo"), data = config.data.journal.questLog.dialogueInfo, callback = function (checked, layout)
+            config.setValue("journal.questLog.dialogueInfo", checked)
+            if params.updateFunc then params.updateFunc() end
+        end})
+        table.insert(out, {type = 3, text = l10n("questLogContextObjectInfo"), data = config.data.journal.questLog.objectInfo, callback = function (checked, layout)
+            config.setValue("journal.questLog.objectInfo", checked)
+            if params.updateFunc then params.updateFunc() end
+        end})
+    end
+
+    if params.noteBlock ~= false then
+        table.insert(out, {type = 1, text = l10n("noteContextLabel"), fontSize = config.data.ui.fontSize * 1.1})
+        table.insert(out, {type = 0})
+        table.insert(out, {type = 3, text = l10n("noteVisibleCB"), data = config.data.journal.notes.visible, callback = function (checked, layout)
+            config.setValue("journal.notes.visible", checked)
+            params.parent:setNoteVisibility(checked)
+            params.parent:update()
+        end})
+    end
+
+    return out
+end
+
+
+---@class questGuider.ui.contextMenu.getNoteData.params
+---@field parent questGuider.ui.questBoxMeta
+---@field updateFunc fun()
+
+---@param params questGuider.ui.contextMenu.getNoteData.params
+function this.getNoteData(params)
+    local parent = params.parent
+
+    local playerData = playerQuests.getOrInitQuestStorageData(parent.params.questName)
+    local hasNote = playerData and playerData.note and playerData.note ~= "" and true or false
+
     ---@type questGuider.ui.contextMenu.create.params.element[]
     local out = {
-        {type = 1, text = l10n("questLogContextLabel"), fontSize = config.data.ui.fontSize * 1.1},
+        {type = 2, text = hasNote and l10n("noteEditBtn") or l10n("noteAddBtn"), callback = function (data, layout)
+            parent:showNoteEdit()
+            params.updateFunc()
+            contextMenu.destroy()
+        end},
         {type = 0},
-        {type = 3, text = l10n("questLogContextDialogueInfo"), data = config.data.journal.questLog.dialogueInfo, callback = function (checked, layout)
-            config.setValue("journal.questLog.dialogueInfo", checked)
-            if updateFunc then updateFunc() end
-        end},
-        {type = 3, text = l10n("questLogContextObjectInfo"), data = config.data.journal.questLog.objectInfo, callback = function (checked, layout)
-            config.setValue("journal.questLog.objectInfo", checked)
-            if updateFunc then updateFunc() end
-        end},
+        {type = 3, text = l10n("noteVisibleCB"), data = config.data.journal.notes.visible, callback = function (checked, layout)
+            config.setValue("journal.notes.visible", checked)
+            parent:setNoteVisibility(checked)
+            params.updateFunc()
+        end}
     }
+
+    if hasNote then
+        table.insert(out, 3, {type = 2, text = l10n("noteRemoveBtn"), callback = function (data, layout)
+            playerData.note = nil
+            parent:setNoteVisibility(false)
+            parent.parent:updateQuestListTrackedColors()
+            params.updateFunc()
+            contextMenu.destroy()
+        end})
+        table.insert(out, 4, {type = 0})
+    end
 
     return out
 end

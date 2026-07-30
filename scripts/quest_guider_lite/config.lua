@@ -85,6 +85,9 @@ this.default = {
             dialogueInfo = true, -- settingless
             objectInfo = false, -- settingless
         },
+        notes = {
+            visible = true, -- settingless
+        },
     },
     ui = {
         fontSize = 20,

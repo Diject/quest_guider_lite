@@ -117,6 +117,7 @@ end)
 ---@field iconColor any?
 ---@field alpha number?
 ---@field visible boolean?
+---@field layoutName string?
 ---@field event fun(layout : any, e: any)?
 ---@field mousePress fun(layout : any)?
 ---@field mouseRelease fun(layout : any)?
@@ -184,6 +185,7 @@ return function (params)
     local layout
     layout = {
         template = params.useDefaultBtnTemplate and templates.boxSolidThick or templates.btnBoxSolidThick,
+        name = params.layoutName,
         props = {
             propagateEvents = false,
             relativePosition = params.relativePosition,

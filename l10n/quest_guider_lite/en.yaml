@@ -242,6 +242,13 @@ questBoxOptionsBtn: "Options"
 questLogContextLabel: "Quest History:"
 questLogContextDialogueInfo: "Conversations"
 questLogContextObjectInfo: "Loot & Kills"
+noteBtn: "Note"
+noteAddBtn: "Add"
+noteEditBtn: "Edit"
+noteApplyBtn: "Apply"
+noteRemoveBtn: "Remove"
+noteVisibleCB: "Show"
+noteContextLabel: "Note:"
 
 
 questDataIncorrectFolder: "Quest data is installed incorrectly.\nQuest data files must be in the \"questData\" folder."

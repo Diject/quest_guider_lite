@@ -122,6 +122,8 @@ this.mapGiverMarkerUpPath = "textures/icons/quest_guider/exclamationMarkUpM.dds"
 this.mapGiverMarkerDownPath = "textures/icons/quest_guider/exclamationMarkDownM.dds"
 this.mapWidgetIcoPath = "textures/icons/quest_guider/mapWidgetIco.png"
 
+this.noteLabelIcoPath = "textures/icons/quest_guider/featherIco.png"
+
 this.initMenuColoredMarkersImagePath = "textures/icons/quest_guider/initMenu/coloredMarkers.png"
 this.initMenuMapMarkersImagePath = "textures/icons/quest_guider/initMenu/mapMarkers.png"
 this.initMenuProximityMarkersImagePath = "textures/icons/quest_guider/initMenu/proximityMarkers.png"
