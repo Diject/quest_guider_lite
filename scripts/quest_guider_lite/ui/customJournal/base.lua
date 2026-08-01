@@ -1240,7 +1240,7 @@ local function create(params)
                     meta:update()
                 end,
                 checked = finishedStartedCBValue,
-                text = params.menuId ~= commonData.allQuestsMenuId and l10n("finished") or l10n("started"),
+                text = params.menuId ~= commonData.allQuestsMenuId and l10n("finishedCategoryCB") or l10n("startedCategoryCB"),
                 anchor = util.vector2(0.5, 0.5),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
@@ -1260,7 +1260,7 @@ local function create(params)
                     meta:update()
                 end,
                 checked = localStorage.data.hiddenCheckBox and true or false,
-                text = l10n("hidden"),
+                text = l10n("hiddenCategoryCB"),
                 anchor = util.vector2(0.5, 0.5),
                 textSize = params.fontSize or 18,
                 event = function (checked, layout)
