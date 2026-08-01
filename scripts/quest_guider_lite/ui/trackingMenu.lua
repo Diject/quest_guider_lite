@@ -1499,7 +1499,7 @@ function this.createContent(params)
         },
         content = ui.content {
             mainHeaderContainer,
-            interval(0, 1),
+            {},
             mainWindow,
         }
     } or trackingList

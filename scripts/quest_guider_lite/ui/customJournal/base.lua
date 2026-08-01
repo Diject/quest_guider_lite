@@ -1471,9 +1471,9 @@ local function create(params)
         },
         content = ui.content {
             mainHeaderContainer,
-            interval(0, 1),
+            {},
             mainWindow,
-            interval(0, 1),
+            {},
             {},
         }
     }
