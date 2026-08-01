@@ -391,6 +391,7 @@ I.Settings.registerGroup{
     settings = {
         numberSetting{key = "ui.fontSize", name = "fontSize", integer = true, min = 12, max = 72, default = config.default.ui.fontSize},
         color{key = "ui.defaultColor", name = "textColor", description = "textColorSettingDescription", default = config.default.ui.defaultColor},
+        color{key = "ui.defaultAltColor", name = "altTextColor", description = "altTextColorSettingDescription", default = config.default.ui.defaultAltColor},
         color{key = "ui.backgroundColor", name = "backgroudColor", description = "backgroudColorDescription", default = config.default.ui.backgroundColor},
         color{key = "ui.disabledColor", name = "disabledColor", description = "disabledColorDescription", default = config.default.ui.disabledColor},
         color{key = "ui.dateColor", name = "dateColor", description = "dateColorDescription", default = config.default.ui.dateColor},
