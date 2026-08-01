@@ -20,11 +20,13 @@ this.trackedQuestDiaData = {}
 this.questDialogueTimestamps = {}
 
 this.eventType = {
+    protectedItem = -2, -- for internal tracking, not logged
     died = 1,
     dialogue = 2,
     item = 3,
     itemObtained = 4,
     itemGiven = 5,
+    dialogueCommon = 6, -- for dialogues with more than 50 infos, to avoid spamming the log
     finished = 99,
 }
 
@@ -32,6 +34,7 @@ local forbiddenForTracking = {
     [this.eventType.finished] = true,
     [this.eventType.itemObtained] = true,
     [this.eventType.itemGiven] = true,
+    [this.eventType.dialogueCommon] = true,
 }
 
 this.itemTypes = {
@@ -46,6 +49,12 @@ function this.getHashVal(type, val1, val2)
 end
 
 
+local function registerTrackedObject(id, storageData)
+    this.trackedObjects[id] = this.trackedObjects[id] or {}
+    this.trackedObjects[id][storageData] = true
+end
+
+
 function this.init()
     local storageData = playerQuests.getStorageData()
     if not storageData then return end
@@ -57,13 +66,11 @@ function this.init()
             if not rec.type or forbiddenForTracking[rec.type] then goto continue end
 
             if rec.dId then
-                this.trackedObjects[rec.dId] = this.trackedObjects[rec.dId] or {}
-                this.trackedObjects[rec.dId][qStorageData] = true
+                registerTrackedObject(rec.dId, qStorageData)
             end
 
             if rec.obj then
-                this.trackedObjects[rec.obj] = this.trackedObjects[rec.obj] or {}
-                this.trackedObjects[rec.obj][qStorageData] = true
+                registerTrackedObject(rec.obj, qStorageData)
             end
             ::continue::
         end
@@ -73,8 +80,7 @@ function this.init()
             for diaId, rec in pairs(qData.records) do
                 this.trackedQuestDiaData[diaId] = qStorageData
                 for objId, _ in pairs(questBase.getQuestDiaVarValues(diaId, function (d) return d.type ~= 3 end) or {}) do
-                    this.trackedObjects[objId] = this.trackedObjects[objId] or {}
-                    this.trackedObjects[objId][qStorageData] = true
+                    registerTrackedObject(objId, qStorageData)
                 end
             end
         end
@@ -91,7 +97,7 @@ end
 
 function this.handleJournalEvent(diaId, diaIndex)
     local qData, qName = playerQuests.getQuestDataByDiaId(diaId)
-    if not qData then return end
+    if not qData or not qName or qName == "" then return end
 
     local storageData = this.trackedQuestDiaData[diaId]
     local hasRegisteredData = storageData ~= nil
@@ -105,8 +111,7 @@ function this.handleJournalEvent(diaId, diaIndex)
         if math.abs(tmData.tm - realTimer.frameCounter) <= 5 then
             for _, dt in pairs(tmData.dias) do
                 if not this.trackedObjects[dt.dia.id] or not this.trackedObjects[dt.dia.id][storageData] then
-                    this.trackedObjects[dt.dia.id] = this.trackedObjects[dt.dia.id] or {}
-                    this.trackedObjects[dt.dia.id][storageData] = true
+                    registerTrackedObject(dt.dia.id, storageData)
                     this.handleDialogueEvent(dt.actor, dt.dia.id, dt.info.id)
                 end
             end
@@ -117,14 +122,15 @@ function this.handleJournalEvent(diaId, diaIndex)
 
     if not hasRegisteredData then
         for objId, _ in pairs(questBase.getQuestDiaVarValues(diaId, function (d) return d.type ~= 3 end) or {}) do
-            this.trackedObjects[objId] = this.trackedObjects[objId] or {}
-            this.trackedObjects[objId][storageData] = true
+            registerTrackedObject(objId, storageData)
         end
 
         this.trackedQuestDiaData[diaId] = storageData
     end
 
-    if qData.isFinished then
+    local diaInfo = playerQuests.getQuestDialogueInfo(diaId, diaIndex)
+    local finished = qData.isFinished or diaInfo and diaInfo.isQuestFinished
+    if finished then
         local dt = {
             type = this.eventType.finished,
             globalTime = timeLib.getGlobalTimestamp(),
@@ -159,15 +165,17 @@ function this.handleDialogueEvent(actor, diaId, infoId)
 
     local data = this.trackedObjects[diaId]
     if data then
+        local infoCount = #dia.infos
+        local tp = infoCount < 50 and this.eventType.dialogue or this.eventType.dialogueCommon
 
-        local hash = this.getHashVal(this.eventType.dialogue, diaId, infoId)
+        local hash = this.getHashVal(tp, diaId, infoId)
 
         for storageData, _ in pairs(data) do
             if not storageData.logHashes then storageData.logHashes = {} end
             if storageData.logHashes[hash] then goto continue end
 
             local dt = {
-                type = this.eventType.dialogue,
+                type = tp,
                 globalTime = timeLib.getGlobalTimestamp(),
                 cellData = cellData.getCellData(playerRef.cell),
                 dId = diaId,
@@ -178,8 +186,7 @@ function this.handleDialogueEvent(actor, diaId, infoId)
             table.insert(storageData.list, dt)
             storageData.logHashes[hash] = #storageData.list
 
-            this.trackedObjects[actor.recordId] = this.trackedObjects[actor.recordId] or {}
-            this.trackedObjects[actor.recordId][storageData] = true
+            registerTrackedObject(actor.recordId, storageData)
 
             this.handleDialogueInventory(storageData, infoId)
 
@@ -203,8 +210,7 @@ local function insertToData(storageData, objId, hash, dt)
         table.insert(storageData.list, dt)
         storageData.logHashes[hash] = #storageData.list
 
-        this.trackedObjects[objId] = this.trackedObjects[objId] or {}
-        this.trackedObjects[objId][storageData] = true
+        registerTrackedObject(objId, storageData)
     else
         local pos = storageData.logHashes[hash]
         local listCount = #storageData.list
@@ -247,6 +253,9 @@ function this.handleDialogueInventory(storageData, infoId)
         local hash = this.getHashVal(dtType, itemId, infoId)
         if storageData.logHashes[hash] then goto continue end
 
+        local protectedHash = this.getHashVal(this.eventType.protectedItem, itemId)
+        storageData.logHashes[protectedHash] = this.eventType.protectedItem
+
         local dt = {
             type = dtType,
             globalTime = timeLib.getGlobalTimestamp(),
@@ -272,9 +281,13 @@ function this.handleInventory(useCurrentInventory)
         local dtType = this.eventType.item
 
         local hash = this.getHashVal(dtType, itemId)
+        local protectedHash = this.getHashVal(this.eventType.protectedItem, itemId)
 
         for storageData, _ in pairs(data) do
             if not storageData.logHashes then storageData.logHashes = {} end
+
+            local isProtected = storageData.logHashes[protectedHash] ~= nil
+            if isProtected then goto continue end
 
             local dt = {
                 type = dtType,
@@ -284,6 +297,8 @@ function this.handleInventory(useCurrentInventory)
             }
 
             insertToData(storageData, itemId, hash, dt)
+
+            ::continue::
         end
 
         ::continue::
