@@ -711,13 +711,18 @@ end
 
 function journalMeta:fillTopicData()
     local topicData = {}
+    local topicListLower = {}
+    local topicIdByLowerName = {}
     for _, topic in pairs(playerQuests.getTopicList() or {}) do
         topicData[topic.id or ""] = topic
+        local id = stringLib.utf8_lower(topic.name or "")
+        table.insert(topicListLower, id)
+        topicIdByLowerName[id] = topic.id or ""
     end
-    local topicList = tableLib.keys(topicData)
-    table.sort(topicList, function (a, b)
-        local tmA = dialogueTime.getTimestamp(a)
-        local tmB = dialogueTime.getTimestamp(b)
+
+    table.sort(topicListLower, function (a, b)
+        local tmA = dialogueTime.getTimestamp(topicIdByLowerName[a] or "")
+        local tmB = dialogueTime.getTimestamp(topicIdByLowerName[b] or "")
         if tmA ~= tmB then
             return tmA > tmB
         end
@@ -727,7 +732,8 @@ function journalMeta:fillTopicData()
     ---@type table<string, any> topic by topic name
     self.topicData = topicData
     ---@type string[] sorted topic names by time
-    self.topicList = topicList
+    self.topicList = topicListLower
+    self.topicIdByLowerName = topicIdByLowerName
 end
 
 
@@ -989,7 +995,9 @@ local function create(params)
                 props = {
                     horizontal = true,
                     arrange = ui.ALIGNMENT.End,
-                    position = util.vector2(6, 0)
+                    position = util.vector2(6, -2),
+                    relativePosition = util.vector2(0, 1),
+                    anchor = util.vector2(0, 1),
                 },
                 content = ui.content{
                     {

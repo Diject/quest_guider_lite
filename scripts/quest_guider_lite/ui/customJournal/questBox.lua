@@ -320,6 +320,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
     local topicData = self.parent.topicData
     local topicList = self.parent.topicList
+    local topicIdByLowerName = self.parent.topicIdByLowerName
 
 
     local thinLineLayout = {
@@ -400,7 +401,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
             logContextMenuDialogues[dialogue.name] = dialogue.id
             for diaId, _ in pairs(topicPoss) do
-                local dt = topicData[diaId]
+                local dt = topicData[topicIdByLowerName[diaId or ""]]
                 if dt then
                     logContextMenuDialogues[dt.name or ""] = dt.id
                 end
@@ -686,10 +687,12 @@ function questBoxMeta._fillJournal(self, content, params)
         local textTopics = {}
         local contextMenuDialogues = {}
         for id, dt in pairs(topicPoss) do
-            if topicData[id] then
-                local topic = topicData[id]
-                textTopics[topic.id] = topic
-                contextMenuDialogues[topic.name or ""] = topic.id
+            if topicIdByLowerName[id] then
+                local topic = topicData[topicIdByLowerName[id]]
+                if topic then
+                    textTopics[topic.id] = topic
+                    contextMenuDialogues[topic.name or ""] = topic.id
+                end
             end
         end
 

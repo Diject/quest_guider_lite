@@ -189,6 +189,7 @@ topicMenuMeta.selectTopic = function (self, topicId, force)
 
     local topicData = self.topicData
     local topicList = self.topicList
+    local topicIdByLowerName = self.topicIdByLowerName
 
     local contextMenuDialogues = {}
 
@@ -252,8 +253,9 @@ topicMenuMeta.selectTopic = function (self, topicId, force)
                 entryText = uiUtils.colorizeFromPhrasePositions(entryText, topicPoss, linkColor, defaultColor)
 
                 for id, _ in pairs(topicPoss) do
-                    if not nestedTopics[id] and topicData[id] then
-                        nestedTopics[id] = topicData[id]
+                    local tId = topicIdByLowerName[id]
+                    if not nestedTopics[id] and tId and topicData[tId] then
+                        nestedTopics[id] = topicData[tId]
                     end
                 end
 
@@ -265,7 +267,7 @@ topicMenuMeta.selectTopic = function (self, topicId, force)
                 )
 
                 for diaId, _ in pairs(topicPoss) do
-                    local dt = topicData[diaId]
+                    local dt = topicIdByLowerName[diaId] and topicData[topicIdByLowerName[diaId]] or nil
                     if dt then
                         contextMenuDialogues[dt.name or ""] = dt.id
                     end
@@ -638,13 +640,18 @@ end
 
 function topicMenuMeta:fillTopicData()
     local topicData = {}
+    local topicListLower = {}
+    local topicIdByLowerName = {}
     for _, topic in pairs(playerQuests.getTopicList() or {}) do
         topicData[topic.id or ""] = topic
+        local id = stringLib.utf8_lower(topic.name or "")
+        table.insert(topicListLower, id)
+        topicIdByLowerName[id] = topic.id or ""
     end
-    local topicList = tableLib.keys(topicData)
-    table.sort(topicList, function (a, b)
-        local tmA = dialogueTime.getTimestamp(a)
-        local tmB = dialogueTime.getTimestamp(b)
+
+    table.sort(topicListLower, function (a, b)
+        local tmA = dialogueTime.getTimestamp(topicIdByLowerName[a] or "")
+        local tmB = dialogueTime.getTimestamp(topicIdByLowerName[b] or "")
         if tmA ~= tmB then
             return tmA > tmB
         end
@@ -654,7 +661,8 @@ function topicMenuMeta:fillTopicData()
     ---@type table<string, any> topic by topic name
     self.topicData = topicData
     ---@type string[] sorted topic names by time
-    self.topicList = topicList
+    self.topicList = topicListLower
+    self.topicIdByLowerName = topicIdByLowerName
 end
 
 
