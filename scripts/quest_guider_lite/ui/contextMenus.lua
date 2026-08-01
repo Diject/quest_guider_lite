@@ -8,6 +8,7 @@ local menuBuilders = require("scripts.quest_guider_lite.ui.menuBuilders")
 local common = require("scripts.quest_guider_lite.common")
 local contextMenu = require("scripts.quest_guider_lite.ui.contextMenu")
 local playerQuests = require("scripts.quest_guider_lite.playerQuests")
+local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 
 local l10n = core.l10n(common.l10nKey)
 
@@ -16,9 +17,8 @@ local this = {}
 
 
 ---@param dialogueNameMap table<string, any>
----@param topicIdByName table<string, string>
 ---@return questGuider.ui.contextMenu.create.params.element[] contextMenuData must be placed in userData.contextMenuData to be used in contextMenuEvents
-function this.getDialogueTextData(dialogueNameMap, topicIdByName)
+function this.getDialogueTextData(dialogueNameMap)
     ---@return questGuider.ui.contextMenu.create.params.element[]
     local contextMenuData = {}
     for _, name in ipairs(tableLib.keys(dialogueNameMap, true)) do
@@ -27,15 +27,19 @@ function this.getDialogueTextData(dialogueNameMap, topicIdByName)
         end
         table.insert(contextMenuData, {
             text = name,
+            id = dialogueNameMap[name],
             callback = function ()
+                local id = dialogueNameMap[name] or name
                 local menu = menuHandler.getMenu(common.topicsMenuId)
                 if not menu then
+                    localStorage.data.lastSelectedTopic = id
                     menu = menuBuilders.topicMenu()
                     menuHandler.registerMenu(common.topicsMenuId, menu)
+                else
+                    menu:selectTopic(id, true)
+                    menu:addToHistory(id)
                 end
 
-                local id = topicIdByName[name] or name
-                menu:selectTopic(id)
                 contextMenu.destroy()
             end
         })
@@ -57,7 +61,7 @@ function this.getDialogueTextEvents(scrollBoxMeta)
             if contextMenu.getActiveMenuId() and layout.userData.contextMenuId == contextMenu.getActiveMenuId() then
                 contextMenu.destroy()
             elseif e.button == 1 and layout.userData.contextMenuData and (scrollBoxMeta.lastMovedDistance < 30) and
-                    core.getRealTime() - layout.userData.clickTimestamp < 0.4 then
+                    core.getRealTime() - (layout.userData.clickTimestamp or 0) < 0.4 then
                 layout.userData.contextMenuId = contextMenu.create{
                     position = e.position,
                     fontSize = config.data.ui.fontSize,

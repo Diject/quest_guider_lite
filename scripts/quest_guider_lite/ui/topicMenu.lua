@@ -135,7 +135,7 @@ topicMenuMeta.jumpInHistory = function (self, value)
 end
 
 
-topicMenuMeta.selectTopic = function (self, topicId)
+topicMenuMeta.selectTopic = function (self, topicId, force)
     local params = self.params
 
     localStorage.data.lastSelectedTopic = topicId
@@ -155,6 +155,12 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
     local succ, selectedLayout = pcall(function() return qListContent[topicId] end)
     if not succ or not selectedLayout then
+        if force and self.textFilter ~= "" then
+            self:setTextFilter()
+            self:fillTopicsContent()
+            self:selectTopic(topicId)
+            return
+        end
         self:clearTopicInfo()
         self:setTopicListSelectedFlad(nil)
         return
@@ -181,15 +187,8 @@ topicMenuMeta.selectTopic = function (self, topicId)
     local endIndex = #topic.entries
     local nestedTopics = {}
 
-    local topicData = {}
-    local topicIdByName = {}
-    for _, topic in pairs(playerQuests.getTopicList() or {}) do
-        topicData[topic.id or ""] = {
-            topic = topic
-        }
-        topicIdByName[topic.name or ""] = topic.id or ""
-    end
-    local topicList = tableLib.keys(topicData)
+    local topicData = self.topicData
+    local topicList = self.topicList
 
     local contextMenuDialogues = {}
 
@@ -268,7 +267,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 for diaId, _ in pairs(topicPoss) do
                     local dt = topicData[diaId]
                     if dt then
-                        contextMenuDialogues[dt.topic.name or ""] = true
+                        contextMenuDialogues[dt.name or ""] = dt.id
                     end
                 end
 
@@ -297,7 +296,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
             local nestedTopicsList = tableLib.values(nestedTopics)
 
             table.sort(nestedTopicsList, function (a, b)
-                return a.topic.id < b.topic.id
+                return a.id < b.id
             end)
 
             local buttonLineData = {}
@@ -307,8 +306,8 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 local currentStep = params.fontSize * 0.25
                 local step = (newTextElemSize.x - currentStep * 2) / #buttonLineData
 
-                for _, topicData in ipairs(buttonLineData) do
-                    local topicText = topicData.topic.name
+                for _, tp in ipairs(buttonLineData) do
+                    local topicText = tp.name
 
                     buttonFlex.content:add(
                         button{
@@ -321,10 +320,10 @@ topicMenuMeta.selectTopic = function (self, topicId)
                             position = util.vector2(currentStep + step / 2, buttonFlexYPos),
                             parentScrollBoxUserData = self:getTopicScrollBox().userData,
                             userData = {
-                                topicId = topicData.topic.id
+                                topicId = tp.id
                             },
                             event = function (layout)
-                                self:addToHistory(topicData.topic.id)
+                                self:addToHistory(tp.id)
                                 self:setTextFilter()
                                 self:fillTopicsContent()
                                 self:selectTopic(layout.userData.topicId)
@@ -340,8 +339,8 @@ topicMenuMeta.selectTopic = function (self, topicId)
 
             local maxBtnWidt = 0
             local maxBlockWidth = newTextElemSize.x - params.fontSize * 0.5
-            for _, topicData in ipairs(nestedTopicsList) do
-                local topicText = topicData.topic.name
+            for _, tp in ipairs(nestedTopicsList) do
+                local topicText = tp.name
 
                 if topicText ~= topic.name then
                     local count = #buttonLineData
@@ -350,11 +349,11 @@ topicMenuMeta.selectTopic = function (self, topicId)
                     local maxWidth = math.max(maxBtnWidt, btnWidth)
 
                     if (count * maxWidth) + maxWidth < maxBlockWidth or count == 0 then
-                        table.insert(buttonLineData, topicData)
+                        table.insert(buttonLineData, tp)
                     else
                         placeButtons()
                         buttonLineData = {}
-                        table.insert(buttonLineData, topicData)
+                        table.insert(buttonLineData, tp)
                     end
 
                     maxBtnWidt = maxWidth
@@ -380,7 +379,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                 "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex())
         end
 
-        local contextMenuData = contextMenus.getDialogueTextData(contextMenuDialogues, topicIdByName)
+        local contextMenuData = contextMenus.getDialogueTextData(contextMenuDialogues)
         textElem.userData.contextMenuData = next(contextMenuData) and contextMenuData
 
         textElem.props.text = newText..textElem.props.text
@@ -453,7 +452,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
                         wordWrap = true,
                         -- textAlignH = ui.ALIGNMENT.Center,
                     },
-                    events = contextMenus.getDialogueTextEvents(self:getTopicScrollBoxMeta())
+                    events = nil,
                 },
             },
         },
@@ -475,6 +474,7 @@ topicMenuMeta.selectTopic = function (self, topicId)
         withoutBorders = true,
     }
 
+    topicContent[4].content[2].events = contextMenus.getDialogueTextEvents(self:getTopicScrollBoxMeta())
     updateTopicText(topicContent, true)
 
     topicContent[3].content[1].userData.parentScrollBoxUserData = self:getTopicScrollBox().userData
@@ -515,7 +515,7 @@ local function hasText(topicData, text)
 end
 
 
-function topicMenuMeta.fillTopicsContent(self)
+function topicMenuMeta:fillTopicsContent()
     local params = self.params
 
     local qList = self:getTopicList()
@@ -525,7 +525,7 @@ function topicMenuMeta.fillTopicsContent(self)
 
     local content = sBoxMeta:getContent()
 
-    local topicData = playerQuests.getTopicList()
+    local topicData = self.topicData
 
     local sortFunc
     if localStorage.data.alphabeticalCheckBox then
@@ -598,7 +598,7 @@ function topicMenuMeta.fillTopicsContent(self)
                     if topicListSBMeta.lastMovedDistance < 30 then
                         self:addToHistory(dt.id)
                         self:fillTopicsContent()
-                        self:selectTopic(dt.id)
+                        self:selectTopic(dt.id, true)
                     end
                 end),
             },
@@ -633,6 +633,28 @@ function topicMenuMeta.fillTopicsContent(self)
     if scrollPos > height then
         sBoxMeta:setScrollPosition(math.max(0, height - scrollElemHeight))
     end
+end
+
+
+function topicMenuMeta:fillTopicData()
+    local topicData = {}
+    for _, topic in pairs(playerQuests.getTopicList() or {}) do
+        topicData[topic.id or ""] = topic
+    end
+    local topicList = tableLib.keys(topicData)
+    table.sort(topicList, function (a, b)
+        local tmA = dialogueTime.getTimestamp(a)
+        local tmB = dialogueTime.getTimestamp(b)
+        if tmA ~= tmB then
+            return tmA > tmB
+        end
+        return a < b
+    end)
+
+    ---@type table<string, any> topic by topic name
+    self.topicData = topicData
+    ---@type string[] sorted topic names by time
+    self.topicList = topicList
 end
 
 
@@ -682,6 +704,7 @@ local function create(params)
     meta.menuHistory = {}
     meta.menuHistoryIndex = 0
     meta.showMoreBtnLayout = nil
+    meta:fillTopicData()
 
 
     local leftPartWidth = math.floor(params.size.x * config.data.journal.listRelativeSize * 0.005) * 2
@@ -1201,6 +1224,7 @@ local function create(params)
             local nextSelected = content[nextIndex]
             if nextSelected and nextSelected.name then
                 self:selectTopic(nextSelected.name)
+                self:addToHistory(nextSelected.name)
 
                 local scrollPos = sBoxMeta:getScrollPosition()
                 local scrollHeight = sBoxMeta.params.size.y
@@ -1251,7 +1275,8 @@ local function create(params)
 
     local lastTopicId = localStorage.data.lastSelectedTopic
     if lastTopicId then
-        meta:selectTopic(lastTopicId)
+        meta:selectTopic(lastTopicId, true)
+        meta:addToHistory(lastTopicId)
     else
         meta:selectNextPreviousInList(1)
     end

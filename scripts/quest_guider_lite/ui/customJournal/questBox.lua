@@ -318,23 +318,8 @@ function questBoxMeta._fillJournal(self, content, params)
     if not playerQuestDataList then return end
     playerQuestDataListCount = #playerQuestDataList
 
-    local topicData = {}
-    local topicIdByName = {}
-    for _, topic in pairs(playerQuests.getTopicList() or {}) do
-        topicData[topic.id or ""] = {
-            topic = topic
-        }
-        topicIdByName[topic.name or ""] = topic.id or ""
-    end
-    local topicList = tableLib.keys(topicData)
-    table.sort(topicList, function (a, b)
-        local tmA = dialogueTime.getTimestamp(a)
-        local tmB = dialogueTime.getTimestamp(b)
-        if tmA ~= tmB then
-            return tmA > tmB
-        end
-        return a < b
-    end)
+    local topicData = self.parent.topicData
+    local topicList = self.parent.topicList
 
 
     local thinLineLayout = {
@@ -413,11 +398,11 @@ function questBoxMeta._fillJournal(self, content, params)
 
             text = text..dialogueText
 
-            logContextMenuDialogues[dialogue.name] = true
+            logContextMenuDialogues[dialogue.name] = dialogue.id
             for diaId, _ in pairs(topicPoss) do
                 local dt = topicData[diaId]
                 if dt then
-                    logContextMenuDialogues[dt.topic.name or ""] = true
+                    logContextMenuDialogues[dt.name or ""] = dt.id
                 end
             end
 
@@ -518,7 +503,7 @@ function questBoxMeta._fillJournal(self, content, params)
         local tHeight = uiUtils.getTextHeight(logText, params.fontSize, self.scrollBoxContentSize.x, config.data.journal.textHeightMulRecord, 3, true)
         local textElemSize = util.vector2(self.scrollBoxContentSize.x, tHeight)
 
-        local contextMenuData = contextMenus.getDialogueTextData(logContextMenuDialogues, topicIdByName)
+        local contextMenuData = contextMenus.getDialogueTextData(logContextMenuDialogues)
 
         local element = {
             type = ui.TYPE.Flex,
@@ -702,9 +687,9 @@ function questBoxMeta._fillJournal(self, content, params)
         local contextMenuDialogues = {}
         for id, dt in pairs(topicPoss) do
             if topicData[id] then
-                local topic = topicData[id].topic
+                local topic = topicData[id]
                 textTopics[topic.id] = topic
-                contextMenuDialogues[topic.name or ""] = true
+                contextMenuDialogues[topic.name or ""] = topic.id
             end
         end
 
@@ -925,7 +910,7 @@ function questBoxMeta._fillJournal(self, content, params)
             end
         }
 
-        local contextMenuData = contextMenus.getDialogueTextData(contextMenuDialogues, topicIdByName)
+        local contextMenuData = contextMenus.getDialogueTextData(contextMenuDialogues)
 
         element = {
             type = ui.TYPE.Flex,

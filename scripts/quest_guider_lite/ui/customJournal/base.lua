@@ -18,6 +18,7 @@ local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
 local realTimer = require("scripts.quest_guider_lite.realTimer")
 local keysModule = require("scripts.quest_guider_lite.input.keys")
+local dialogueTime = require("scripts.quest_guider_lite.dialogueTime")
 
 local cacheLib = require("scripts.quest_guider_lite.utils.cache")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
@@ -242,10 +243,6 @@ journalMeta.selectQuest = function (self, qName, force, doDelay)
     moveScroll()
 
     self:update()
-
-    if not doDelay then
-        requestData()
-    end
 end
 
 journalMeta.update = function(self)
@@ -712,6 +709,28 @@ function journalMeta:loadQuestList(questList)
 end
 
 
+function journalMeta:fillTopicData()
+    local topicData = {}
+    for _, topic in pairs(playerQuests.getTopicList() or {}) do
+        topicData[topic.id or ""] = topic
+    end
+    local topicList = tableLib.keys(topicData)
+    table.sort(topicList, function (a, b)
+        local tmA = dialogueTime.getTimestamp(a)
+        local tmB = dialogueTime.getTimestamp(b)
+        if tmA ~= tmB then
+            return tmA > tmB
+        end
+        return a < b
+    end)
+
+    ---@type table<string, any> topic by topic name
+    self.topicData = topicData
+    ---@type string[] sorted topic names by time
+    self.topicList = topicList
+end
+
+
 ---@class questGuider.ui.customJournal.params
 ---@field menuId string?
 ---@field size any
@@ -766,6 +785,7 @@ local function create(params)
     end
 
     meta.textFilter = ""
+    meta:fillTopicData()
 
     meta.nearbyMode = false
     if params.allQuestsMode then
