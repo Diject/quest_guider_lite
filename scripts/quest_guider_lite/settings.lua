@@ -269,6 +269,17 @@ end
 registerHotkeyListener()
 
 
+local defaultSection = storage.playerSection(commonData.configMiscSectionName)
+local configVersion = defaultSection:get("version")
+if configVersion ~= config.configVersion then
+    defaultSection:set("version", config.configVersion)
+    if configVersion == nil then
+        local uiSection = storage.playerSection(commonData.configUISectionName)
+        uiSection:set("ui.headerBackgroundAlpha", config.default.ui.headerBackgroundAlpha)
+    end
+end
+
+
 I.Settings.registerGroup{
     key = commonData.configJournalSectionName,
     page = commonData.settingPage,

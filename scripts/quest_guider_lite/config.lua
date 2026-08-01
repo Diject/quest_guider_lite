@@ -7,9 +7,11 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local this = {}
 
 this.inputSectionVersion = 1
+this.configVersion = 1
 
 ---@class questGuider.config
 this.default = {
+    version = this.configVersion,
     tracking = {
         autoTrack = true,
         autoTrackSideBranches = false,
@@ -101,7 +103,7 @@ this.default = {
         linkColor = commonData.journalLinkColor,
         objectColor = commonData.objectColor,
         scrollArrowSize = 16,
-        headerBackgroundAlpha = 50,
+        headerBackgroundAlpha = 70,
         tooltipDelay = 1, -- local
     },
     input = {
