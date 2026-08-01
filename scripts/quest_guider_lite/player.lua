@@ -875,7 +875,7 @@ end
 
 time.runRepeatedly(function()
     tracking.handleTrackedRequirementsStep()
-end, 0.75)
+end, 0.46)
 
 local onQuestUpdateTimerStarted = false
 local dialogueMenuActor = nil
@@ -1124,7 +1124,6 @@ return {
             if tracking.handleObjectRequirements(data.object.recordId) then
                 handleTracking()
             end
-            print(data.object.recordId, killCounter.getKillCount(data.object.recordId))
             questLog.handleDiedEvent(data.object.recordId)
         end,
 

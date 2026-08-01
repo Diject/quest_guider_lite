@@ -228,7 +228,7 @@ function this.create(params)
                     return
                 end
             elseif this.inFocus == false then
-                layout.props.alpha = math.max(0, layout.props.alpha - core.getRealFrameDuration())
+                layout.props.alpha = math.max(0, layout.props.alpha - core.getRealFrameDuration() * 1.5)
             else
                 layout.props.alpha = math.min(1, layout.props.alpha + core.getRealFrameDuration() * 3)
             end

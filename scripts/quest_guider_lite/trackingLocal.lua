@@ -65,7 +65,7 @@ local exteriorDoorHUDMarkers = {}
 
 ---@class questGuider.tracking.objectRecord
 ---@field color number[]?
----@field markers table<string, questGuider.tracking.markerData> by quest id
+---@field markers table<string, questGuider.tracking.markerData> by dia id
 ---@field targetCells table<string, string>? parent cell editor name by editor name of cell that have access to the parent
 ---@field pathCells table<string, boolean>?
 ---@field firstEntranceCells table<string, any>?
@@ -182,12 +182,12 @@ function this.addMarker(params)
         if not lastColor then
             local colorId = math.min(this.storageData.colorId, #colors)
 
-            objectTrackingData = { markers = {}, color = config.data.tracking.colored and colors[colorId] } ---@diagnostic disable-line: missing-fields
+            objectTrackingData = { markers = {}, color = config.data.tracking.colored and colors[colorId] or nil} ---@diagnostic disable-line: missing-fields
 
             this.lastObjectColor[objectId] = colors[colorId]
             this.storageData.colorId = colorId < #colors and colorId + 1 or 1
         else
-            objectTrackingData = { markers = {}, color = config.data.tracking.colored and lastColor } ---@diagnostic disable-line: missing-fields
+            objectTrackingData = { markers = {}, color = config.data.tracking.colored and lastColor or nil } ---@diagnostic disable-line: missing-fields
         end
     end
 
@@ -259,7 +259,7 @@ function this.addMarker(params)
     local markerRecordParams = {
         name = positionData.name,
         description = text,
-        nameColor = config.data.tracking.colored and objectTrackingData.color,
+        nameColor = config.data.tracking.colored and objectTrackingData.color or common.colorToArray(config.data.ui.defaultColor),
         proximity = config.data.tracking.proximity * 69.99,
         priority = priority + 10,
         events = {
@@ -278,8 +278,8 @@ function this.addMarker(params)
         description = text,
         icon = common.doorMarkPath,
         iconRatio = 1.6,
-        iconColor = common.defaultColorData,
-        nameColor = config.data.tracking.colored and objectTrackingData.color,
+        iconColor = common.colorToArray(config.data.ui.defaultColor),
+        nameColor = config.data.tracking.colored and objectTrackingData.color or common.colorToArray(config.data.ui.defaultColor),
         proximity = config.data.tracking.proximity * 69.99,
         priority = priority,
         events = {

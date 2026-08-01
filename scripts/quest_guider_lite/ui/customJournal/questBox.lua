@@ -230,7 +230,7 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
     if #self.content < 2 or self.params.questName == "" then return end
 
     local ss, layIndex = pcall(function ()
-        return self.content:indexOf("TR_Objects_Flex")
+        return self.content:indexOf("TR_Objects_Widget")
     end)
     if layIndex then
         uiUtils.removeFromContent(self.content, layIndex)
@@ -291,6 +291,7 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
         props = {
             size = util.vector2(self.scrollBoxContentSize.x + 8, config.data.ui.fontSize * 2),
         },
+        name = "TR_Objects_Widget",
         content = ui.content{
             objectsBtn,
         },
@@ -348,7 +349,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
         local stepsToSkip = 0
 
-        if qInfo.type == questLog.eventType.dialogue then
+        if qInfo.type == questLog.eventType.dialogue or qInfo.type == questLog.eventType.dialogueCommon then
             if not config.data.journal.questLog.dialogueInfo then return end
             if not qInfo.dId or not qInfo.dInfo then return end
 
@@ -362,7 +363,7 @@ function questBoxMeta._fillJournal(self, content, params)
             local actorName = actor and actor.name or "???"
             local text = l10n("dialogueLogPattern", {
                 actor = string.format("#%s%s#%s", config.data.ui.objectColor:asHex(), actorName, config.data.ui.defaultColor:asHex()),
-                dialogue = dialogue.name or "???"
+                dialogue = string.format("#%s%s#%s", config.data.ui.defaultAltColor:asHex(), dialogue.name or "???", config.data.ui.defaultColor:asHex())
             })
 
             local diaTextsReversed = {}
@@ -445,7 +446,7 @@ function questBoxMeta._fillJournal(self, content, params)
                             itemName,
                             config.data.ui.defaultColor:asHex()
                         ),
-                        count = qInfo.userData or 0
+                        count = qI.userData or 0
                     }
                 ))
                 stepsToSkip = stepsToSkip + 1
@@ -490,6 +491,8 @@ function questBoxMeta._fillJournal(self, content, params)
             })
 
             logText = string.format("%s%s%s", logText, logText ~= "" and "\n\n" or "", text)
+        else
+            return
         end
 
         lastLogTextType = qInfo.type
@@ -1608,7 +1611,7 @@ function this.create(params)
 
     meta.toggleQuestObjectsBtn = function (self)
         local ss, btnLayout = pcall(function ()
-            return meta.content["TR_Objects_Flex"].content[1].content[1]
+            return meta.content["TR_Objects_Widget"].content[1]
         end)
         if not ss or not btnLayout then return end
 

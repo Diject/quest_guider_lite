@@ -74,6 +74,8 @@
 ---@field width integer
 ---@field height integer
 ---@field pixelsPerCell integer
+---@field waterWithAlpha boolean?
 ---@field gridX {min : integer, max : integer}
 ---@field gridY {min : integer, max : integer}
 ---@field bColor number[]|nil
+
