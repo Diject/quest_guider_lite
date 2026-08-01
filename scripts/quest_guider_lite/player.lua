@@ -881,6 +881,16 @@ local onQuestUpdateTimerStarted = false
 local dialogueMenuActor = nil
 
 return {
+    interfaceName = commonData.interfaceName,
+    interface = {
+        version = 6,
+        getConfig = function ()
+            return configLib.data
+        end,
+        setConfigValue = function (valuePath, value)
+            configLib.setValue(valuePath, value)
+        end,
+    },
     engineHandlers = {
         onQuestUpdate = function(questId, stage)
             timeLib.requestTimeUpdate()
