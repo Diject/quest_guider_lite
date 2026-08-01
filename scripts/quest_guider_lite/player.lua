@@ -559,6 +559,18 @@ end)
 
 local function closeTopMenu()
     local closed = false
+
+    ---@type AdvancedWorldMap.Interface
+    local advWMap = I.AdvancedWorldMap
+    if advWMap and advWMap.version >= 18 then
+        local menu = advWMap.getMapMenu()
+
+        if menu and menu:isVisible() then
+            advWMap.closeMapMenu()
+            closed = true
+        end
+    end
+
     if menuHandler.getMenu(commonData.trackingMenuId) then
         closed = true
         menuHandler.destroyMenu(commonData.trackingMenuId)

@@ -928,7 +928,7 @@ function this.markObjectTemp(objId, positions)
             end
 
             ---@diagnostic disable-next-line: undefined-field
-            map.userData.advWMapSearch(stringLib.getAfterComma(cellId), {showUnrevealed = true, searchAllLocations = true})
+            map.userData.advWMapSearch(cellId, {showUnrevealed = true, searchAllLocations = true})
         end
 
         local p = pos.position or pos.exitPos
