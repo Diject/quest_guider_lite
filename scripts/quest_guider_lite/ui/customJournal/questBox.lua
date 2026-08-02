@@ -417,7 +417,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
             local text = l10n(actorObjType == NPC and "npcDiedLogPattern" or "creatureDiedLogPattern", {
                 actor = string.format("#%s%s#%s",
-                    config.data.ui.objectColor:asHex(),
+                    config.data.ui.defaultAltColor:asHex(),
                     actorName,
                     config.data.ui.defaultColor:asHex()
                 ),
@@ -797,8 +797,7 @@ function questBoxMeta._fillJournal(self, content, params)
 
         if not self.toggleTopTopicsFunc then
             self.toggleTopTopicsFunc = function ()
-                if not (tracking.initialized and next(topicPoss)
-                        and config.data.journal.maxTopicEntriesInJournal > 0) then return end
+                if not (next(topicPoss) and config.data.journal.maxTopicEntriesInJournal > 0) then return end
 
                 toggleTopics()
                 self:update()
@@ -810,8 +809,7 @@ function questBoxMeta._fillJournal(self, content, params)
         local topicsBtn = button{
             text = l10n("topics"),
             textSize = self.params.fontSize * 0.8,
-            visible = tracking.initialized and next(topicPoss)
-                and config.data.journal.maxTopicEntriesInJournal > 0 and true or false,
+            visible = next(topicPoss) and config.data.journal.maxTopicEntriesInJournal > 0 and true or false,
             anchor = util.vector2(0.5, 0.5),
             parentScrollBoxUserData = self:getScrollBox().userData,
             focusLoss = function (layout)

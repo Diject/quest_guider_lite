@@ -85,7 +85,7 @@ this.default = {
         },
         questLog = {
             dialogueInfo = true, -- settingless
-            objectInfo = false, -- settingless
+            objectInfo = true, -- settingless
         },
         notes = {
             visible = true, -- settingless
