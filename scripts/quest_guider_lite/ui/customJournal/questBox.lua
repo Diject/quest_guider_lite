@@ -114,14 +114,15 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             end
         end)
 
-        if index then
+        if ss and index then
             uiUtils.removeFromContent(self:getButtonFlex().content, index)
         else
+            index = nil
             content:add(interval(self.params.fontSize, 0))
         end
 
         if hasTracked then
-            content:insert(index or (#content + 1), button{
+            content:insert(ss and index or (#content + 1), button{
                 text = l10n("removeTracking"),
                 textSize = math.floor(self.params.fontSize * 0.8),
                 visible = tracking.initialized,
@@ -133,7 +134,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
                 end
             })
         else
-            content:insert(index or (#content + 1), button{
+            content:insert(ss and index or (#content + 1), button{
                 text = l10n("trackObjects"),
                 textSize = math.floor(self.params.fontSize * 0.8),
                 visible = tracking.initialized,
@@ -216,7 +217,8 @@ function questBoxMeta:removeObjectTrackingPosElements(groupLabel)
     local contentLength = #self.content
     for i = contentLength, 1, -1 do
         local elem = self.content[i]
-        if elem and elem.userData and elem.userData.type == trackingElementLib.typeLabel and
+        if elem and elem.userData and
+                (elem.userData.type == trackingElementLib.typeLabel or elem.userData.type == trackingElementLib.typeIntervalLabel) and
                 elem.userData.groupLabel == groupLabel then
             uiUtils.removeFromContent(self.content, i)
         end
@@ -232,7 +234,7 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
     local ss, layIndex = pcall(function ()
         return self.content:indexOf("TR_Objects_Widget")
     end)
-    if layIndex then
+    if ss and layIndex then
         uiUtils.removeFromContent(self.content, layIndex)
     end
 

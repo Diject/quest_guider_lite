@@ -28,6 +28,7 @@ local l10n = core.l10n(commonData.l10nKey)
 local this = {}
 
 this.typeLabel = "Object_Tracking_Layout"
+this.typeIntervalLabel = "Object_Tracking_Interval"
 
 
 ---@class questGuider.ui.addObjectPositionInfo.params
@@ -368,7 +369,14 @@ function this.addObjectPositionInfo(content, params)
                 positionLay,
             }
         }
-        content:add(interval(0, math.floor(params.fontSize / 2)))
+        content:add{
+            props = {
+                size = util.vector2(0, math.floor(params.fontSize / 2))
+            },
+            userData = {
+                type = this.typeIntervalLabel,
+            }
+        }
     end
 end
 
