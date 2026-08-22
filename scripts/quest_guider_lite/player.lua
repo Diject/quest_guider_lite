@@ -558,6 +558,8 @@ end)
 
 
 local function closeTopMenu()
+    if not menuHandler.hasActiveMenus() then return end
+
     local closed = false
 
     ---@type AdvancedWorldMap.Interface
