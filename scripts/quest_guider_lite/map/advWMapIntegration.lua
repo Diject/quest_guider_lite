@@ -928,7 +928,7 @@ function this.markObjectTemp(objId, positions)
             end
 
             ---@diagnostic disable-next-line: undefined-field
-            map.userData.advWMapSearch(cellId, {showUnrevealed = true, searchAllLocations = true})
+            map.userData.advWMapSearch(stringLib.getAfterComma(cellId), {showUnrevealed = true, searchAllLocations = true})
         end
 
         local p = pos.position or pos.exitPos
@@ -947,9 +947,13 @@ function this.markObjectTemp(objId, positions)
                     records = {objId},
                     positions = {{pos = p, id = cellId}},
                     short = true,
+                    priority = 10021,
                 }
             end
 
+            if not map.mapWidget.cellId and not map.mapWidget:isInZoomInMode() then
+                map.mapWidget:setZoom(map.mapWidget:getZoomModeThreshold() * 1.1)
+            end
             map.mapWidget:focusOnWorldPosition(p)
             map.mapWidget:updateMarkers(true)
         end
