@@ -1085,24 +1085,21 @@ function questBoxMeta._fillJournal(self, content, params)
     for diaId, _ in pairs(questData and questData.records or {}) do
 
         local trackedObjects = tracking.getDiaTrackedObjects(diaId)
-        for _, objIds in pairs(trackedObjects or {}) do
-            for _, objId in pairs(objIds) do
+        for objId, objIds in pairs(trackedObjects or {}) do
 
-                local data = tracking.getTrackedObjectData(objId)
-                if data and data.markers then
-                    for _, dt in pairs(data.markers) do
-                        local id = dt.id..tostring(dt.index)
-                        if not self.dialogueInfo[id] then
-                            self.dialogueInfo[id] = {
-                                diaId = dt.id,
-                                index = dt.index,
-                                contentIndex = string.format("id:%d", 1000 + ind), -- use a nonexistent index to filter these entries later
-                            }
-                            ind = ind + 1
-                        end
+            local data = tracking.getTrackedObjectData(objId)
+            if data and data.markers then
+                for _, dt in pairs(data.markers) do
+                    local id = dt.id..tostring(dt.index)
+                    if not self.dialogueInfo[id] then
+                        self.dialogueInfo[id] = {
+                            diaId = dt.id,
+                            index = dt.index,
+                            contentIndex = string.format("id:%d", 1000 + ind), -- use a nonexistent index to filter these entries later
+                        }
+                        ind = ind + 1
                     end
                 end
-
             end
         end
     end
