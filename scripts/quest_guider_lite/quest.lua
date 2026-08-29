@@ -870,7 +870,7 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
         return false
     end
 
-    local useAdvCell = cellAdvLib.isReady()
+    local useAdvCell = cellAdvLib.isReady() and not commonData.isSaveBloatFixed()
     local findExitPosFunc
     local findExitPositionsFunc
     local findNearestDoorFunc
@@ -994,7 +994,7 @@ end
 local function addCellData(cell, id, arr, configData)
     if not cell.id then return end
 
-    local useAdvCell = cellAdvLib.isReady()
+    local useAdvCell = cellAdvLib.isReady() and not commonData.isSaveBloatFixed()
     local findExitPosFunc
     local findExitPositionsFunc
     local findNearestDoorFunc

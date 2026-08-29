@@ -1,4 +1,5 @@
 local util = require('openmw.util')
+local core = require("openmw.core")
 
 local reqTypes = require("scripts.quest_guider_lite.types.requirement")
 
@@ -167,6 +168,11 @@ end
 
 function this.getExCellIdByGrid(gridX, gridY)
     return this.exteriorCellIdFormat:format(gridX, gridY)
+end
+
+
+function this.isSaveBloatFixed()
+    return core.API_REVISION > 130
 end
 
 
