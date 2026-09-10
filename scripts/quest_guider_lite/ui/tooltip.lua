@@ -38,7 +38,7 @@ function this.create(coord, parent, layoutContent)
     if not layoutContent or #layoutContent == 0 then return end
 
     local tooltipLayout = {
-        template = customTemplates.boxSolid,
+        template = customTemplates.boxSolidOpaque,
         layer = "Notification",
         name = "QGL:tooltip",
         props = {

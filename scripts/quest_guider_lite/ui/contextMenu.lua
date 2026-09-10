@@ -45,7 +45,7 @@ function this.create(params)
 
     local layout = {
         layer = commonData.messageLayer,
-        template = templates.boxSolid,
+        template = templates.boxSolidOpaque,
         props = {
             alpha = 1,
             anchor = anchor,

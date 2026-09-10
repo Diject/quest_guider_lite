@@ -1368,22 +1368,18 @@ local function create(params)
                         resource = uiUtils.whiteTexture,
                         color = config.data.ui.backgroundColor,
                         relativeSize = util.vector2(1, 1),
-                        position = util.vector2(4, 0),
+                        alpha = config.data.ui.backgroundAlpha ~= 100 and config.data.ui.backgroundAlpha * 0.01 or nil
                     },
                 },
                 {
                     external = { slot = true },
                     props = {
-                        position = util.vector2(4, 0),
                         relativeSize = util.vector2(1, 1),
                     }
                 }
             },
         },
         type = ui.TYPE.Container,
-        props = {
-            alpha = 0,
-        },
         content = ui.content{
             {
                 type = ui.TYPE.TextEdit,
@@ -1392,7 +1388,7 @@ local function create(params)
                     textColor = config.data.ui.defaultColor,
                     textSize = config.data.ui.fontSize * 0.8,
                     alpha = 0.7,
-                    size = util.vector2(params.size.x - 2, 0),
+                    size = util.vector2(params.size.x + 2, 0),
                     multiline = true,
                     wordWrap = true,
                     textAlignH = ui.ALIGNMENT.Center,
@@ -1406,6 +1402,9 @@ local function create(params)
 
     local bottomTextContainer = {
         template = customTemplates.journalEntryBackgroundContainer,
+        props = {
+            alpha = 0,
+        },
         content = ui.content{
             bottomTextLayout,
         }
@@ -1488,10 +1487,10 @@ local function create(params)
     local function decreaseBottomTextAlpha(time)
         if not meta.menu or not meta.menu.layout then return end
 
-        local alpha = bottomTextLayout.props.alpha
-        bottomTextLayout.props.alpha = math.max(0, alpha - (alpha > 0.98 and 0.0006 / time or 0.02))
+        local alpha = bottomTextContainer.props.alpha
+        bottomTextContainer.props.alpha = math.max(0, alpha - (alpha > 0.98 and 0.0006 / time or 0.02))
 
-        if bottomTextLayout.props.alpha > 0 then
+        if bottomTextContainer.props.alpha > 0 then
             bottomTextTimer = realTimer.newTimer(0.03, decreaseBottomTextAlpha, time)
         else
             mainFlex.content[5] = {}
@@ -1502,10 +1501,10 @@ local function create(params)
     local function increaseBottomTextAlpha(time)
         if not meta.menu or not meta.menu.layout then return end
 
-        local alpha = bottomTextLayout.props.alpha
-        bottomTextLayout.props.alpha = math.min(1, alpha + 0.02)
+        local alpha = bottomTextContainer.props.alpha
+        bottomTextContainer.props.alpha = math.min(1, alpha + 0.02)
 
-        if bottomTextLayout.props.alpha < 1 then
+        if bottomTextContainer.props.alpha < 1 then
             bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
         elseif time then
             decreaseBottomTextAlpha(time)
@@ -1529,7 +1528,7 @@ local function create(params)
 
     local keyInfo = keysModule.getJournalMenuHotkeyInfoStr(params.menuId == commonData.allQuestsMenuId)
     if keyInfo then
-        meta:showInfoMessage(keyInfo, not keysModule.isGamepad and math.min(45, stringLib.length(keyInfo) * 0.25) or nil)
+        meta:showInfoMessage(" "..keyInfo.." ", not keysModule.isGamepad and math.min(45, stringLib.length(keyInfo) * 0.3) or nil)
     end
 
 

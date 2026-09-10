@@ -8,7 +8,8 @@ local config = require("scripts.quest_guider_lite.config")
 local this = {}
 
 this.whiteTexture = ui.texture{ path = "white" }
-
+---@module "scripts.quest_guider_lite.ui.templates"
+this.customTemplates = nil
 
 function this.removeFromContent(content, index)
     if type(index) == "string" then
@@ -89,14 +90,19 @@ end
 
 
 function this.getElementHeight(elem)
+    local bonus = 0
+    if this.customTemplates and elem.template == this.customTemplates.journalEntryBackgroundContainer then
+        bonus = 6
+    end
+
     if elem.userData and elem.userData.height then
-        return math.floor(elem.userData.height)
+        return math.floor(elem.userData.height + bonus)
     elseif elem.props and elem.props.size and elem.props.autoSize ~= true then
-        return math.floor(elem.props.size.y)
+        return math.floor(elem.props.size.y + bonus)
     elseif elem.props and elem.props.textSize and elem.props.autoSize ~= false then
-        return math.floor(elem.props.textSize + (elem.props.textShadow and 1 or 0))
+        return math.floor(elem.props.textSize + (elem.props.textShadow and 1 or 0) + bonus)
     elseif elem.content then
-        return this.getContentHeight(elem.content, elem.props and elem.props.horizontal or false)
+        return this.getContentHeight(elem.content, elem.props and elem.props.horizontal or false) + bonus
     end
 
     return 0

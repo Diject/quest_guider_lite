@@ -103,6 +103,7 @@ this.default = {
         linkColor = commonData.journalLinkColor,
         objectColor = commonData.objectColor,
         scrollArrowSize = 16,
+        backgroundAlpha = 100,
         headerBackgroundAlpha = 70,
         tooltipDelay = 1, -- local
     },
