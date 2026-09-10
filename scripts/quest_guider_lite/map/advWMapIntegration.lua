@@ -153,7 +153,27 @@ function this.init()
     interface = I.AdvancedWorldMap
     ---@type AdvWMap_tracking.Interface
     trackingInt = I.AdvWMap_tracking
-    if not interface or not trackingInt or interface.version < 10 then
+    if not trackingInt then
+        return false
+    end
+
+    this.updateGiversMarker(true)
+
+    if not interface then
+        local dmSize = util.vector2(1, 1) * math.floor(config.data.tracking.advWMapMarkers.size * 0.6)
+        local dmAnchor = util.vector2(0.5, (this.doorMarkerSize * 0.5 + dmSize.y) / dmSize.y + 0.2)
+        this.doorGiversTemplate = trackingInt.addTemplate{
+            path = commonInfo.mapGiverMarkerPath,
+            size = dmSize,
+            layer = "nonInteractive",
+            anchor = dmAnchor,
+            color = config.data.ui.defaultColor,
+            visible = this.giverMarkersVisible and this.storageData.giversVisibility or false,
+        }
+    end
+
+
+    if not interface or interface.version < 10 then
         return false
     end
 
@@ -287,9 +307,6 @@ function this.init()
             }
         end
     end, 8)
-
-
-    this.updateGiversMarker(true)
 
 
     local dmSize = util.vector2(1, 1) * math.floor(config.data.tracking.advWMapMarkers.size * 0.6)
@@ -650,7 +667,7 @@ end
 
 ---@param qNames string[]?
 function this.createDoorGiversMarker(doorRef, qNames)
-    if not initialized then return end
+    if not trackingInt then return end
     local destCell = protectedDoor.destCell(doorRef)
     if not destCell then return end
 
@@ -669,7 +686,7 @@ function this.createDoorGiversMarker(doorRef, qNames)
     end
     if not qNames or #qNames == 0 then return end
 
-    local isDiscovered = not interface.getConfig().legend.onlyDiscovered or interface.isDiscovered(destCellId)
+    local isDiscovered = interface == nil or not interface.getConfig().legend.onlyDiscovered or interface.isDiscovered(destCellId)
 
     local markerId = trackingInt.addMarker{
         template = this.doorGiversTemplate,
@@ -693,7 +710,7 @@ end
 
 
 function this.removeInvalidDoorGiverMarkers()
-    if not initialized then return end
+    if not trackingInt then return end
 
     local validCellIds = {}
     local playerCell = playerRef.cell
@@ -722,7 +739,7 @@ end
 
 
 function this.updateGiversMarker(force)
-    if not force and not initialized then return end
+    if not force and not trackingInt then return end
 
     if this.questGiverMarker then
         trackingInt.removeMarker(this.questGiverMarker)
@@ -798,7 +815,7 @@ end
 
 
 function this.setGiverMarkersVisibility(val)
-    if not initialized then return end
+    if not trackingInt then return end
 
     this.giverMarkersVisible = val
     if this.questGiverTemplate then
@@ -811,7 +828,7 @@ end
 
 
 function this.updateGiverMarkersVisibility()
-    if not initialized then return end
+    if not trackingInt then return end
 
     this.setGiverMarkersVisibility(this.giverMarkersVisible)
 end
