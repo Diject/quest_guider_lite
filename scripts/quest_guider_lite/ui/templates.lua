@@ -366,7 +366,7 @@ this.journalEntryBackgroundContainer = config.data.ui.backgroundAlpha == 100 and
                 color = config.data.ui.defaultColor,
                 relativeSize = util.vector2(1, 0),
                 size = util.vector2(6, 3),
-                alpha = config.data.ui.backgroundAlpha * 0.01,
+                alpha = 0.25,
             },
         },
         {
@@ -380,7 +380,7 @@ this.journalEntryBackgroundContainer = config.data.ui.backgroundAlpha == 100 and
                 position = util.vector2(0, 3),
                 relativeSize = util.vector2(1, 0),
                 size = util.vector2(6, 3),
-                alpha = config.data.ui.backgroundAlpha * 0.01,
+                alpha = 0.25,
             },
         },
         {
@@ -393,7 +393,7 @@ this.journalEntryBackgroundContainer = config.data.ui.backgroundAlpha == 100 and
                 position = util.vector2(0, 3),
                 relativeSize = util.vector2(0, 1),
                 size = util.vector2(3, 0),
-                alpha = config.data.ui.backgroundAlpha * 0.01,
+                alpha = 0.25,
             },
         },
         {
@@ -407,7 +407,7 @@ this.journalEntryBackgroundContainer = config.data.ui.backgroundAlpha == 100 and
                 position = util.vector2(3, 3),
                 relativeSize = util.vector2(0, 1),
                 size = util.vector2(3, 0),
-                alpha = config.data.ui.backgroundAlpha * 0.01,
+                alpha = 0.25,
             },
         },
         {
