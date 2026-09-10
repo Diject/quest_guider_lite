@@ -31,6 +31,9 @@ end
 
 local this = {}
 
+---@type table<string, {[1]: any, [2]: any, [3]: string}> by diaId.."_"..infoId, {info, dia, type}
+this.dialogueInfoCache = {}
+
 
 ---@class questGuider.PlayerJournalTopicEntry
 ---@field id string
@@ -593,6 +596,13 @@ end
 ---@param diaId string
 ---@param infoId string
 function this.getDialogueInfo(diaId, infoId)
+    local hash = diaId.."_"..infoId
+    local cached = this.dialogueInfoCache[hash]
+    if cached then
+        return table.unpack(cached)
+    end
+
+
     local type = "topic"
     local dia = core.dialogue.topic.records[diaId]
     if not dia then
@@ -603,6 +613,7 @@ function this.getDialogueInfo(diaId, infoId)
 
     for _, info in pairs(dia.infos) do
         if info.id == infoId then
+            this.dialogueInfoCache[hash] = {info, dia, type}
             return info, dia, type
         end
     end
@@ -612,12 +623,21 @@ end
 ---@param diaId string
 ---@param index string
 function this.getQuestDialogueInfo(diaId, index)
+    local hash = diaId.."_"..tostring(index)
+    local cached = this.dialogueInfoCache[hash]
+    if cached then
+        return table.unpack(cached)
+    end
+
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
+    local tp = "journal"
+
     for _, info in pairs(dia.infos) do
         if info.questStage == index then
-            return info
+            this.dialogueInfoCache[hash] = {info, dia, tp}
+            return info, dia, tp
         end
     end
 end
