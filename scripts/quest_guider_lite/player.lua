@@ -887,7 +887,7 @@ local lastDialogueId
 return {
     interfaceName = commonData.interfaceName,
     interface = {
-        version = 6,
+        version = 7,
         getConfig = function ()
             return configLib.data
         end,
