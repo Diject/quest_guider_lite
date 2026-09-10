@@ -16,7 +16,7 @@ local this = {}
 this.trackedObjects = {}
 ---@type table<string, questGuider.playerQuest.storageQuestData>
 this.trackedQuestDiaData = {}
----@type table<string, {tm: integer, diaId: string, index: integer, dias: table<string, {actor: any, dia: any, info: any}>}> by quest diaId
+---@type table<string, {tm: integer, diaId: string, index: integer, dias: table<string, {actor: any, dia: any, info: any, isGreeting: boolean}>}> by quest diaId
 this.questDialogueTimestamps = {}
 
 this.eventType = {
@@ -102,7 +102,7 @@ function this.handleJournalEvent(diaId, diaIndex)
     local storageData = this.trackedQuestDiaData[diaId]
     local hasRegisteredData = storageData ~= nil
     storageData = storageData or playerQuests.getQuestStorageData(qName) or playerQuests.initStorageQuestData(qName)
-    if not storageData or storageData.finished then return end
+    if not storageData then return end
 
     local isFirstEntry = #storageData.list == 0
 
@@ -112,7 +112,7 @@ function this.handleJournalEvent(diaId, diaIndex)
             for _, dt in pairs(tmData.dias) do
                 if not this.trackedObjects[dt.dia.id] or not this.trackedObjects[dt.dia.id][storageData] then
                     registerTrackedObject(dt.dia.id, storageData)
-                    this.handleDialogueEvent(dt.actor, dt.dia.id, dt.info.id)
+                    this.handleDialogueEvent(dt.actor, dt.dia.id, dt.info.id, dt.isGreeting == true and 1 or false)
                 end
             end
         end
@@ -159,14 +159,15 @@ function this.handleJournalEvent(diaId, diaIndex)
 end
 
 
-function this.handleDialogueEvent(actor, diaId, infoId)
+---@param isGreeting boolean? true/false - greeting dialogue from DialogueResponse event, 1/false - from handleJournalEvent
+function this.handleDialogueEvent(actor, diaId, infoId, isGreeting)
     local info, dia = playerQuests.getDialogueInfo(diaId, infoId)
     if not info or not dia then return end
 
     local data = this.trackedObjects[diaId]
-    if data then
+    if data and isGreeting ~= true then
         local infoCount = #dia.infos
-        local tp = infoCount < 50 and this.eventType.dialogue or this.eventType.dialogueCommon
+        local tp = infoCount < 50 and isGreeting == false and this.eventType.dialogue or this.eventType.dialogueCommon
 
         local hash = this.getHashVal(tp, diaId, infoId)
 
@@ -193,14 +194,15 @@ function this.handleDialogueEvent(actor, diaId, infoId)
             :: continue::
         end
 
-    else
+    elseif isGreeting ~= 1 then
         for qDiaId, dt in pairs(this.questDialogueTimestamps) do
             if math.abs(dt.tm - realTimer.frameCounter) <= 3 then
                 if info.text then
-                    dt.dias[this.getHashVal(nil, diaId, infoId)] = {actor = actor, info = info, dia = dia}
+                    dt.dias[this.getHashVal(nil, diaId, infoId)] = {actor = actor, info = info, dia = dia, isGreeting = isGreeting}
                 end
             end
         end
+        this.trackedObjects[diaId] = nil
     end
 end
 

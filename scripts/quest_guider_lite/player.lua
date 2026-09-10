@@ -437,8 +437,8 @@ local function toggleMenu(withoutMenuMode)
 end
 
 
-local function handleInventoryItems()
-    playerInventory.snapshot()
+local function handleInventoryItems(preserveDifference)
+    playerInventory.snapshot(preserveDifference)
     questLog.handleInventory()
 end
 
@@ -881,6 +881,8 @@ end, 0.46)
 
 local onQuestUpdateTimerStarted = false
 local dialogueMenuActor = nil
+local lastDialogueTimestamp = 0
+local lastDialogueId
 
 return {
     interfaceName = commonData.interfaceName,
@@ -967,7 +969,9 @@ return {
                 end
             elseif e.newMode == "Dialogue" then
                 dialogueMenuActor = e.arg
-                handleInventoryItems()
+                if not commonData.isDialogueResponseAvailable() then
+                    handleInventoryItems()
+                end
             elseif e.oldMode == "Container" or e.newMode == "Loading" or e.oldMode == "Interface" then
                 handleTracking()
             end
@@ -978,10 +982,15 @@ return {
         end,
 
         DialogueResponse = function(e)
-            if e.type ~= "topic" then return end
+            if e.type ~= "topic" and e.type ~= "greeting" then return end
             dialogueTime.updateDialogue(e.recordId)
-            playerInventory.snapshot()
-            questLog.handleDialogueEvent(e.actor, e.recordId, e.infoId)
+
+            local tm = core.getRealTime()
+            playerInventory.snapshot(lastDialogueId == e.recordId and lastDialogueTimestamp + 1 < tm)
+            lastDialogueTimestamp = tm
+            lastDialogueId = e.recordId
+
+            questLog.handleDialogueEvent(e.actor, e.recordId, e.infoId, e.type == "greeting")
         end,
 
         ["QGL:addMarker"] = function(data)

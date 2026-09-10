@@ -593,12 +593,17 @@ end
 ---@param diaId string
 ---@param infoId string
 function this.getDialogueInfo(diaId, infoId)
-    local dia = core.dialogue.topic.records[diaId] or core.dialogue.greeting.records[diaId]
-    if not dia then return end
+    local type = "topic"
+    local dia = core.dialogue.topic.records[diaId]
+    if not dia then
+        dia = core.dialogue.greeting.records[diaId]
+        if not dia then return end
+        type = "greeting"
+    end
 
     for _, info in pairs(dia.infos) do
         if info.id == infoId then
-            return info, dia
+            return info, dia, type
         end
     end
 end

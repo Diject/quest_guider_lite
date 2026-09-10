@@ -176,4 +176,9 @@ function this.isSaveBloatFixed()
 end
 
 
+function this.isDialogueResponseAvailable()
+    return core.API_REVISION >= 129
+end
+
+
 return this

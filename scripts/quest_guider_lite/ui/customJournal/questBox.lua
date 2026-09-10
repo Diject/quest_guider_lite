@@ -355,7 +355,7 @@ function questBoxMeta._fillJournal(self, content, params)
             if not config.data.journal.questLog.dialogueInfo then return end
             if not qInfo.dId or not qInfo.dInfo then return end
 
-            local diaInfo, dialogue = playerQuests.getDialogueInfo(qInfo.dId, qInfo.dInfo)
+            local diaInfo, dialogue, tp = playerQuests.getDialogueInfo(qInfo.dId, qInfo.dInfo)
             if not dialogue or not diaInfo or not diaInfo.text then return end
 
             local actor, actorObjType
@@ -363,9 +363,11 @@ function questBoxMeta._fillJournal(self, content, params)
                 actor, actorObjType = getObject(qInfo.obj)
             end
             local actorName = actor and actor.name or "???"
-            local text = l10n("dialogueLogPattern", {
+            local text = tp ~= "greeting" and l10n("dialogueLogPattern", {
                 actor = string.format("#%s%s#%s", config.data.ui.objectColor:asHex(), actorName, config.data.ui.defaultColor:asHex()),
                 dialogue = string.format("#%s%s#%s", config.data.ui.defaultAltColor:asHex(), dialogue.name or "???", config.data.ui.defaultColor:asHex())
+            }) or l10n("dialogueLogPatternWithoutDialogue", {
+                actor = string.format("#%s%s#%s", config.data.ui.objectColor:asHex(), actorName, config.data.ui.defaultColor:asHex())
             })
 
             local diaTextsReversed = {}
@@ -402,7 +404,9 @@ function questBoxMeta._fillJournal(self, content, params)
 
             text = text..dialogueText
 
-            logContextMenuDialogues[dialogue.name] = dialogue.id
+            if tp ~= "greeting" then
+                logContextMenuDialogues[dialogue.name] = dialogue.id
+            end
             for diaId, _ in pairs(topicPoss) do
                 local dt = topicData[topicIdByLowerName[diaId or ""]]
                 if dt then
@@ -1529,7 +1533,7 @@ function this.create(params)
                             autoSize = true,
                             horizontal = true,
                             anchor = util.vector2(1, 0),
-                            position = util.vector2(meta.scrollBoxContentSize.x - params.fontSize * 2, smallBtnFontSize + params.fontSize + 8),
+                            position = util.vector2(meta.scrollBoxContentSize.x - config.data.ui.scrollArrowSize - params.fontSize * 0.5, smallBtnFontSize + params.fontSize + 8),
                         },
                         content = ui.content{
                             interval(params.fontSize, 0),
