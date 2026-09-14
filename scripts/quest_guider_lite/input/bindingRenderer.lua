@@ -131,7 +131,7 @@ return{
 
         onKeyRelease = function (key)
             if not recording then return end
-            if key.code == input.KEY.Escape then
+            if key.code == input.KEY.Escape or key.code == input.KEY.Delete or key.code == input.KEY.Backspace then
                 registerBinding()
                 return
             end
