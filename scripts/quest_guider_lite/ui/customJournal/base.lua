@@ -541,7 +541,13 @@ function journalMeta.fillQuestsContent(self)
         local ssqnLayout
         local ssqnWidth = 0
         if (I.SSQN and config.data.journal.ssqnIcons) then
-            local diaId = (dt.list[1] or {}).diaId
+            local diaId = nil
+            for _, d in ipairs(dt.list or {}) do
+                if d.diaId then
+                    diaId = d.diaId
+                    break
+                end
+            end
 
             if diaId then
                 local iconPath = I.SSQN.getQIcon(diaId)
