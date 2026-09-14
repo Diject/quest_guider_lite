@@ -110,6 +110,9 @@ function this.destroyAllMenus()
         this.activeMenus[id] = nil
     end
     tooltip.destroyLast()
+    if this.onMenuModeDeactivated then
+        this.onMenuModeDeactivated()
+    end
     if menuMode.isActive() then
         deactivateMenuMode()
     end
