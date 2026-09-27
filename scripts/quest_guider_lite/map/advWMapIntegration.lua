@@ -87,10 +87,10 @@ local function checkMapElement(cellId, marker, templatesByDHash)
     this.doorMarkers[cellId or ""] = this.doorMarkers[cellId or ""] or {}
     local doorMarkers = this.doorMarkers[cellId or ""]
 
-    for templateId, _ in pairs(templatesByDHash[dHash] or {}) do
+    local function processTemplate(templateId)
         local template = trackingInt.getTemplate(templateId)
 
-        if not template then goto continue end
+        if not template then return end
 
         if template.invalid then
             if doorMarkers[dHash] then
@@ -104,10 +104,10 @@ local function checkMapElement(cellId, marker, templatesByDHash)
                 end
             end
 
-            goto continue
+            return
         end
 
-        if doorMarkers[dHash] and doorMarkers[dHash][templateId] then goto continue end
+        if doorMarkers[dHash] and doorMarkers[dHash][templateId] then return end
 
         local id = trackingInt.addMarker{
             template = templateId,
@@ -120,8 +120,10 @@ local function checkMapElement(cellId, marker, templatesByDHash)
             doorMarkers[dHash] = doorMarkers[dHash] or {}
             doorMarkers[dHash][templateId] = id
         end
+    end
 
-        ::continue::
+    for templateId, _ in pairs(templatesByDHash[dHash] or {}) do
+        processTemplate(templateId)
     end
 end
 

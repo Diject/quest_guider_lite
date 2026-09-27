@@ -340,64 +340,64 @@ function this.addMarker(params)
             end
         end
 
-        if positionData.foundValidPos and data.notFound then goto continue end
+        if not (positionData.foundValidPos and data.notFound) then
 
-        if markEntrances and (data.position or data.exitPos) and not data.id then
-            table.insert(positionalMarkers.positions, {
-                cell = {
-                    isExterior = data.id and false or true,
-                    id = data.id,
-                },
-                position = data.position or data.exitPos,
-            })
-        end
+            if markEntrances and (data.position or data.exitPos) and not data.id then
+                table.insert(positionalMarkers.positions, {
+                    cell = {
+                        isExterior = data.id and false or true,
+                        id = data.id,
+                    },
+                    position = data.position or data.exitPos,
+                })
+            end
 
-        if data.id ~= nil then
+            if data.id ~= nil then
 
-            local cell = data.cellPath and data.cellPath[1] or nil
-            if cell then
+                local cell = data.cellPath and data.cellPath[1] or nil
+                if cell then
 
-                if markEntrances then
-                    local exitPositions = data.entrances
+                    if markEntrances then
+                        local exitPositions = data.entrances
 
-                    if exitPositions then
+                        if exitPositions then
 
-                        for _, posData in pairs(exitPositions) do
-                            ---@type proximityTool.positionData
-                            local pos = {position = posData, cell = {isExterior = true}}
-                            table.insert(doorMarkers.positions, pos)
+                            for _, posData in pairs(exitPositions) do
+                                ---@type proximityTool.positionData
+                                local pos = {position = posData, cell = {isExterior = true}}
+                                table.insert(doorMarkers.positions, pos)
+                            end
+                        end
+                    end
+
+                    if not objectTrackingData.targetCells then
+                        objectTrackingData.targetCells = {}
+                    end
+                    if not objectTrackingData.firstEntranceCells then
+                        objectTrackingData.firstEntranceCells = {}
+                    end
+
+                    objectTrackingData.targetCells[cell.id] = cell.id
+                    tableLib.copy(data.firstEntranceCellIds or {}, objectTrackingData.firstEntranceCells)
+                end
+
+                if data.doorPath and next(data.doorPath) then
+                    local exDrPosDt = data.doorPath[#data.doorPath]
+                    if exDrPosDt then
+                        exitPathsByDestCell[data.id] = exitPathsByDestCell[data.id] or {}
+                        table.insert(exitPathsByDestCell[data.id], {drPath = data.doorPath, depth = #data.doorPath})
+                    end
+
+                    objectTrackingData.pathCells = objectTrackingData.pathCells or {}
+                    for _, pathDt in pairs(data.doorPath) do
+                        if pathDt.cellData.id then
+                            objectTrackingData.pathCells[pathDt.cellData.id] = pathDt.pos
                         end
                     end
                 end
-
-                if not objectTrackingData.targetCells then
-                    objectTrackingData.targetCells = {}
-                end
-                if not objectTrackingData.firstEntranceCells then
-                    objectTrackingData.firstEntranceCells = {}
-                end
-
-                objectTrackingData.targetCells[cell.id] = cell.id
-                tableLib.copy(data.firstEntranceCellIds or {}, objectTrackingData.firstEntranceCells)
             end
 
-            if data.doorPath and next(data.doorPath) then
-                local exDrPosDt = data.doorPath[#data.doorPath]
-                if exDrPosDt then
-                    exitPathsByDestCell[data.id] = exitPathsByDestCell[data.id] or {}
-                    table.insert(exitPathsByDestCell[data.id], {drPath = data.doorPath, depth = #data.doorPath})
-                end
-
-                objectTrackingData.pathCells = objectTrackingData.pathCells or {}
-                for _, pathDt in pairs(data.doorPath) do
-                    if pathDt.cellData.id then
-                        objectTrackingData.pathCells[pathDt.cellData.id] = pathDt.pos
-                    end
-                end
-            end
         end
-
-        ::continue::
     end
 
     local listOfObjects = tableLib.keys(objects)
@@ -474,16 +474,16 @@ function this.addMarker(params)
             exitPathsByDestCell[cellId] = table.sort(posDt, function(a, b) return a.depth < b.depth end)
             for i = 1, math.min(#posDt, config.data.tracking.advWMapMarkers.maxWorldMapMarkersForCell) do
                 local dt = posDt[i]
-                if not dt or dt.depth == 0 then goto continue end
+                if dt and dt.depth ~= 0 then
 
-                local exitDt = dt.drPath[#dt.drPath]
-                table.insert(exitPositions, {pos = exitDt.pos, id = exitDt.cellData.id})
+                    local exitDt = dt.drPath[#dt.drPath]
+                    table.insert(exitPositions, {pos = exitDt.pos, id = exitDt.cellData.id})
 
-                for _, pathDt in pairs(dt.drPath) do
-                    table.insert(pathPositions, {pos = pathDt.pos, id = pathDt.cellData.id})
+                    for _, pathDt in pairs(dt.drPath) do
+                        table.insert(pathPositions, {pos = pathDt.pos, id = pathDt.cellData.id})
+                    end
+
                 end
-
-                ::continue::
             end
         end
 
@@ -555,41 +555,41 @@ function this.addMarker(params)
             end
             positions = tableLib.values(positions)
 
-            if not next(positions) then goto tonext end
+            if next(positions) then
 
-            ---@type AdvWMap_tracking.TemplateData
-            local wTemplate = {
-                path = common.mapMarkerPath,
-                size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.wSize,
-                anchor = util.vector2(0.5, 1),
-                color = color,
-                temp = false,
-                userData = userData,
-                onClick = common.advWMapMarkerCallback,
-                tText = {coloredTrackingObjName, qName, text}
-            }
-
-            local wTemplId = advWMap_tracking.addTemplate(wTemplate)
-
-            if wTemplId then
-                ---@type AdvWMap_tracking.MarkerData
-                local marker = {
-                    template = wTemplId,
-                    positions = positions,
-                    zoomOut = true,
+                ---@type AdvWMap_tracking.TemplateData
+                local wTemplate = {
+                    path = common.mapMarkerPath,
+                    size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.wSize,
+                    anchor = util.vector2(0.5, 1),
+                    color = color,
                     temp = false,
-                    priority = math.max(0, 100 - (positions and #positions or 0)),
+                    userData = userData,
+                    onClick = common.advWMapMarkerCallback,
+                    tText = {coloredTrackingObjName, qName, text}
                 }
 
-                local markerId = advWMap_tracking.addMarker(marker)
+                local wTemplId = advWMap_tracking.addTemplate(wTemplate)
 
-                if markerId then
-                    objectMarkerData.advWMapWorldMarker = wTemplId
-                    advWMapIntegration.setMarkerTemplateVisibility(wTemplId, true)
+                if wTemplId then
+                    ---@type AdvWMap_tracking.MarkerData
+                    local marker = {
+                        template = wTemplId,
+                        positions = positions,
+                        zoomOut = true,
+                        temp = false,
+                        priority = math.max(0, 100 - (positions and #positions or 0)),
+                    }
+
+                    local markerId = advWMap_tracking.addMarker(marker)
+
+                    if markerId then
+                        objectMarkerData.advWMapWorldMarker = wTemplId
+                        advWMapIntegration.setMarkerTemplateVisibility(wTemplId, true)
+                    end
                 end
-            end
 
-            ::tonext::
+            end
         end
 
         if next(pathPositions) then
@@ -688,17 +688,17 @@ function this.setDisableMarkerState(params)
 
     if not params.markerData and not params.objectData then
         for objId, objData in pairs(this.markerByObjectId) do
-            if params.objectId and objId ~= params.objectId then goto continue end
+            if not params.objectId or objId == params.objectId then
 
-            for qId, markerData in pairs(objData.markers) do
-                if params.questId and qId ~= params.questId then goto continue end
+                for qId, markerData in pairs(objData.markers) do
+                    if not params.questId or qId == params.questId then
 
-                markerDataHashTable[markerData.data] = objData
+                        markerDataHashTable[markerData.data] = objData
 
-                ::continue::
+                    end
+                end
+
             end
-
-            ::continue::
         end
     else
         markerDataHashTable[params.markerData.data] = params.objectData
@@ -712,39 +712,40 @@ function this.setDisableMarkerState(params)
         local disabledState
         local oldState = markerData.disabled
 
-        if params.update then
-            disabledState = oldState
-            goto endLabel
-        elseif params.toggle == false then
-            disabledState = markerData.disabled
-        elseif params.toggle == true then
-            disabledState = not markerData.disabled
-        else
-            disabledState = params.value
-        end
-
-        if params.temporary then
-            markerData.disabled = disabledState
-        elseif params.isUserDisabled then
-            markerData.disabled = disabledState or false
-            markerData.userDisabled = markerData.disabled
-
-        elseif markerData.userDisabled ~= nil then
-            local userDisabled = markerData.userDisabled
-            if userDisabled == (disabledState or hidden) then
-                markerData.userDisabled = nil
+        local function initData()
+            if params.update then
+                disabledState = oldState
+                return
+            elseif params.toggle == false then
+                disabledState = markerData.disabled
+            elseif params.toggle == true then
+                disabledState = not markerData.disabled
+            else
+                disabledState = params.value
             end
-            markerData.disabled = userDisabled
 
-        else
-            markerData.disabled = disabledState or hidden
+            if params.temporary then
+                markerData.disabled = disabledState
+            elseif params.isUserDisabled then
+                markerData.disabled = disabledState or false
+                markerData.userDisabled = markerData.disabled
+
+            elseif markerData.userDisabled ~= nil then
+                local userDisabled = markerData.userDisabled
+                if userDisabled == (disabledState or hidden) then
+                    markerData.userDisabled = nil
+                end
+                markerData.disabled = userDisabled
+
+            else
+                markerData.disabled = disabledState or hidden
+            end
+
+            if oldState ~= markerData.disabled then
+                changed = true
+            end
         end
-
-        if oldState ~= markerData.disabled then
-            changed = true
-        end
-
-        ::endLabel::
+        initData()
 
         disabledState = markerData.disabled
         if this.storageData.hideAllMarkers then
@@ -973,44 +974,44 @@ local function removeMarker(params)
     end
 
     for objId, objData in pairs(this.markerByObjectId) do
-        if params.objectId and objId ~= params.objectId then goto continue end
+        if not params.objectId or objId == params.objectId then
 
-        for qId, markerData in pairs(objData.markers) do
-            if params.questId and qId ~= params.questId then goto continue end
+            for qId, markerData in pairs(objData.markers) do
+                if not params.questId or qId == params.questId then
 
-            if markerData.data.advWMapDoorMarker then
-                advWMapIntegration.unregisterTargetCells(markerData.data.advWMapDoorMarker, objData.targetCells or {})
-                advWMapIntegration.unregisterPathCells(markerData.data.advWMapDoorMarker, objData.pathCells or {})
+                    if markerData.data.advWMapDoorMarker then
+                        advWMapIntegration.unregisterTargetCells(markerData.data.advWMapDoorMarker, objData.targetCells or {})
+                        advWMapIntegration.unregisterPathCells(markerData.data.advWMapDoorMarker, objData.pathCells or {})
+                    end
+                    addToRemove(markerData.data)
+                    objData.markers[qId] = nil
+
+                end
             end
-            addToRemove(markerData.data)
-            objData.markers[qId] = nil
 
-            ::continue::
+            if not next(objData.markers) then
+                this.markerByObjectId[objId] = nil
+            end
+
         end
-
-        if not next(objData.markers) then
-            this.markerByObjectId[objId] = nil
-        end
-
-        ::continue::
     end
 
     for qId, qData in pairs(this.trackedObjectsByDiaId) do
-        if params.questId and params.questId ~= qId then goto continue end
+        if not params.questId or params.questId == qId then
 
-        for objId, _ in pairs(qData.objects) do
-            if params.objectId and objId ~= params.objectId then goto continue end
+            for objId, _ in pairs(qData.objects) do
+                if not params.objectId or objId == params.objectId then
 
-            qData.objects[objId] = nil
+                    qData.objects[objId] = nil
 
-            ::continue::
+                end
+            end
+
+            if not next(qData.objects) then
+                this.trackedObjectsByDiaId[qId] = nil
+            end
+
         end
-
-        if not next(qData.objects) then
-            this.trackedObjectsByDiaId[qId] = nil
-        end
-
-        ::continue::
     end
 
     local removed = false
@@ -1284,44 +1285,43 @@ function this.createMarkersForExteriorDoor(ref)
 
     local i = -1
     for objId, data in pairs(this.markerByObjectId) do
-        if not data.firstEntranceCells or not data.firstEntranceCells[cellId] or data.doorMarkersDisabled or
-                not next(data.markers) or this.getDisabledState{objectId = objId} then
-            goto continue
-        end
+        local isContinue = not data.firstEntranceCells or not data.firstEntranceCells[cellId] or data.doorMarkersDisabled or
+            not next(data.markers) or this.getDisabledState{objectId = objId}
 
-        local offset = math.floor(1 + i / 2) * 6
-        if i % 2 == 1 then
-            offset = -offset
-        end
-        i = i + 1
+        if not isContinue then
+            local offset = math.floor(1 + i / 2) * 6
+            if i % 2 == 1 then
+                offset = -offset
+            end
+            i = i + 1
 
-        local scale = 2 * uiUtils.getScaledScreenSize().y / 1080
-        ---@type proximityTool.hudm
-        local hudDoorMarkerParams = {
-            modName = common.modName,
-            version = 6,
-            params = {
-                icon = common.hudDoorMarkPath,
-                scale = scale,
-                raytracing = config.data.tracking.hudMarkers.rayTracing,
-                range = config.data.tracking.hudMarkers.range * 3.28,
-                opacity = config.data.tracking.hudMarkers.opacity * 0.01,
-                screenOffset = util.vector2(offset * scale, 0),
-                boundingBoxCenter = true,
-                offset = util.vector3(0, 0, 25),
-                -- offsetMult = 0.3,
-                bonusSize = 10,
-                color = data.color and data.color or common.colorToArray(config.data.ui.defaultColor),
-            },
-            objects = {ref},
-            shortTerm = true,
-        }
-        local hudMarkerId = proximityTool.addHUDM(hudDoorMarkerParams)
-        if hudMarkerId then
-            exteriorDoorHUDMarkers[hudMarkerId] = hudMarkerId
-        end
+            local scale = 2 * uiUtils.getScaledScreenSize().y / 1080
+            ---@type proximityTool.hudm
+            local hudDoorMarkerParams = {
+                modName = common.modName,
+                version = 6,
+                params = {
+                    icon = common.hudDoorMarkPath,
+                    scale = scale,
+                    raytracing = config.data.tracking.hudMarkers.rayTracing,
+                    range = config.data.tracking.hudMarkers.range * 3.28,
+                    opacity = config.data.tracking.hudMarkers.opacity * 0.01,
+                    screenOffset = util.vector2(offset * scale, 0),
+                    boundingBoxCenter = true,
+                    offset = util.vector3(0, 0, 25),
+                    -- offsetMult = 0.3,
+                    bonusSize = 10,
+                    color = data.color and data.color or common.colorToArray(config.data.ui.defaultColor),
+                },
+                objects = {ref},
+                shortTerm = true,
+            }
+            local hudMarkerId = proximityTool.addHUDM(hudDoorMarkerParams)
+            if hudMarkerId then
+                exteriorDoorHUDMarkers[hudMarkerId] = hudMarkerId
+            end
 
-        ::continue::
+        end
     end
 end
 
@@ -1380,18 +1380,22 @@ function this.isDialogueHasTracked(params)
     if params.index then
         local indexStr = tostring(params.index)
 
-        for objId, _ in pairs(dia.objects) do
+        local function processObj(objId)
             local objData = this.markerByObjectId[objId]
-            if not objData then goto continue end
+            if not objData then return end
 
             local markerData = objData.markers[params.diaId]
-            if not markerData then goto continue end
+            if not markerData then return end
 
             if tostring(markerData.index) == indexStr then
                 return true
             end
+        end
 
-            ::continue::
+        for objId, _ in pairs(dia.objects) do
+            if processObj(objId) then
+                return true
+            end
         end
 
         return false
@@ -1536,22 +1540,24 @@ function this.disableDoorMarkersForObject(objId)
         this.setDisableMarkerState{ objectId = objId, update = true }
     end
 
+    local function processMarkerObj(parentId, id)
+        if id ~= objId then return end
+
+        local parentData = this.markerByObjectId[parentId]
+        if not parentData then return end
+
+        local valChanged = parentData.doorMarkersDisabled ~= true
+        changed = changed or valChanged
+        if valChanged then
+            parentData.doorMarkersDisabled = true
+            this.setDisableMarkerState{ objectId = parentId, update = true }
+        end
+    end
+
     for diaId, mData in pairs(objData.markers or {}) do
         for parentId, oDt in pairs((this.trackedObjectsByDiaId[diaId] or {}).objects or {}) do
             for _, id in pairs(oDt) do
-                if id ~= objId then goto continue end
-
-                local parentData = this.markerByObjectId[parentId]
-                if not parentData then goto continue end
-
-                local valChanged = parentData.doorMarkersDisabled ~= true
-                changed = changed or valChanged
-                if valChanged then
-                    parentData.doorMarkersDisabled = true
-                    this.setDisableMarkerState{ objectId = parentId, update = true }
-                end
-
-                ::continue::
+                processMarkerObj(parentId, id)
             end
         end
     end
@@ -1570,22 +1576,24 @@ function this.enableDoorMarkersForObject(objId)
         this.setDisableMarkerState{ objectId = objId, update = true }
     end
 
+    local function processMarkerObj(parentId, id)
+        if id ~= objId then return end
+
+        local parentData = this.markerByObjectId[parentId]
+        if not parentData then return end
+
+        local valChanged = parentData.doorMarkersDisabled ~= nil
+        changed = changed or valChanged
+        if valChanged then
+            parentData.doorMarkersDisabled = nil
+            this.setDisableMarkerState{ objectId = parentId, update = true }
+        end
+    end
+
     for diaId, mData in pairs(objData.markers or {}) do
         for parentId, oDt in pairs((this.trackedObjectsByDiaId[diaId] or {}).objects or {}) do
             for _, id in pairs(oDt) do
-                if id ~= objId then goto continue end
-
-                local parentData = this.markerByObjectId[parentId]
-                if not parentData then goto continue end
-
-                local valChanged = parentData.doorMarkersDisabled ~= nil
-                changed = changed or valChanged
-                if valChanged then
-                    parentData.doorMarkersDisabled = nil
-                    this.setDisableMarkerState{ objectId = parentId, update = true }
-                end
-
-                ::continue::
+                processMarkerObj(parentId, id)
             end
         end
     end

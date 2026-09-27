@@ -77,16 +77,18 @@ function this.addObjectPositionInfo(content, params)
             addPosInfo(objId, positionData)
         end
     else
+        local function processReqObjPos(objId, posDt)
+            if commonData.forbiddenForTracking[posDt.reqType or ""] then return end
+
+            local positionData = params.objPoss[objId]
+            if not positionData then return end
+
+            addPosInfo(objId, positionData)
+        end
+
         for _, req in pairs(params.reqs or {}) do
             for objId, posDt in pairs(req.positionData or {}) do
-                if commonData.forbiddenForTracking[posDt.reqType or ""] then goto continue end
-
-                local positionData = params.objPoss[objId]
-                if not positionData then goto continue end
-
-                addPosInfo(objId, positionData)
-
-                ::continue::
+                processReqObjPos(objId, posDt)
             end
         end
     end

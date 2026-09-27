@@ -91,8 +91,7 @@ function this.create(params)
 
     local height = 4
 
-    for _, data in ipairs(params.elements) do
-
+    local function processElementData(data)
         if data.type == 0 then
             layout.content[1].content:add{
                 type = ui.TYPE.Image,
@@ -104,7 +103,7 @@ function this.create(params)
                     size = util.vector2(50, 2),
                 },
             }
-            goto continue
+            return
         end
 
         local template = {
@@ -203,8 +202,10 @@ function this.create(params)
 
         layout.content[1].content:add(element)
         height = height + 8
+    end
 
-        ::continue::
+    for _, data in ipairs(params.elements) do
+        processElementData(data)
     end
 
     height = height + uiUtils.getContentHeight(layout.content[1].content)

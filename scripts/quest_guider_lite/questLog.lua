@@ -60,32 +60,32 @@ function this.init()
     if not storageData then return end
 
     for qName, qStorageData in pairs(storageData.questData) do
-        if qStorageData.finished then goto continue end
+        if not qStorageData.finished then
 
-        for _, rec in pairs(qStorageData.list) do
-            if not rec.type or forbiddenForTracking[rec.type] then goto continue end
+            for _, rec in pairs(qStorageData.list) do
+                if rec.type and not forbiddenForTracking[rec.type] then
 
-            if rec.dId then
-                registerTrackedObject(rec.dId, qStorageData)
-            end
+                    if rec.dId then
+                        registerTrackedObject(rec.dId, qStorageData)
+                    end
 
-            if rec.obj then
-                registerTrackedObject(rec.obj, qStorageData)
-            end
-            ::continue::
-        end
-
-        local qData = playerQuests.getQuestDataByName(qName)
-        if qData then
-            for diaId, rec in pairs(qData.records) do
-                this.trackedQuestDiaData[diaId] = qStorageData
-                for objId, _ in pairs(questBase.getQuestDiaVarValues(diaId, function (d) return d.type ~= 3 end) or {}) do
-                    registerTrackedObject(objId, qStorageData)
+                    if rec.obj then
+                        registerTrackedObject(rec.obj, qStorageData)
+                    end
                 end
             end
-        end
 
-        ::continue::
+            local qData = playerQuests.getQuestDataByName(qName)
+            if qData then
+                for diaId, rec in pairs(qData.records) do
+                    this.trackedQuestDiaData[diaId] = qStorageData
+                    for objId, _ in pairs(questBase.getQuestDiaVarValues(diaId, function (d) return d.type ~= 3 end) or {}) do
+                        registerTrackedObject(objId, qStorageData)
+                    end
+                end
+            end
+
+        end
     end
 end
 
@@ -173,25 +173,25 @@ function this.handleDialogueEvent(actor, diaId, infoId, isGreeting)
 
         for storageData, _ in pairs(data) do
             if not storageData.logHashes then storageData.logHashes = {} end
-            if storageData.logHashes[hash] then goto continue end
+            if not storageData.logHashes[hash] then
 
-            local dt = {
-                type = tp,
-                globalTime = timeLib.getGlobalTimestamp(),
-                cellData = cellData.getCellData(playerRef.cell),
-                dId = diaId,
-                dInfo = infoId,
-                obj = actor.recordId,
-                text = tags.isRefRequired(info.text) and tags.replaceInText(info.text, actor) or nil
-            }
-            table.insert(storageData.list, dt)
-            storageData.logHashes[hash] = #storageData.list
+                local dt = {
+                    type = tp,
+                    globalTime = timeLib.getGlobalTimestamp(),
+                    cellData = cellData.getCellData(playerRef.cell),
+                    dId = diaId,
+                    dInfo = infoId,
+                    obj = actor.recordId,
+                    text = tags.isRefRequired(info.text) and tags.replaceInText(info.text, actor) or nil
+                }
+                table.insert(storageData.list, dt)
+                storageData.logHashes[hash] = #storageData.list
 
-            registerTrackedObject(actor.recordId, storageData)
+                registerTrackedObject(actor.recordId, storageData)
 
-            this.handleDialogueInventory(storageData, infoId)
+                this.handleDialogueInventory(storageData, infoId)
 
-            :: continue::
+            end
         end
 
     elseif isGreeting ~= 1 then
@@ -241,8 +241,6 @@ function this.handleDiedEvent(objId)
         }
 
         insertToData(storageData, objId, hash, dt)
-
-        :: continue::
     end
 end
 
@@ -253,32 +251,32 @@ function this.handleDialogueInventory(storageData, infoId)
 
         if not storageData.logHashes then storageData.logHashes = {} end
         local hash = this.getHashVal(dtType, itemId, infoId)
-        if storageData.logHashes[hash] then goto continue end
+        if not storageData.logHashes[hash] then
 
-        local protectedHash = this.getHashVal(this.eventType.protectedItem, itemId)
-        storageData.logHashes[protectedHash] = this.eventType.protectedItem
+            local protectedHash = this.getHashVal(this.eventType.protectedItem, itemId)
+            storageData.logHashes[protectedHash] = this.eventType.protectedItem
 
-        local dt = {
-            type = dtType,
-            globalTime = timeLib.getGlobalTimestamp(),
-            obj = itemId,
-            userData = math.abs(count)
-        }
+            local dt = {
+                type = dtType,
+                globalTime = timeLib.getGlobalTimestamp(),
+                obj = itemId,
+                userData = math.abs(count)
+            }
 
-        table.insert(storageData.list, dt)
-        storageData.logHashes[hash] = #storageData.list
+            table.insert(storageData.list, dt)
+            storageData.logHashes[hash] = #storageData.list
 
-        ::continue::
+        end
     end
 end
 
 
 function this.handleInventory(useCurrentInventory)
-    for itemId, count in pairs(useCurrentInventory and playerInventory.items or playerInventory.difference) do
-        if count <= 0 then goto continue end
+    local function processItem(itemId, count)
+        if count <= 0 then return end
 
         local data = this.trackedObjects[itemId]
-        if not data then goto continue end
+        if not data then return end
 
         local dtType = this.eventType.item
 
@@ -289,21 +287,23 @@ function this.handleInventory(useCurrentInventory)
             if not storageData.logHashes then storageData.logHashes = {} end
 
             local isProtected = storageData.logHashes[protectedHash] ~= nil
-            if isProtected then goto continue end
+            if not isProtected then
 
-            local dt = {
-                type = dtType,
-                globalTime = timeLib.getGlobalTimestamp(),
-                obj = itemId,
-                userData = 1
-            }
+                local dt = {
+                    type = dtType,
+                    globalTime = timeLib.getGlobalTimestamp(),
+                    obj = itemId,
+                    userData = 1
+                }
 
-            insertToData(storageData, itemId, hash, dt)
+                insertToData(storageData, itemId, hash, dt)
 
-            ::continue::
+            end
         end
+    end
 
-        ::continue::
+    for itemId, count in pairs(useCurrentInventory and playerInventory.items or playerInventory.difference) do
+        processItem(itemId, count)
     end
 end
 

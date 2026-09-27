@@ -270,16 +270,16 @@ function this.new(params)
 
     local function onMouseWheelCallback(content, value)
         for _, dt in pairs(content) do
-            if not type(dt) == "table" then goto continue end
-            if dt.userData and dt.userData.onMouseWheel then
-                dt.userData.onMouseWheel(value)
-            end
+            if type(dt) == "table" then
+                if dt.userData and dt.userData.onMouseWheel then
+                    dt.userData.onMouseWheel(value)
+                end
 
-            if dt.content then
-                onMouseWheelCallback(dt.content, value)
-            end
+                if dt.content then
+                    onMouseWheelCallback(dt.content, value)
+                end
 
-            ::continue::
+            end
         end
     end
 

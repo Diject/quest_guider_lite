@@ -256,29 +256,31 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
     ---@param requirement questDataGenerator.requirementData
     ---@param reqBlockForHandling questDataGenerator.requirementBlock?
     local function processRequirement(requirement, additionalPriority, skipNested, reqBlockForHandling)
-        if disallowedRequirementTypes[requirement.type] then goto continue end
+        if disallowedRequirementTypes[requirement.type] then return end
 
         if requirement.type == myTypes.requirementType.Journal and requirement.variable == questId then
-            goto continue
+            return
         elseif requirement.type == myTypes.requirementType.CustomScript and requirement.script then
             local scrData = dataHandler.questObjects[requirement.script]
             if scrData and scrData.links then
-                for _, dt in pairs(scrData.links) do
-                    if dt[2] == nil then goto continue end
+                local function processLink(dt)
+                    if dt[2] == nil then return end
 
                     local objDt = this.getObjectData(dt[1])
-                    if not objDt or objDt.type > 2 then goto continue end
+                    if not objDt or objDt.type > 2 then return end
 
                     processRequirement({type = "SCR2", operator = 48, variable = dt[1], script = requirement.script}, (additionalPriority or 0) - 10000)
+                end
 
-                    ::continue::
+                for _, dt in pairs(scrData.links) do
+                    processLink(dt)
                 end
                 return
             end
         end
 
         local recHash = myTypes.getRequirementHash(requirement)
-        if processedReqs[recHash] then goto continue end
+        if processedReqs[recHash] then return end
         processedReqs[recHash] = true
 
         ---@type questGuider.quest.getDescriptionDataFromBlock.returnArr
@@ -314,32 +316,33 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
                         local id = 1
                         for _, giverId in pairs(qDt.givers) do
                             local giverDt = dataHandler.questObjects[giverId]
-                            if not giverDt or (giverDt.type > 2 and giverDt.type ~= 4) then goto continue end
+                            local isContinue = not giverDt or (giverDt.type > 2 and giverDt.type ~= 4)
 
-                            reqOut.reqDataForHandlingArr = reqOut.reqDataForHandlingArr or {}
-                            reqOut.reqDataForHandlingArr[id] = reqOut.reqDataForHandlingArr[id] or {}
-                            if giverDt.type <= 2 then
-                                local objData = dataHandler.getObjectData(requirement.object)
-                                if objData and (objData.total or 0) < 2 then
-                                    table.insert(reqOut.reqDataForHandlingArr[id], {
-                                        type = myTypes.requirementType.Dead,
-                                        operator = myTypes.operator.value.Equal,
-                                        value = 0,
-                                        object = giverId,
-                                    })
+                            if not isContinue then
+                                reqOut.reqDataForHandlingArr = reqOut.reqDataForHandlingArr or {}
+                                reqOut.reqDataForHandlingArr[id] = reqOut.reqDataForHandlingArr[id] or {}
+                                if giverDt.type <= 2 then
+                                    local objData = dataHandler.getObjectData(requirement.object)
+                                    if objData and (objData.total or 0) < 2 then
+                                        table.insert(reqOut.reqDataForHandlingArr[id], {
+                                            type = myTypes.requirementType.Dead,
+                                            operator = myTypes.operator.value.Equal,
+                                            value = 0,
+                                            object = giverId,
+                                        })
+                                    end
                                 end
+                                table.insert(reqOut.reqDataForHandlingArr[id], {
+                                    type = myTypes.requirementType.Journal,
+                                    operator = myTypes.operator.value.Less,
+                                    value = firstIndex or 0,
+                                    variable = requirement.variable,
+                                })
+                                id = id + 1
+
+                                isAddedNotStartedQuest = true
+
                             end
-                            table.insert(reqOut.reqDataForHandlingArr[id], {
-                                type = myTypes.requirementType.Journal,
-                                operator = myTypes.operator.value.Less,
-                                value = firstIndex or 0,
-                                variable = requirement.variable,
-                            })
-                            id = id + 1
-
-                            isAddedNotStartedQuest = true
-
-                            ::continue::
                         end
                     end
                 end
@@ -394,67 +397,72 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
         end
         if value then
             if type(value) == "string" then
-                local obj = getObject(value)
-                if obj then
-                    environment.valueObj = obj
-                    goto done
-                end
 
-                if cellRequirementTypes[requirement.type] and type(value) == "string" then
-                    local cell = tes.getCell{id = value}
-                    if cell then
-                        environment.valueObj = cell
-                        goto done
+                local function findObject()
+                    local obj = getObject(value)
+                    if obj then
+                        environment.valueObj = obj
+                        return
                     end
-                    local exCell = tes.getCell{name = value}
-                    if exCell then
-                        environment.valueObj = exCell
-                        goto done
+
+                    if cellRequirementTypes[requirement.type] and type(value) == "string" then
+                        local cell = tes.getCell{id = value}
+                        if cell then
+                            environment.valueObj = cell
+                            return
+                        end
+                        local exCell = tes.getCell{name = value}
+                        if exCell then
+                            environment.valueObj = exCell
+                            return
+                        end
+                    end
+                    -- local faction = tes3.getFaction(value)
+                    -- if faction then
+                    --     environment.valueObj = faction
+                    --     return
+                    -- end
+                    local class = types.NPC.classes.record(value)
+                    if class then
+                        environment.valueObj = class
+                        return
                     end
                 end
-                -- local faction = tes3.getFaction(value)
-                -- if faction then
-                --     environment.valueObj = faction
-                --     goto done
-                -- end
-                local class = types.NPC.classes.record(value)
-                if class then
-                    environment.valueObj = class
-                    goto done
-                end
-                ::done::
+                findObject()
             end
             environment.valueStr = tostring(value)
         end
         if variable then
             if type(variable) == "string" then
-                local obj = getObject(variable)
-                if obj then
-                    environment.variableObj = obj
-                    goto done
-                end
+                local function findObject()
+                    local obj = getObject(variable)
+                    if obj then
+                        environment.variableObj = obj
+                        return
+                    end
 
-                if cellRequirementTypes[requirement.type] and type(variable) == "string" then
-                    local cell = tes.getCell{id = variable}
-                    if cell then
-                        environment.variableObj = cell
-                        goto done
+                    if cellRequirementTypes[requirement.type] and type(variable) == "string" then
+                        local cell = tes.getCell{id = variable}
+                        if cell then
+                            environment.variableObj = cell
+                            return
+                        end
+                        local exCell = tes.getCell{name = variable}
+                        if exCell then
+                            environment.variableObj = exCell
+                            return
+                        end
                     end
-                    local exCell = tes.getCell{name = variable}
-                    if exCell then
-                        environment.variableObj = exCell
-                        goto done
+                    -- local faction = tes3.getFaction(variable)
+                    -- if faction then
+                    --     environment.variableObj = faction
+                    --     return
+                    -- end
+                    if dataHandler.quests[variable] then
+                        environment.variableQuestName = dataHandler.quests[variable].name or "???"
                     end
                 end
-                -- local faction = tes3.getFaction(variable)
-                -- if faction then
-                --     environment.variableObj = faction
-                --     goto done
-                -- end
-                if dataHandler.quests[variable] then
-                    environment.variableQuestName = dataHandler.quests[variable].name or "???"
-                end
-                ::done::
+                findObject()
             end
             environment.variableStr = tostring(variable)
         end
@@ -778,17 +786,17 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
             for _, linkDt in pairs(objData.links or {}) do
                 local linkName = linkDt[1]
                 local linkData = dataHandler.questObjects[linkName]
-                if not linkData then goto continue end
+                if linkData then
 
-                if linkData.type == 3 then
-                    if requirement.type == myTypes.requirementType.Item then
-                        processRequirement({type = "DIAO", operator = operator, object = variable, variable = linkName, value = value}, additionalPriority)
-                    else
-                        processRequirement({type = "DIAO", operator = operator, variable = linkName}, additionalPriority)
+                    if linkData.type == 3 then
+                        if requirement.type == myTypes.requirementType.Item then
+                            processRequirement({type = "DIAO", operator = operator, object = variable, variable = linkName, value = value}, additionalPriority)
+                        else
+                            processRequirement({type = "DIAO", operator = operator, variable = linkName}, additionalPriority)
+                        end
                     end
-                end
 
-                ::continue::
+                end
             end
         end
 
@@ -797,8 +805,6 @@ function this.getDescriptionDataFromDataBlock(reqBlock, questId, customConfig)
             addDialogueData(environment.value)
             addDialogueData(environment.variable)
         end
-
-        ::continue::
     end
 
     for _, requirement in pairs(reqBlock) do
@@ -884,17 +890,17 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
         findNearestDoorFunc = cellLib.findNearestDoor
     end
 
-    for i, posDt in ipairs(objData.positions) do
+    local function processPositionData(posDt)
         local x = posDt.pos[1]
         local y = posDt.pos[2]
         local z = posDt.pos[3]
 
         if posDt.name then
-            if not checkRestrictions(posDt.name) then goto continue end
+            if not checkRestrictions(posDt.name) then return end
 
             local cell = tes.getCell{id = posDt.name}
             if cell and cell.id then
-                if forbiddenCells[cell.id] or cell.id:find("t_test") then goto continue end
+                if forbiddenCells[cell.id] or cell.id:find("t_test") then return end
 
                 local notFoundFlag = getNotFoundFlag(cell)
 
@@ -964,7 +970,7 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
         elseif posDt.grid then
             local cell = tes.getCell{x = posDt.grid[1], y = posDt.grid[2]}
             if cell then
-                if not checkRestrictions(cell.name or "123") then goto continue end
+                if not checkRestrictions(cell.name or "123") then return end
 
                 local notFoundFlag = getNotFoundFlag(cell)
 
@@ -983,8 +989,10 @@ local function addPosData(arr, objData, ownerId, configData, object, cellRestric
                 table.insert(arr, {description = descr, id = nil, position = pos, exitPos = pos, isExitEx = true, rawData = newPosData, notFound = notFoundFlag})
             end
         end
+    end
 
-        ::continue::
+    for i, posDt in ipairs(objData.positions) do
+        processPositionData(posDt)
     end
 
     return foundValidPos
@@ -1077,17 +1085,17 @@ local function fillLinkPositionData(posArr, objectData, configData, outD)
     local foundDirectLinks
     local foundValidPos = false
 
-    for _, linkData in ipairs(objectData.links or {}) do
+    local function processLinkData(linkData)
         local objId = linkData[1]
         local objChance = linkData[2]
 
         local objDt = this.getObjectData(objId)
-        if not objDt then goto continue end
+        if not objDt then return end
 
         if objDt.type <= 2 then
             if (objChance or 0) >= configData.tracking.minChance * 0.01 then
                 local obj = tes.getObject(objId)
-                if not obj then goto continue end
+                if not obj then return end
 
                 local hasValidPos = addPosData(posArr, objDt, objId, configData, obj)
                 foundValidPos = foundValidPos or hasValidPos
@@ -1098,15 +1106,16 @@ local function fillLinkPositionData(posArr, objectData, configData, outD)
                 end
             end
         elseif objDt.type == 6 then
-            if not objDt.links then goto continue end
-            for _, lDt in pairs(objDt.links) do
-                if (lDt[2] or 0) < configData.tracking.minChance * 0.01 then goto continue end
+            if not objDt.links then return end
+
+            local function processLink(lDt)
+                if (lDt[2] or 0) < configData.tracking.minChance * 0.01 then return end
 
                 local lObjDt = this.getObjectData(lDt[1])
-                if not lObjDt or lObjDt.type > 2 then goto continue end
+                if not lObjDt or lObjDt.type > 2 then return end
 
                 local obj = tes.getObject(lDt[1])
-                if not obj then goto continue end
+                if not obj then return end
 
                 local hasValidPos = addPosData(posArr, lObjDt, lDt[1], configData, obj)
                 foundValidPos = foundValidPos or hasValidPos
@@ -1115,16 +1124,20 @@ local function fillLinkPositionData(posArr, objectData, configData, outD)
                 if outD then
                     outD.inWorld = (outD.inWorld or 0) + (lObjDt.inWorld or 0)
                 end
+            end
 
-                ::continue::
+            for _, lDt in pairs(objDt.links) do
+                processLink(lDt)
             end
         end
 
         if outD and foundDirectLinks == false then
             outD.disableInventoryTracking = true
         end
+    end
 
-        ::continue::
+    for _, linkData in ipairs(objectData.links or {}) do
+        processLinkData(linkData)
     end
 
     return foundValidPos
@@ -1338,30 +1351,30 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
                 fillDataForScriptByTableName(req.variable, "links")
             end
 
-            for name, value in pairs(req) do
-                if value == "" then goto continue end
+            local function processReq(name, value)
+                if value == "" then return end
 
                 if type(value) ~= "string" then
-                    goto continue
+                    return
                 end
 
                 local obj, tp = tes.getObject(value)
                 if obj then
                     objects[value] = {obj, tp}
-                    goto continue
+                    return
                 end
 
                 if cellRequirementTypes[req.type] and type(value) == "string" then
                     local cell = tes.getCell{id = value}
                     if cell then
                         cells[cell] = value
-                        goto continue
+                        return
                     end
 
                     local exCell = tes.getCell{name = value}
                     if exCell then
                         cells[exCell] = value
-                        goto continue
+                        return
                     end
                 end
 
@@ -1374,27 +1387,27 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
                         for _, linkInfo in pairs((diaData or {}).links or {}) do
                             local linkId = linkInfo[1]
                             local linkData = this.getObjectData(linkId)
-                            if not linkData then goto continue end
+                            if linkData then
 
-                            if linkData.type == 6 then
-                                findDiaData(linkId, depth - 1)
-                            elseif linkData.type <= 2 then
-                                local obj1, tp1 = tes.getObject(linkId)
-                                if obj1 then
-                                    objects[linkId] = {obj1, tp1}
+                                if linkData.type == 6 then
+                                    findDiaData(linkId, depth - 1)
+                                elseif linkData.type <= 2 then
+                                    local obj1, tp1 = tes.getObject(linkId)
+                                    if obj1 then
+                                        objects[linkId] = {obj1, tp1}
+                                    end
                                 end
-                            end
 
-                            ::continue::
+                            end
                         end
                     end
 
                     findDiaData(value, 2)
-
-                    goto continue
                 end
+            end
 
-                ::continue::
+            for name, value in pairs(req) do
+                processReq(name, value)
             end
         end
     end
@@ -1404,25 +1417,25 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
         local object = objectDt[1]
 
         local objectData = this.getObjectData(id)
-        if not objectData then goto continue end
+        if objectData then
 
-        local foundValidPos = addPosData(positions, objectData, nil, configData, object, params and params.cellRestrictions)
+            local foundValidPos = addPosData(positions, objectData, nil, configData, object, params and params.cellRestrictions)
 
-        if not out[id] then
-            out[id] = {reqType = requirement.type, name = object.name or object.id or "", positions = {}, foundValidPos = foundValidPos or false}
+            if not out[id] then
+                out[id] = {reqType = requirement.type, name = object.name or object.id or "", positions = {}, foundValidPos = foundValidPos or false}
+            end
+
+            local outD = out[id]
+            if outD then
+                outD.inWorld = objectData.inWorld or 0
+            end
+
+            foundValidPos = fillLinkPositionData(positions, objectData, configData, outD) or foundValidPos
+
+            outD.positions = positions
+            outD.foundValidPos = foundValidPos
+
         end
-
-        local outD = out[id]
-        if outD then
-            outD.inWorld = objectData.inWorld or 0
-        end
-
-        foundValidPos = fillLinkPositionData(positions, objectData, configData, outD) or foundValidPos
-
-        outD.positions = positions
-        outD.foundValidPos = foundValidPos
-
-        ::continue::
     end
 
     for cell, id in pairs(cells) do
@@ -1473,17 +1486,17 @@ function this.getRequirementPositionData(requirement, customConfig, questId, par
     elseif requirement.type == myTypes.requirementType.CustomScript then
         for id, data in pairs(out) do
             local objDt = objects[id]
-            if not objDt then goto continue end
+            if objDt then
 
-            local obj = objDt[1]
-            local objTp = objDt[2]
+                local obj = objDt[1]
+                local objTp = objDt[2]
 
-            if isItemType(objTp) then
-                data.parentObject = id
-                data.itemCount = 1
+                if isItemType(objTp) then
+                    data.parentObject = id
+                    data.itemCount = 1
+                end
+
             end
-
-            ::continue::
         end
     end
 

@@ -131,15 +131,17 @@ local dataFuncs = {
         elseif req.script then
             local scrData = dataHandler.getObjectData(req.script)
             if scrData and scrData.links then
-                for _, dt in pairs(scrData.links) do
-                    if dt[2] == nil then goto continue end
+                local function processLink(dt)
+                    if dt[2] == nil then return end
 
                     local objDt = this.getObjectData(dt[1])
-                    if not objDt or objDt.type > 2 then goto continue end
+                    if not objDt or objDt.type > 2 then return end
 
                     kilCount = kilCount + killCounter.getKillCount(dt[1])
+                end
 
-                    ::continue::
+                for _, dt in pairs(scrData.links) do
+                    processLink(dt)
                 end
             end
         end
@@ -628,31 +630,39 @@ local dataFuncs = {
 
         local checkedObjects = {}
 
-        for _, link in pairs(diaObjectDt.links) do
+        local function processLink(link)
             local id = link[1]
-            if checkedObjects[id] then goto continue end
+            if checkedObjects[id] then return end
             checkedObjects[id] = true
 
             local linkDt = dataHandler.getObjectData(id)
-            if not linkDt or linkDt.type ~= 6 or not linkDt.links or not next(linkDt.links) then goto continue end
+            if not linkDt or linkDt.type ~= 6 or not linkDt.links or not next(linkDt.links) then return end
 
-            for _, l in pairs(linkDt.links) do
+            local function processLinkIn(l)
                 local lId = l[1]
-                if checkedObjects[lId] then goto continue end
+                if checkedObjects[lId] then return end
                 checkedObjects[lId] = true
 
                 local lDt = dataHandler.getObjectData(lId)
-                if not lDt or lDt.type ~= 3 then goto continue end
+                if not lDt or lDt.type ~= 3 then return end
 
                 local dId = stringLib.convertDialogueName(lId)
                 if playerTopics[dId] or dId:find("greeting", 1, true) then
                     return true
                 end
-
-                ::continue::
             end
 
-            ::continue::
+            for _, l in pairs(linkDt.links) do
+                if processLinkIn(l) then
+                    return true
+                end
+            end
+        end
+
+        for _, link in pairs(diaObjectDt.links) do
+            if processLink(link) then
+                return true
+            end
         end
 
         return false
@@ -719,18 +729,19 @@ function this.checkBlock(block, params, player)
     local ignoredRequirements = {}
     local impossibleToComplete = false
     local res = true
-    for _, req in pairs(block) do
-        if not dataFuncs[req.type] then goto continue end
+
+    local function processReq(req)
+        if not dataFuncs[req.type] then return end
 
         if (params.ignoredTypes and params.ignoredTypes[req.type]) or
                 (params.allowedTypes and not params.allowedTypes[req.type]) then
             table.insert(ignoredRequirements, req)
-            goto continue
+            return
         end
 
         if params.typeTruthTable and params.typeTruthTable[req.type] then
             res = res and params.typeTruthTable[req.type]
-            goto continue
+            return
         end
 
         local ref
@@ -750,9 +761,13 @@ function this.checkBlock(block, params, player)
 
         res = res and r
 
-        if not res then break end
+        if not res then return true end
+    end
 
-        ::continue::
+    for _, req in pairs(block) do
+        if processReq(req) then
+            break
+        end
     end
 
     return res, ignoredRequirements, impossibleToComplete

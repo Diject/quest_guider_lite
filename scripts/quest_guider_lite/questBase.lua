@@ -84,17 +84,17 @@ function this.getNextIndexes(questData, quesId, questIndex, params, player)
     local linkedNext
 
     if params.findInLinked and questData.links then
-        for _, linkedId in pairs(questData.links) do
+        local function processLinked(linkedId)
             local linkData = dataHandler.getQuestData(linkedId)
-            if not linkData then goto continue end
+            if not linkData then return end
 
             local firstIndex = this.getFirstIndex(linkData)
-            if not firstIndex then goto continue end
+            if not firstIndex then return end
             local linkRequirements = linkData[tostring(firstIndex)]
-            if not linkRequirements then goto continue end
+            if not linkRequirements then return end
 
             if params.findCompleted == false and (playerQuests.getCurrentIndex(linkedId, player) or 0) ~= 0 then
-                goto continue
+                return
             end
 
             local valid = false
@@ -112,8 +112,10 @@ function this.getNextIndexes(questData, quesId, questIndex, params, player)
                 linkedNext = linkedNext or {}
                 linkedNext[linkedId] = {index = firstIndex, qData = linkData}
             end
+        end
 
-            ::continue::
+        for _, linkedId in pairs(questData.links) do
+            processLinked(linkedId)
         end
     end
 
@@ -210,21 +212,21 @@ function this.getNextIndexes(questData, quesId, questIndex, params, player)
 
     -- for cases where there are requirements with dialogues that are impossible to obtain
     if dataHandler.info.version >= 8 then
-        for ind, _ in pairs(nextIndexes) do
+        local function processIndex(ind)
             local dt = questData[tostring(ind)]
-            if not dt then goto continue end
+            if not dt then return end
 
             for _, bl in pairs(dt.requirements or {}) do
                 local diaId = myTypes.getActorDialogueIdFromBlock(bl)
-                if not diaId then goto continue end
+                if not diaId then return end
 
                 local diaDt = dataHandler.getObjectData(diaId)
                 if diaDt then
                     if diaDt.links and (#diaDt.links > 1 or not topicTestScripts[diaDt.links[1][1] or ""]) then
-                        goto continue
+                        return
                     end
                 else
-                    goto continue
+                    return
                 end
             end
 
@@ -236,8 +238,10 @@ function this.getNextIndexes(questData, quesId, questIndex, params, player)
             if dt.nextIndex and plIndex < dt.nextIndex and not checkedIndexes[dt.nextIndex] and checkIndex(dt.nextIndex) then
                 nextIndexes[dt.nextIndex] = true
             end
+        end
 
-            ::continue::
+        for ind, _ in pairs(nextIndexes) do
+            processIndex(ind)
         end
     end
 
@@ -354,11 +358,9 @@ function this.getQuestMainDialogueIdsMap(diaId)
 
     for _, link in pairs(questData.links) do
         local linkDt = dataHandler.getQuestData(link)
-        if not linkDt then goto continue end
-
-        addDia(link, linkDt)
-
-        ::continue::
+        if linkDt then
+            addDia(link, linkDt)
+        end
     end
 
     local diaCount = #questDias
@@ -438,32 +440,34 @@ function this.getGiverQuests(ref, player)
 
         isGiver = true
 
-        for _, diaId in pairs(objectData.starts) do
+        local function processDia(diaId)
             local diaIdLower = diaId:lower()
 
-            if not this.getQuestMainDialogueIdsMap(diaIdLower)[diaIdLower] then goto continue end
+            if not this.getQuestMainDialogueIdsMap(diaIdLower)[diaIdLower] then return end
 
-            if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then goto continue end
+            if (playerQuests.getCurrentIndex(diaIdLower, player) or 0) > 0 then return end
 
             local questData = dataHandler.getQuestData(diaIdLower)
-            if not questData or not questData.name then goto continue end
+            if not questData or not questData.name then return end
 
             for _, linkId in pairs(questData.links or {}) do
-                if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then goto continue end
+                if (playerQuests.getCurrentIndex(linkId, player) or 0) > 0 then return end
             end
 
             local firstIndexStr = this.getFirstIndex(questData)
-            if not firstIndexStr then goto continue end
+            if not firstIndexStr then return end
             if not this.checkConditionsForQuest(diaIdLower, firstIndexStr, ref, player, {handleCustomActorReq = true}) then
-                goto continue
+                return
             end
 
             diaIds[diaId] = true
             if byScript then
                 activatedByScript = true
             end
+        end
 
-            ::continue::
+        for _, diaId in pairs(objectData.starts) do
+            processDia(diaId)
         end
     end
 
@@ -575,15 +579,15 @@ function this.getQuestDiaVarValues(diaId, filter)
 
     for ind, stageData in pairs(questData) do
         local indexInt = tonumber(ind)
-        if not indexInt then goto continue end
+        if indexInt then
 
-        for _, reqBlock in pairs(stageData.requirements or {}) do
-            for _, req in pairs(reqBlock) do
-                addFromReq(req)
+            for _, reqBlock in pairs(stageData.requirements or {}) do
+                for _, req in pairs(reqBlock) do
+                    addFromReq(req)
+                end
             end
-        end
 
-        ::continue::
+        end
     end
 
     for val, _ in pairs(values) do

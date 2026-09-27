@@ -260,14 +260,12 @@ function journalMeta.updateNextStageBlocks(self)
 
     for _, scrollContentElement in pairs(scrlBox:getContent()) do
         for _, nextStagesBlock in pairs(scrollContentElement.content or {}) do
-            if not nextStagesBlock.userData or not nextStagesBlock.userData or not nextStagesBlock.userData.meta
-                    or nextStagesBlock.userData.meta.type ~= commonData.elementMetatableTypes.nextStages then
-                goto continue
+            local isContinue = not nextStagesBlock.userData or not nextStagesBlock.userData or not nextStagesBlock.userData.meta
+                    or nextStagesBlock.userData.meta.type ~= commonData.elementMetatableTypes.nextStages
+
+            if not isContinue then
+                nextStagesBlock.userData.meta:updateObjectElements()
             end
-
-            nextStagesBlock.userData.meta:updateObjectElements()
-
-            ::continue::
         end
     end
 end
@@ -294,14 +292,14 @@ local function hasText(questData, text)
     end
 
     for _, dt in pairs(questData.list) do
-        if not dt.diaId then goto continue end
-        if dt.diaId:find(text, 1, true) then return true end
+        if dt.diaId then
+            if dt.diaId:find(text, 1, true) then return true end
 
-        local dateStr = timeLib.getDateByTime(timeLib.getTimestamp(dt))
-        if stringLib.utf8_lower(dateStr):find(text, 1, true) then
-            return true
+            local dateStr = timeLib.getDateByTime(timeLib.getTimestamp(dt))
+            if stringLib.utf8_lower(dateStr):find(text, 1, true) then
+                return true
+            end
         end
-        ::continue::
     end
 
     return false
@@ -400,18 +398,17 @@ function journalMeta.fillQuestsContent(self)
 
         if not hasTracked and self.params.menuId == commonData.journalMenuId and not next(dt.list) then
             questData[i] = nil
-            goto continue
+        else
+
+            val = dt.pinned and val + pinnedAddVal or
+                dt.generated and val - generatedSubVal or
+                (hasTracked and (dt.finished or dt.disabled)) and val - generatedSubVal or
+                dt.finished and val - finishedSubVal or
+                dt.disabled and val - disabledSubVal or val
+
+            compareVals[dt.name] = val
+
         end
-
-        val = dt.pinned and val + pinnedAddVal or
-            dt.generated and val - generatedSubVal or
-            (hasTracked and (dt.finished or dt.disabled)) and val - generatedSubVal or
-            dt.finished and val - finishedSubVal or
-            dt.disabled and val - disabledSubVal or val
-
-        compareVals[dt.name] = val
-
-        ::continue::
     end
 
     local function compareFunc(a, b)
@@ -482,22 +479,22 @@ function journalMeta.fillQuestsContent(self)
     local activeQuestsCount = 0
     local inactiveQuestsCount = 0
 
-    for _, dt in pairs(sortedData) do
+    local function processData(dt)
         if dt.disabled and not showHidden
                 or dt.finished and not showFinished then
-            goto continue
+            return
         end
 
         if dt.started and self.params.menuId == commonData.allQuestsMenuId and not showFinished then
-            goto continue
+            return
         end
 
         if params.isQuestList and (not dt.name or dt.name == "") then
-            goto continue
+            return
         end
 
         if self.textFilter ~= "" and not hasText(dt, self.textFilter) then
-            goto continue
+            return
         end
 
         if self.params.menuId ~= commonData.allQuestsMenuId and
@@ -676,8 +673,10 @@ function journalMeta.fillQuestsContent(self)
         else
             activeQuestsCount = activeQuestsCount + 1
         end
+    end
 
-        ::continue::
+    for _, dt in pairs(sortedData) do
+        processData(dt)
     end
 
     inactiveLabelLayout.content[1].props.text = l10n("inactiveQuestsLabelWithCount", {count = inactiveQuestsCount})
@@ -1540,16 +1539,16 @@ local function create(params)
 
     local function onMouseWheelCallback(content, value)
         for _, dt in pairs(content) do
-            if not type(dt) == "table" then goto continue end
-            if dt.userData and dt.userData.onMouseWheel then
-                dt.userData.onMouseWheel(value)
-            end
+            if type(dt) == "table" then
+                if dt.userData and dt.userData.onMouseWheel then
+                    dt.userData.onMouseWheel(value)
+                end
 
-            if dt.content then
-                onMouseWheelCallback(dt.content, value)
-            end
+                if dt.content then
+                    onMouseWheelCallback(dt.content, value)
+                end
 
-            ::continue::
+            end
         end
     end
 

@@ -269,37 +269,37 @@ local function fillQuestBoxQuestInfo(params)
             end
 
             local success, element = pcall(function() return scrollBoxContent[contentIndex] end)
-            if not success or not element or not element.userData or not element.userData.detailsContent then goto continue end
+            if success and element and element.userData and element.userData.detailsContent then
 
-            local isCurrentIndex = playerQuests.getCurrentIndex(dt.diaId, self) == dt.diaIndex
-            local isValid = element.userData.isQuestList or isCurrentIndex
+                local isCurrentIndex = playerQuests.getCurrentIndex(dt.diaId, self) == dt.diaIndex
+                local isValid = element.userData.isQuestList or isCurrentIndex
 
-            if isValid and dt.next and next(dt.next) then
-                element.userData.detailsContent:add(
-                    nextStagesBlock.create{
-                        data = dt,
-                        size = scrollBox.innnerSize,
-                        fontSize = config.data.ui.fontSize,
-                        hideTrackButtons = false,
-                        isQuestListMode = params.menuId ~= commonData.journalMenuId,
-                        hideLinkedButtons = false,
-                        parentScrollBoxUserData = questBox:getScrollBox().userData,
-                        updateHeightFunc = function ()
-                            scrollBox:calcContentHeight()
-                            scrollBox:updateContent()
-                        end,
-                        updateFunc = function ()
-                            menuHandler.getMenu(params.menuId):update()
-                        end,
-                        thisElementInContent = function ()
-                            return scrollBox:getContent()[contentIndex].content[#element.content]
-                        end
-                    }
-                )
-                element.userData.detailsBtn.props.visible = true
+                if isValid and dt.next and next(dt.next) then
+                    element.userData.detailsContent:add(
+                        nextStagesBlock.create{
+                            data = dt,
+                            size = scrollBox.innnerSize,
+                            fontSize = config.data.ui.fontSize,
+                            hideTrackButtons = false,
+                            isQuestListMode = params.menuId ~= commonData.journalMenuId,
+                            hideLinkedButtons = false,
+                            parentScrollBoxUserData = questBox:getScrollBox().userData,
+                            updateHeightFunc = function ()
+                                scrollBox:calcContentHeight()
+                                scrollBox:updateContent()
+                            end,
+                            updateFunc = function ()
+                                menuHandler.getMenu(params.menuId):update()
+                            end,
+                            thisElementInContent = function ()
+                                return scrollBox:getContent()[contentIndex].content[#element.content]
+                            end
+                        }
+                    )
+                    element.userData.detailsBtn.props.visible = true
+                end
+
             end
-
-            ::continue::
         end
 
         if next(objectPosData) then

@@ -98,35 +98,36 @@ function this.findExitPos(cellId, path, checked, cellPath, depth)
     local bestResult = nil
 
     for _, door in pairs(doors) do
-        if checked[door.dCId] and checked[door.dCId] < depth + 1 then goto continue end
+        local isContinue = checked[door.dCId] and checked[door.dCId] < depth + 1
 
-        local destCellData = this.getEntranceDestCellData(door)
+        if not isContinue then
+            local destCellData = this.getEntranceDestCellData(door)
 
-        table.insert(path, {doorDt = door, cId = cellId, cellData = destCellData, marker = {position = door.dPos}})
-        table.insert(cellPath, destCellData)
+            table.insert(path, {doorDt = door, cId = cellId, cellData = destCellData, marker = {position = door.dPos}})
+            table.insert(cellPath, destCellData)
 
-        local candidate
-        if door.isDEx or door.isDLEx then
-            candidate = {door.dPos, tableLib.copy(path), tableLib.copy(cellPath), door.isDEx, checked, depth}
-        else
-            local out, destPath, cPath, isEx, ch, dp = this.findExitPos(door.dCId, path, checked, cellPath, depth + 1)
-            if out then
-                candidate = {out, destPath, cPath, isEx, checked, dp}
-            end
-        end
-
-        table.remove(path)
-        table.remove(cellPath)
-
-        if candidate then
-            if not bestResult or candidate[6] < bestResult[6] then
-                bestResult = candidate
+            local candidate
+            if door.isDEx or door.isDLEx then
+                candidate = {door.dPos, tableLib.copy(path), tableLib.copy(cellPath), door.isDEx, checked, depth}
+            else
+                local out, destPath, cPath, isEx, ch, dp = this.findExitPos(door.dCId, path, checked, cellPath, depth + 1)
+                if out then
+                    candidate = {out, destPath, cPath, isEx, checked, dp}
+                end
             end
 
-            if bestResult[6] == 1 then break end
-        end
+            table.remove(path)
+            table.remove(cellPath)
 
-        ::continue::
+            if candidate then
+                if not bestResult or candidate[6] < bestResult[6] then
+                    bestResult = candidate
+                end
+
+                if bestResult[6] == 1 then break end
+            end
+
+        end
     end
 
     if bestResult then
@@ -350,26 +351,26 @@ function this.fillDistanceToPlayer(posData, playerRef)
     local worldPlPosData = interiorCellDistance["__world__"]
 
     for _, pos in pairs(posData or {}) do
-        if not pos.position then goto continue end
+        if pos.position then
 
-        if not pos.id and worldPlPosData then
-            pos.distanceToPlayer = utils.distance2D(worldPlPosData.position, pos.position)
-            pos.pathFromPlayer = worldPlPosData.namePath
-        elseif pos.id then
-            local distData = interiorCellDistance[pos.id:lower()]
-            if distData then
-                pos.distanceToPlayer = distData.distance + utils.distance2D(distData.position, pos.position)
-                pos.pathFromPlayer = distData.namePath
-            elseif pos.exitPos and pos.isExitEx then
-                pos.distanceToPlayer = utils.distance2D(plPos, pos.exitPos)
+            if not pos.id and worldPlPosData then
+                pos.distanceToPlayer = utils.distance2D(worldPlPosData.position, pos.position)
+                pos.pathFromPlayer = worldPlPosData.namePath
+            elseif pos.id then
+                local distData = interiorCellDistance[pos.id:lower()]
+                if distData then
+                    pos.distanceToPlayer = distData.distance + utils.distance2D(distData.position, pos.position)
+                    pos.pathFromPlayer = distData.namePath
+                elseif pos.exitPos and pos.isExitEx then
+                    pos.distanceToPlayer = utils.distance2D(plPos, pos.exitPos)
+                else
+                    pos.distanceToPlayer = math.huge
+                end
             else
                 pos.distanceToPlayer = math.huge
             end
-        else
-            pos.distanceToPlayer = math.huge
-        end
 
-        ::continue::
+        end
     end
 end
 

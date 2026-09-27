@@ -138,54 +138,53 @@ end
 local function genMapRegionNames()
     local cellNameData = {}
     for _, cell in pairs(world.cells) do
-        if not cell.isExterior then goto continue end
-        if not cell.name or cell.name == "" then goto continue end
+        if cell.isExterior and cell.name and cell.name ~= "" then
 
-        local nameId = stringLib.getBeforeComma(cell.name)
+            local nameId = stringLib.getBeforeComma(cell.name)
 
-        local cellDt = cellNameData[nameId]
-        if not cellDt then
-            cellDt = {
-                name = stringLib.getBeforeComma(cell.displayName or cell.name), count = 0,
-                minX = math.huge, maxX = -math.huge,
-                minY = math.huge, maxY = -math.huge,
-            }
-            cellNameData[nameId] = cellDt
+            local cellDt = cellNameData[nameId]
+            if not cellDt then
+                cellDt = {
+                    name = stringLib.getBeforeComma(cell.displayName or cell.name), count = 0,
+                    minX = math.huge, maxX = -math.huge,
+                    minY = math.huge, maxY = -math.huge,
+                }
+                cellNameData[nameId] = cellDt
+            end
+
+            cellDt.minX = math.min(cell.gridX, cellDt.minX)
+            cellDt.minY = math.min(cell.gridY, cellDt.minY)
+            cellDt.maxX = math.max(cell.gridX, cellDt.maxX)
+            cellDt.maxY = math.max(cell.gridY, cellDt.maxY)
+            cellDt.count = cellDt.count + 1
+
         end
-
-        cellDt.minX = math.min(cell.gridX, cellDt.minX)
-        cellDt.minY = math.min(cell.gridY, cellDt.minY)
-        cellDt.maxX = math.max(cell.gridX, cellDt.maxX)
-        cellDt.maxY = math.max(cell.gridY, cellDt.maxY)
-        cellDt.count = cellDt.count + 1
-
-        ::continue::
     end
 
     local cellNameLines = {}
     local cellNames = {}
     for _, dt in pairs(cellNameData) do
-        if dt.count < 1 then goto continue end
+        if dt.count >= 1 then
 
-        local posX = (dt.minX + (dt.maxX - dt.minX) / 2) * 8192 + 4096
-        local posY = (dt.minY + (dt.maxY - dt.minY) / 2) * 8192 + 4096
+            local posX = (dt.minX + (dt.maxX - dt.minX) / 2) * 8192 + 4096
+            local posY = (dt.minY + (dt.maxY - dt.minY) / 2) * 8192 + 4096
 
-        local cellDt = {
-            name = dt.name,
-            count = dt.count,
-            posX = posX,
-            posY = posY,
-        }
-        table.insert(cellNames, cellDt)
+            local cellDt = {
+                name = dt.name,
+                count = dt.count,
+                posX = posX,
+                posY = posY,
+            }
+            table.insert(cellNames, cellDt)
 
-        local hash = math.floor(posY / 4096)
-        for i = -1, 1 do
-            local h = hash + i
-            cellNameLines[h] = cellNameLines[h] or {}
-            table.insert(cellNameLines[h], cellDt)
+            local hash = math.floor(posY / 4096)
+            for i = -1, 1 do
+                local h = hash + i
+                cellNameLines[h] = cellNameLines[h] or {}
+                table.insert(cellNameLines[h], cellDt)
+            end
+
         end
-
-        ::continue::
     end
 
 
@@ -255,8 +254,7 @@ local function addMarkersForQuest(params)
 
     local addedHashMap = {}
 
-    for i, reqDataBlock in pairs(indexData.requirements or {}) do
-
+    local function processReqBlock(reqDataBlock)
         if params.checkRequirements and not requirementChecker.checkBlock(reqDataBlock, {
                     threatErrorsAs = true,
                     ignoredTypes = {
@@ -267,82 +265,83 @@ local function addMarkersForQuest(params)
                         [myTypes.requirementType.CustomOnDeath] = true,
                     }
                 }, params.player) then
-            goto continue
+            return
         end
 
         local requirementData = questLib.getDescriptionDataFromDataBlock(reqDataBlock, params.diaId, params.config)
-        if not requirementData then goto continue end
+        if not requirementData then return end
 
         local hasJournalReq = false
         for _, requirement in ipairs(requirementData) do
-            if not requirement.positionData then goto continue end
+            local isContinue = not requirement.positionData
 
-            if not params.objectId and requirement.data.type == myTypes.requirementType.Dead and
+            isContinue = isContinue or not params.objectId and requirement.data.type == myTypes.requirementType.Dead and
                     (requirement.data.operator == myTypes.operator.value.NotEqual and requirement.data.value == 1 or
-                    requirement.data.operator == myTypes.operator.value.Equal and requirement.data.value == 0) then
-                goto continue
-            end
+                    requirement.data.operator == myTypes.operator.value.Equal and requirement.data.value == 0)
 
-            if not params.objectId and requirement.data.object and (requirement.data.type == myTypes.requirementType.CustomActor or
+            isContinue = isContinue or not params.objectId and requirement.data.object and (requirement.data.type == myTypes.requirementType.CustomActor or
                     requirement.data.type == myTypes.requirementType.CustomDisposition) and
-                    killCounter.getKillCount(requirement.data.object) > 0 then
-                goto continue
-            end
+                    killCounter.getKillCount(requirement.data.object) > 0
 
-            local reqHash = {}
-            if not params.objectId then
-                for _, reqBl in ipairs(requirement.reqDataForHandlingArr or {}) do
-                    table.insert(reqHash, myTypes.gerRequirementBlockHash(reqBl))
-                end
-                table.insert(reqHash, myTypes.gerRequirementBlockHash(requirement.reqDataForHandling))
-            end
-            reqHash = table.concat(reqHash, "_")
-
-            for objId, posData in pairs(requirement.positionData or {}) do
-                if not params.objectId and not posData.foundValidPos then
-                    goto continue
-                end
-
-                if params.objectId and params.objectId ~= objId or
-                        not params.objectId and (posData.isActorAliveReq or
-                        params.protectedActors and posData.actorCount and posData.actorCount > 0 and
-                        indexData.finished and params.protectedActors[objId]) then
-                    goto continue
-                end
-
+            if not isContinue then
+                local reqHash = {}
                 if not params.objectId then
-                    local hash = string.format("%s_%s_%s_%s_%s_%s", objId, posData.reqType, posData.name, reqHash,
-                        posData.itemCount, posData.actorCount)
-                    if addedHashMap[hash] then
-                        goto continue
+                    for _, reqBl in ipairs(requirement.reqDataForHandlingArr or {}) do
+                        table.insert(reqHash, myTypes.gerRequirementBlockHash(reqBl))
                     end
-                    addedHashMap[hash] = true
+                    table.insert(reqHash, myTypes.gerRequirementBlockHash(requirement.reqDataForHandling))
+                end
+                reqHash = table.concat(reqHash, "_")
+
+                local function processPosData(objId, posData)
+                    if not params.objectId and not posData.foundValidPos then
+                        return
+                    end
+
+                    if params.objectId and params.objectId ~= objId or
+                            not params.objectId and (posData.isActorAliveReq or
+                            params.protectedActors and posData.actorCount and posData.actorCount > 0 and
+                            indexData.finished and params.protectedActors[objId]) then
+                        return
+                    end
+
+                    if not params.objectId then
+                        local hash = string.format("%s_%s_%s_%s_%s_%s", objId, posData.reqType, posData.name, reqHash,
+                            posData.itemCount, posData.actorCount)
+                        if addedHashMap[hash] then
+                            return
+                        end
+                        addedHashMap[hash] = true
+                    end
+
+                    ---@type questGuider.tracking.addMarker
+                    local eventParams = {
+                        questId = params.diaId,
+                        objectId = objId,
+                        objectName = posData.name,
+                        positionData = posData,
+                        questData = questData,
+                        questStage = params.diaIndex,
+                        reqData = requirement,
+                        priority = params.priority,
+                    }
+
+                    params.player:sendEvent("QGL:addMarker", eventParams)
+
+                    shouldAddObjectMarker = false
+                    -- objects[objId] = posData.name
                 end
 
-                ---@type questGuider.tracking.addMarker
-                local eventParams = {
-                    questId = params.diaId,
-                    objectId = objId,
-                    objectName = posData.name,
-                    positionData = posData,
-                    questData = questData,
-                    questStage = params.diaIndex,
-                    reqData = requirement,
-                    priority = params.priority,
-                }
+                for objId, posData in pairs(requirement.positionData or {}) do
+                    processPosData(objId, posData)
+                end
 
-                params.player:sendEvent("QGL:addMarker", eventParams)
-
-                shouldAddObjectMarker = false
-                -- objects[objId] = posData.name
-
-                ::continue::
             end
-
-            ::continue::
         end
+    end
 
-        ::continue::
+    for i, reqDataBlock in pairs(indexData.requirements or {}) do
+        processReqBlock(reqDataBlock)
     end
 
     -- Since available objects for tracking are formed differently than in this function,
@@ -413,10 +412,10 @@ local function fillQuestBoxQuestInfo(params)
         end
     end
 
-    for _, diaInfo in pairs(params.data) do
+    local function processDiaInfo(diaInfo)
         local diaId = diaInfo.diaId
         local qData = questLib.getQuestData(diaId)
-        if not qData then goto continue end
+        if not qData then return end
 
         local questNextIndexes, linkedIndexData
         if params.useCurrentIndex then
@@ -424,7 +423,7 @@ local function fillQuestBoxQuestInfo(params)
         else
             questNextIndexes, linkedIndexData = questLib.getNextIndexes(qData, diaId, diaInfo.index, {findCompleted = false, findInLinked = true}, player)
         end
-        if not questNextIndexes and not linkedIndexData then goto continue end
+        if not questNextIndexes and not linkedIndexData then return end
 
         local function getData(qData, index, arr)
             local indexStr = tostring(index)
@@ -435,16 +434,16 @@ local function fillQuestBoxQuestInfo(params)
 
             for i, reqDataBlock in pairs(indexData.requirements or {}) do
                 local requirementData, linkedQuests = questLib.getDescriptionDataFromDataBlock(reqDataBlock, diaInfo.diaId, params.config)
-                if not requirementData then goto continue end
+                if requirementData then
 
-                if linkedQuests then
-                    linkedIndexData = linkedIndexData or {}
-                    tableLib.copy(linkedQuests, linkedIndexData)
+                    if linkedQuests then
+                        linkedIndexData = linkedIndexData or {}
+                        tableLib.copy(linkedQuests, linkedIndexData)
+                    end
+
+                    table.insert(arr.requirements, requirementData)
+
                 end
-
-                table.insert(arr.requirements, requirementData)
-
-                ::continue::
             end
         end
 
@@ -484,16 +483,18 @@ local function fillQuestBoxQuestInfo(params)
         end
 
         if linkedIndexData then
-            for dId, dt in pairs(linkedIndexData) do
+            local function processLinkedDt(dId, dt)
                 local currentIndex = playerQuests.getCurrentIndex(dId, player)
-                if currentIndex and currentIndex >= dt.index then goto continue end
+                if currentIndex and currentIndex >= dt.index then return end
 
                 local linkedQuestData = questLib.getQuestData(dId)
-                if not linkedIndexData then goto continue end
+                if not linkedIndexData then return end
 
                 fillRes(linkedQuestData, res.linked, dId, dt.index)
+            end
 
-                ::continue::
+            for dId, dt in pairs(linkedIndexData) do
+                processLinkedDt(dId, dt)
             end
 
             if not next(res.linked) then
@@ -510,8 +511,10 @@ local function fillQuestBoxQuestInfo(params)
         if next(res) then
             out[diaInfo.contentIndex] = res
         end
+    end
 
-        ::continue::
+    for _, diaInfo in pairs(params.data) do
+        processDiaInfo(diaInfo)
     end
 
     ---@type table<string, questGuider.quest.getRequirementPositionData.returnData>
@@ -644,9 +647,8 @@ return {
                 local aliveFinReqActors = {}
                 for _, index in pairs(questNextIndexes) do
                     local stageData = questData[tostring(index)]
-                    if not stageData then goto continue end
+                    if stageData and stageData.finished then
 
-                    if stageData.finished then
                         for _, reqBlock in pairs(stageData.requirements or {}) do
                             for _, req in pairs(reqBlock) do
                                 if req.type == myTypes.requirementType.CustomActor then
@@ -666,9 +668,8 @@ return {
                                 end
                             end
                         end
-                    end
 
-                    ::continue::
+                    end
                 end
 
                 for objId, _ in pairs(deadFinReqActors) do
@@ -686,19 +687,19 @@ return {
             end
 
             if linkedIndexData then
-                for qId, dt in pairs(linkedIndexData) do
+                local function processLinkedDt(qId, dt)
                     if not data.config.tracking.autoTrackOneEntryDialogues then
                         local indexes = questLib.getIndexes(dt.qData) or {}
-                        if #indexes <= 1 then goto continue end
+                        if #indexes <= 1 then return end
                     end
 
                     -- do not auto track dialogues that have "kill" in their id, as those are likely to be fail state entries
                     if string.sub(qId, -4):lower() == "kill" then
-                        goto continue
+                        return
                     end
 
                     local currentIndex = playerQuests.getCurrentIndex(qId, player)
-                    if currentIndex and currentIndex >= dt.index then goto continue end
+                    if currentIndex and currentIndex >= dt.index then return end
 
                     local isValidLinkedToTrack = validLinked and validLinked[qId]
 
@@ -713,8 +714,10 @@ return {
                     tableLib.copy(objs, objects)
 
                     data.shouldUpdate = true
+                end
 
-                    ::continue::
+                for qId, dt in pairs(linkedIndexData) do
+                    processLinkedDt(qId, dt)
                 end
             end
 
@@ -739,21 +742,21 @@ return {
             local positionsByObjectId = {}
             for _, id in pairs(objIds or {}) do
                 local positions = questLib.getPositions(id, {findLinks = true, includeLinks = true, customConfig = data.config})
-                if not positions then goto continue end
+                if positions then
 
-                if cellAdvLib.isReady() then
-                    cellAdvLib.fillDistanceToPlayer(positions, player)
-                else
-                    cellLib.fillDistanceToPlayer(positions, player)
+                    if cellAdvLib.isReady() then
+                        cellAdvLib.fillDistanceToPlayer(positions, player)
+                    else
+                        cellLib.fillDistanceToPlayer(positions, player)
+                    end
+
+                    table.sort(positions, function (a, b)
+                        return (a.distanceToPlayer or math.huge) < (b.distanceToPlayer or math.huge)
+                    end)
+
+                    positionsByObjectId[id] = positions
+
                 end
-
-                table.sort(positions, function (a, b)
-                    return (a.distanceToPlayer or math.huge) < (b.distanceToPlayer or math.huge)
-                end)
-
-                positionsByObjectId[id] = positions
-
-                ::continue::
             end
 
             local out = {positions = positionsByObjectId, menuId = data.menuId, advWMapMode = data.advWMapMode}

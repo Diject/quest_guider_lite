@@ -102,60 +102,60 @@ topicMenuMeta.updateListElements = function (self)
     local listSBMeta = list.userData.scrollBoxMeta
 
     for _, elem in pairs(listSBMeta:getContent()) do
-        if not elem.userData or not elem.userData.trackingData or not elem.userData.objectId then goto continue end
+        if elem.userData and elem.userData.trackingData and elem.userData.objectId then
 
-        ---@type questGuider.tracking.objectRecord
-        local trackingData = elem.userData.trackingData
-        local objId = elem.userData.objectId
-        local qName = elem.userData.qName
+            ---@type questGuider.tracking.objectRecord
+            local trackingData = elem.userData.trackingData
+            local objId = elem.userData.objectId
+            local qName = elem.userData.qName
 
-        local trackedState
-        if qName then
-            local state = false
-            local qData = playerQuests.getQuestDataByName(qName)
-            if qData then
-                for diaId, _ in pairs(qData.records) do
-                    state = state or tracking.isObjectTracked{diaId = diaId, objectId = objId}
-                end
-            end
-
-            trackedState = state
-        else
-            trackedState = tracking.isObjectTracked{objectId = objId}
-        end
-
-        local disabledState = false
-        if trackedState then
+            local trackedState
             if qName then
-                local state = true
+                local state = false
                 local qData = playerQuests.getQuestDataByName(qName)
-
                 if qData then
                     for diaId, _ in pairs(qData.records) do
-                        if tracking.isObjectTracked{objectId = objId, diaId = diaId} then
-                            state = state and tracking.getDisabledState{objectId = objId, questId = diaId}
-                        end
+                        state = state or tracking.isObjectTracked{diaId = diaId, objectId = objId}
                     end
                 end
 
-                disabledState = state
+                trackedState = state
             else
-                disabledState = tracking.getDisabledState{objectId = objId}
+                trackedState = tracking.isObjectTracked{objectId = objId}
             end
-        end
 
-        local textElem = elem
-        if not trackedState or not trackingData then
-            textElem.props.textColor = config.data.ui.defaultColor
-        elseif not disabledState then
-            textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3]) or
-                commonData.defaultColor
-            textElem.props.alpha = 1
-        elseif disabledState then
-            textElem.props.alpha = 0.4
-        end
+            local disabledState = false
+            if trackedState then
+                if qName then
+                    local state = true
+                    local qData = playerQuests.getQuestDataByName(qName)
 
-        ::continue::
+                    if qData then
+                        for diaId, _ in pairs(qData.records) do
+                            if tracking.isObjectTracked{objectId = objId, diaId = diaId} then
+                                state = state and tracking.getDisabledState{objectId = objId, questId = diaId}
+                            end
+                        end
+                    end
+
+                    disabledState = state
+                else
+                    disabledState = tracking.getDisabledState{objectId = objId}
+                end
+            end
+
+            local textElem = elem
+            if not trackedState or not trackingData then
+                textElem.props.textColor = config.data.ui.defaultColor
+            elseif not disabledState then
+                textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3]) or
+                    commonData.defaultColor
+                textElem.props.alpha = 1
+            elseif disabledState then
+                textElem.props.alpha = 0.4
+            end
+
+        end
     end
 end
 
@@ -227,11 +227,11 @@ topicMenuMeta.showMainMap = function (self)
 
     local screenSize = uiUtils.getScaledScreenSize()
 
-    for id, objPoss in pairs(posData) do
-        if tableLib.count(objPoss) > config.data.tracking.maxPos then goto continue end
+    local function processObjPos(id, objPoss)
+        if tableLib.count(objPoss) > config.data.tracking.maxPos then return end
 
         local trackingData = tracking.getTrackedObjectData(id)
-        if not trackingData then goto continue end
+        if not trackingData then return end
 
         local object = getObject(id)
 
@@ -285,8 +285,10 @@ topicMenuMeta.showMainMap = function (self)
             })
             markerLayout.props.alpha = tracking.getDisabledState{objectId = posDt[3]} and 0.2 or 1
         end
+    end
 
-        ::continue::
+    for id, objPoss in pairs(posData) do
+        processObjPos(id, objPoss)
     end
 
     content[1].content:add(mapElement)
@@ -392,167 +394,166 @@ topicMenuMeta.selectTracked = function (self, trackedId)
 
             local diaData = trackingData.markers[diaId]
 
-            if not diaData then goto continue end
+            if diaData then
 
-            local diaIndex = diaData.index
+                local diaIndex = diaData.index
 
-
-            mainElemFlexContent:add({
-                type = ui.TYPE.Flex,
-                props = {
-                    horizontal = true,
-                },
-                content = ui.content{
-                    {
-                        type = ui.TYPE.Text,
-                        props = {
-                            text = uiUtils.colorize(qName, self.textFilter,
-                                "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
-                            autoSize = true,
-                            textSize = params.fontSize * 1.2,
-                            multiline = false,
-                            wordWrap = false,
-                            textColor = config.data.ui.defaultColor,
-                        },
+                mainElemFlexContent:add({
+                    type = ui.TYPE.Flex,
+                    props = {
+                        horizontal = true,
                     },
-                    interval(params.fontSize, 0),
-                    button{
-                        updateFunc = function ()
-                            self:update()
-                        end,
-                        text = l10n("showQuestByTrackingMenuBtn"),
-                        event = function (layout)
-                            playerRef:sendEvent("QGL:journalMenuSelectQuest", {qName = qName})
-                        end
+                    content = ui.content{
+                        {
+                            type = ui.TYPE.Text,
+                            props = {
+                                text = uiUtils.colorize(qName, self.textFilter,
+                                    "#"..config.data.ui.selectionColor:asHex(), "#"..config.data.ui.defaultColor:asHex()),
+                                autoSize = true,
+                                textSize = params.fontSize * 1.2,
+                                multiline = false,
+                                wordWrap = false,
+                                textColor = config.data.ui.defaultColor,
+                            },
+                        },
+                        interval(params.fontSize, 0),
+                        button{
+                            updateFunc = function ()
+                                self:update()
+                            end,
+                            text = l10n("showQuestByTrackingMenuBtn"),
+                            event = function (layout)
+                                playerRef:sendEvent("QGL:journalMenuSelectQuest", {qName = qName})
+                            end
+                        }
+                    }
+                })
+                mainElemFlexContent:add(interval(0, params.fontSize))
+
+                local objId = trackedId
+                local objName = objectName
+
+                local objInfoContent
+                objInfoContent = {
+                    type = ui.TYPE.Widget,
+                    props = {
+                        size = util.vector2(sbSize.x, params.fontSize * 1.5),
+                    },
+                    content = ui.content {
+                        {
+                            type = ui.TYPE.Flex,
+                            props = {
+                                autoSize = true,
+                                horizontal = true,
+                                anchor = util.vector2(0, 0.5),
+                                position = util.vector2(0, params.fontSize * 0.75),
+                                arrange = ui.ALIGNMENT.Center,
+                            },
+                            content = ui.content {
+                                {
+                                    type = ui.TYPE.Text,
+                                    props = {
+                                        text = uiUtils.colorize(objName, self.textFilter,
+                                            "#"..config.data.ui.selectionColor:asHex(), "#"..objectColor:asHex()),
+                                        autoSize = true,
+                                        textSize = (self.params.fontSize or 18) * 1.2,
+                                        multiline = false,
+                                        wordWrap = false,
+                                        anchor = util.vector2(0, 0.5),
+                                        textColor = tracking.getDisabledState{objectId = objId, questId = diaId} and config.data.ui.disabledColor or objectColor,
+                                    },
+                                },
+                                interval((self.params.fontSize or 18) * 2, 0),
+                                button{
+                                    updateFunc = function ()
+                                        self:update()
+                                    end,
+                                    text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and l10n("untrack") or l10n("track"),
+                                    textSize = params.fontSize * 0.8,
+                                    visible = tracking.initialized,
+                                    anchor = util.vector2(0, 0.5),
+                                    parentScrollBoxUserData = self:getTrackingInfoScrollBox().userData,
+                                    event = function (layout)
+                                        local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
+                                        if trackedState then
+                                            tracking.removeMarker{objectId = objId, questId = diaId}
+                                            playerRef:sendEvent("QGL:updateQuestMenu", {})
+                                            tracking.updateMarkers()
+                                        else
+                                            tracking.trackObject{diaId = diaId, objectId = objId, index = diaIndex}
+                                        end
+                                        async:newUnsavableSimulationTimer(0.1, function ()
+                                            tracking.updateTemporaryMarkers()
+                                        end)
+
+                                        ---@type questGuider.ui.buttonMeta
+                                        local btnMeta = layout.userData.meta
+                                        local btn = btnMeta:getButtonTextElement()
+                                        if btn then
+                                            btn.props.text = not trackedState and l10n("untrack") or l10n("track")
+                                            if I.proximityTool then
+                                                I.proximityTool.newRealTimer(0.25, function ()
+                                                    pcall(function ()
+                                                        local showHideBtn = objInfoContent.content[1].content[5]
+                                                        ---@type questGuider.ui.buttonMeta
+                                                        local showHideBtnMeta = showHideBtn.userData.meta
+                                                        local btn = showHideBtnMeta:getButtonTextElement()
+                                                        ---@diagnostic disable-next-line: need-check-nil
+                                                        btn.props.text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide")
+                                                        ---@diagnostic disable-next-line: need-check-nil
+                                                        showHideBtn.props.visible = tracking.isObjectTracked{diaId = diaId, objectId = objId}
+                                                        self:updateListElements()
+                                                        self:update()
+                                                    end)
+                                                end)
+                                            end
+                                        end
+                                        self:updateListElements()
+                                    end
+                                },
+                                interval((self.params.fontSize or 18) * 2, 0),
+                                button{
+                                    updateFunc = function ()
+                                        self:update()
+                                    end,
+                                    text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
+                                    textSize = params.fontSize * 0.8,
+                                    visible = tracking.initialized and tracking.isObjectTracked{diaId = diaId, objectId = objId},
+                                    anchor = util.vector2(0, 0.5),
+                                    parentScrollBoxUserData = self:getTrackingInfoScrollBox().userData,
+                                    event = function (layout)
+                                        local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
+                                        disabledState = not disabledState
+
+                                        tracking.setDisableMarkerState{
+                                            objectId = objId,
+                                            questId = diaId,
+                                            value = disabledState,
+                                            isUserDisabled = true,
+                                        }
+                                        tracking.updateTemporaryMarkers()
+                                        tracking.updateMarkers()
+
+                                        ---@type questGuider.ui.buttonMeta
+                                        local btnMeta = layout.userData.meta
+                                        local btn = btnMeta:getButtonTextElement()
+                                        if btn then
+                                            btn.props.text = disabledState and l10n("show") or l10n("hide")
+                                        end
+
+                                        self:updateListElements()
+                                    end
+                                },
+                            }
+                        },
                     }
                 }
-            })
-            mainElemFlexContent:add(interval(0, params.fontSize))
 
-            local objId = trackedId
-            local objName = objectName
+                mainElemFlexContent:add(objInfoContent)
 
-            local objInfoContent
-            objInfoContent = {
-                type = ui.TYPE.Widget,
-                props = {
-                    size = util.vector2(sbSize.x, params.fontSize * 1.5),
-                },
-                content = ui.content {
-                    {
-                        type = ui.TYPE.Flex,
-                        props = {
-                            autoSize = true,
-                            horizontal = true,
-                            anchor = util.vector2(0, 0.5),
-                            position = util.vector2(0, params.fontSize * 0.75),
-                            arrange = ui.ALIGNMENT.Center,
-                        },
-                        content = ui.content {
-                            {
-                                type = ui.TYPE.Text,
-                                props = {
-                                    text = uiUtils.colorize(objName, self.textFilter,
-                                        "#"..config.data.ui.selectionColor:asHex(), "#"..objectColor:asHex()),
-                                    autoSize = true,
-                                    textSize = (self.params.fontSize or 18) * 1.2,
-                                    multiline = false,
-                                    wordWrap = false,
-                                    anchor = util.vector2(0, 0.5),
-                                    textColor = tracking.getDisabledState{objectId = objId, questId = diaId} and config.data.ui.disabledColor or objectColor,
-                                },
-                            },
-                            interval((self.params.fontSize or 18) * 2, 0),
-                            button{
-                                updateFunc = function ()
-                                    self:update()
-                                end,
-                                text = tracking.isObjectTracked{diaId = diaId, objectId = objId} and l10n("untrack") or l10n("track"),
-                                textSize = params.fontSize * 0.8,
-                                visible = tracking.initialized,
-                                anchor = util.vector2(0, 0.5),
-                                parentScrollBoxUserData = self:getTrackingInfoScrollBox().userData,
-                                event = function (layout)
-                                    local trackedState = tracking.isObjectTracked{diaId = diaId, objectId = objId}
-                                    if trackedState then
-                                        tracking.removeMarker{objectId = objId, questId = diaId}
-                                        playerRef:sendEvent("QGL:updateQuestMenu", {})
-                                        tracking.updateMarkers()
-                                    else
-                                        tracking.trackObject{diaId = diaId, objectId = objId, index = diaIndex}
-                                    end
-                                    async:newUnsavableSimulationTimer(0.1, function ()
-                                        tracking.updateTemporaryMarkers()
-                                    end)
+                mainElemFlexContent:add(interval(0, params.fontSize))
 
-                                    ---@type questGuider.ui.buttonMeta
-                                    local btnMeta = layout.userData.meta
-                                    local btn = btnMeta:getButtonTextElement()
-                                    if btn then
-                                        btn.props.text = not trackedState and l10n("untrack") or l10n("track")
-                                        if I.proximityTool then
-                                            I.proximityTool.newRealTimer(0.25, function ()
-                                                pcall(function ()
-                                                    local showHideBtn = objInfoContent.content[1].content[5]
-                                                    ---@type questGuider.ui.buttonMeta
-                                                    local showHideBtnMeta = showHideBtn.userData.meta
-                                                    local btn = showHideBtnMeta:getButtonTextElement()
-                                                    ---@diagnostic disable-next-line: need-check-nil
-                                                    btn.props.text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide")
-                                                    ---@diagnostic disable-next-line: need-check-nil
-                                                    showHideBtn.props.visible = tracking.isObjectTracked{diaId = diaId, objectId = objId}
-                                                    self:updateListElements()
-                                                    self:update()
-                                                end)
-                                            end)
-                                        end
-                                    end
-                                    self:updateListElements()
-                                end
-                            },
-                            interval((self.params.fontSize or 18) * 2, 0),
-                            button{
-                                updateFunc = function ()
-                                    self:update()
-                                end,
-                                text = tracking.getDisabledState{objectId = objId, questId = diaId} and l10n("show") or l10n("hide"),
-                                textSize = params.fontSize * 0.8,
-                                visible = tracking.initialized and tracking.isObjectTracked{diaId = diaId, objectId = objId},
-                                anchor = util.vector2(0, 0.5),
-                                parentScrollBoxUserData = self:getTrackingInfoScrollBox().userData,
-                                event = function (layout)
-                                    local disabledState = tracking.getDisabledState{objectId = objId, questId = diaId}
-                                    disabledState = not disabledState
-
-                                    tracking.setDisableMarkerState{
-                                        objectId = objId,
-                                        questId = diaId,
-                                        value = disabledState,
-                                        isUserDisabled = true,
-                                    }
-                                    tracking.updateTemporaryMarkers()
-                                    tracking.updateMarkers()
-
-                                    ---@type questGuider.ui.buttonMeta
-                                    local btnMeta = layout.userData.meta
-                                    local btn = btnMeta:getButtonTextElement()
-                                    if btn then
-                                        btn.props.text = disabledState and l10n("show") or l10n("hide")
-                                    end
-
-                                    self:updateListElements()
-                                end
-                            },
-                        }
-                    },
-                }
-            }
-
-            mainElemFlexContent:add(objInfoContent)
-
-            mainElemFlexContent:add(interval(0, params.fontSize))
-
-            ::continue::
+            end
         end
 
         topicSBMeta:calcContentHeight()
@@ -828,19 +829,19 @@ function topicMenuMeta.fillTrackingListContent(self)
                 end
             end
 
-            if not valid then goto continue end
+            if valid then
 
-            table.sort(objects, function (a, b)
-                return (stringLib.utf8_lower(a.name or "") < stringLib.utf8_lower(b.name or ""))
-            end)
+                table.sort(objects, function (a, b)
+                    return (stringLib.utf8_lower(a.name or "") < stringLib.utf8_lower(b.name or ""))
+                end)
 
-            table.insert(recordList, {name = qName, diaIds = tableLib.keys(diaIds)})
-            for _, dt in ipairs(objects) do
-                table.insert(recordList, dt)
+                table.insert(recordList, {name = qName, diaIds = tableLib.keys(diaIds)})
+                for _, dt in ipairs(objects) do
+                    table.insert(recordList, dt)
+                end
+                table.insert(recordList, {name = ""})
+
             end
-            table.insert(recordList, {name = ""})
-
-            ::continue::
         end
     end
 
@@ -899,48 +900,50 @@ function topicMenuMeta.fillTrackingListContent(self)
                         layout.userData.tooltipAttempted = true
                         local ttext
                         if dt.diaIds then
-                            for _, dId in pairs(dt.diaIds) do
+                            local function processDia(dId)
                                 local index = playerQuests.getCurrentIndex(dId)
-                                if not index then goto continue end
+                                if not index then return end
 
                                 local t = playerQuests.getPlayerJournalText(dId, index)
-                                if not t then goto continue end
+                                if not t then return end
 
                                 ttext = string.format("%s%s%s", ttext or "", ttext and "\n\n" or "", t)
+                            end
 
-                                ::continue::
+                            for _, dId in pairs(dt.diaIds) do
+                                processDia(dId)
                             end
 
                         elseif self.positions and dt.id then
                             ---@type questGuider.quest.getRequirementPositionData.positionData[]
                             local objPoss = self.positions[dt.id]
-                            if not objPoss then goto nextStep end
+                            if objPoss then
 
-                            local cnt = 0
-                            local hasMore = false
-                            local strLines = {}
-                            for _, p in pairs(objPoss) do
-                                if config.data.journal.maxPosDescrInTracking <= cnt then
-                                    hasMore = true
-                                    break
+                                local cnt = 0
+                                local hasMore = false
+                                local strLines = {}
+                                for _, p in pairs(objPoss) do
+                                    if config.data.journal.maxPosDescrInTracking <= cnt then
+                                        hasMore = true
+                                        break
+                                    end
+
+                                    local descr = stringLib.getPathToPosition(p)
+
+                                    if descr then
+                                        table.insert(strLines, cnt == 0 and descr or "\n\n"..descr)
+                                        cnt = cnt + 1
+                                    end
+                                end
+                                if hasMore then
+                                    table.insert(strLines, "\n\n"..l10n("ellipsis"))
                                 end
 
-                                local descr = stringLib.getPathToPosition(p)
-
-                                if descr then
-                                    table.insert(strLines, cnt == 0 and descr or "\n\n"..descr)
-                                    cnt = cnt + 1
+                                if next(strLines) then
+                                ttext = table.concat(strLines)
                                 end
-                            end
-                            if hasMore then
-                                table.insert(strLines, "\n\n"..l10n("ellipsis"))
-                            end
 
-                            if next(strLines) then
-                               ttext = table.concat(strLines)
                             end
-
-                            ::nextStep::
                         end
 
                         if ttext then
@@ -1036,8 +1039,6 @@ function topicMenuMeta.fillTrackingListContent(self)
         content:add(contentData)
 
         heightInList = heightInList + params.fontSize
-
-        ::continue::
     end
 
     local height = #content * (params.fontSize or 18)
@@ -1059,14 +1060,14 @@ function topicMenuMeta:removeListed()
     local content = sBoxMeta:getContent()
 
     for _, el in pairs(content) do
-        if not el.userData or not el.userData.diaId then goto continue end
+        if el.userData and el.userData.diaId then
 
-        tracking.removeMarker{
-            objectId = el.userData.objectId,
-            questId = el.userData.diaId
-        }
+            tracking.removeMarker{
+                objectId = el.userData.objectId,
+                questId = el.userData.diaId
+            }
 
-        ::continue::
+        end
     end
 end
 
@@ -1385,16 +1386,16 @@ function this.createContent(params)
                     local content = sBoxMeta:getContent()
 
                     for _, el in pairs(content) do
-                        if not el.userData or not el.userData.diaId then goto continue end
+                        if el.userData and el.userData.diaId then
 
-                        tracking.setDisableMarkerState{
-                            objectId = el.userData.objectId,
-                            questId = el.userData.diaId,
-                            value = isHidden,
-                            isUserDisabled = true,
-                        }
+                            tracking.setDisableMarkerState{
+                                objectId = el.userData.objectId,
+                                questId = el.userData.diaId,
+                                value = isHidden,
+                                isUserDisabled = true,
+                            }
 
-                        ::continue::
+                        end
                     end
                     isHidden = not isHidden
                     meta:fillTrackingListContent()
@@ -1533,16 +1534,16 @@ function this.createMenu(params)
 
     local function onMouseWheelCallback(content, value)
         for _, dt in pairs(content) do
-            if not type(dt) == "table" then goto continue end
-            if dt.userData and dt.userData.onMouseWheel then
-                dt.userData.onMouseWheel(value)
-            end
+            if type(dt) == "table" then
+                if dt.userData and dt.userData.onMouseWheel then
+                    dt.userData.onMouseWheel(value)
+                end
 
-            if dt.content then
-                onMouseWheelCallback(dt.content, value)
-            end
+                if dt.content then
+                    onMouseWheelCallback(dt.content, value)
+                end
 
-            ::continue::
+            end
         end
     end
 

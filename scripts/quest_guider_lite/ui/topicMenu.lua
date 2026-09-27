@@ -241,39 +241,39 @@ topicMenuMeta.selectTopic = function (self, topicId, force)
 
             for i = startIndex, endIndex do
                 local entry = topic.entries[i]
-                if not entry then goto continue end
+                if entry then
 
-                local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
+                    local entryText = stringLib.removeSpecialCharactersFromJournalText(entry.text) or ""
 
-                local topicPoss = config.data.journal.fuzzyTopicMatching and stringLib.findPhrases(entryText, topicList) or
-                    stringLib.findPhrasesExact(entryText, topicList)
+                    local topicPoss = config.data.journal.fuzzyTopicMatching and stringLib.findPhrases(entryText, topicList) or
+                        stringLib.findPhrasesExact(entryText, topicList)
 
-                local linkColor = "#"..config.data.ui.linkColor:asHex()
-                local defaultColor = "#"..config.data.ui.defaultColor:asHex()
-                entryText = uiUtils.colorizeFromPhrasePositions(entryText, topicPoss, linkColor, defaultColor)
+                    local linkColor = "#"..config.data.ui.linkColor:asHex()
+                    local defaultColor = "#"..config.data.ui.defaultColor:asHex()
+                    entryText = uiUtils.colorizeFromPhrasePositions(entryText, topicPoss, linkColor, defaultColor)
 
-                for id, _ in pairs(topicPoss) do
-                    local tId = topicIdByLowerName[id]
-                    if not nestedTopics[id] and tId and topicData[tId] then
-                        nestedTopics[id] = topicData[tId]
+                    for id, _ in pairs(topicPoss) do
+                        local tId = topicIdByLowerName[id]
+                        if not nestedTopics[id] and tId and topicData[tId] then
+                            nestedTopics[id] = topicData[tId]
+                        end
                     end
-                end
 
-                table.insert(actorNames, entry.actor)
-                newText = string.format("%s\t\t____ID_%s____: \"%s\"\n\n",
-                    newText,
-                    tostring(#actorNames),
-                    entryText
-                )
+                    table.insert(actorNames, entry.actor)
+                    newText = string.format("%s\t\t____ID_%s____: \"%s\"\n\n",
+                        newText,
+                        tostring(#actorNames),
+                        entryText
+                    )
 
-                for diaId, _ in pairs(topicPoss) do
-                    local dt = topicIdByLowerName[diaId] and topicData[topicIdByLowerName[diaId]] or nil
-                    if dt then
-                        contextMenuDialogues[dt.name or ""] = dt.id
+                    for diaId, _ in pairs(topicPoss) do
+                        local dt = topicIdByLowerName[diaId] and topicData[topicIdByLowerName[diaId]] or nil
+                        if dt then
+                            contextMenuDialogues[dt.name or ""] = dt.id
+                        end
                     end
-                end
 
-                ::continue::
+                end
             end
 
             endIndex = util.clamp(endIndex - config.data.journal.maxTopicEntriesInTopicMenu, 0, #topic.entries)
@@ -551,80 +551,78 @@ function topicMenuMeta:fillTopicsContent()
     local heightInList = 0
     for _, dt in ipairs(sortedData) do
 
-        if self.textFilter ~= "" and not hasText(dt, self.textFilter) then
-            goto continue
-        end
+        if self.textFilter == "" or hasText(dt, self.textFilter) then
 
-        local topicName = dt.name or "???"
+            local topicName = dt.name or "???"
 
-        local topicListSB = self:getTopicList()
-        ---@type questGuider.ui.scrollBox
-        local topicListSBMeta = topicListSB.userData.scrollBoxMeta
+            local topicListSB = self:getTopicList()
+            ---@type questGuider.ui.scrollBox
+            local topicListSBMeta = topicListSB.userData.scrollBoxMeta
 
-        local textColor = config.data.ui.defaultColor
+            local textColor = config.data.ui.defaultColor
 
-        local contentData
-        contentData = {
-            type = ui.TYPE.Flex,
-            props = {
-                autoSize = true,
-                -- size = util.vector2(sBoxMeta.innnerSize.x, self.params.fontSize),
-                horizontal = true,
-                propagateEvents = false,
-            },
-            name = dt.id,
-            userData = {
-                height = params.fontSize or 18,
-                topicName = topicName,
-                topicData = dt,
-                heightInList = heightInList,
-            },
-            events = {
-                mousePress = async:callback(function(e, layout)
-                    topicListSBMeta:mousePress(e)
-                end),
+            local contentData
+            contentData = {
+                type = ui.TYPE.Flex,
+                props = {
+                    autoSize = true,
+                    -- size = util.vector2(sBoxMeta.innnerSize.x, self.params.fontSize),
+                    horizontal = true,
+                    propagateEvents = false,
+                },
+                name = dt.id,
+                userData = {
+                    height = params.fontSize or 18,
+                    topicName = topicName,
+                    topicData = dt,
+                    heightInList = heightInList,
+                },
+                events = {
+                    mousePress = async:callback(function(e, layout)
+                        topicListSBMeta:mousePress(e)
+                    end),
 
-                focusLoss = async:callback(function(e, layout)
-                    topicListSBMeta:focusLoss(e)
-                end),
+                    focusLoss = async:callback(function(e, layout)
+                        topicListSBMeta:focusLoss(e)
+                    end),
 
-                mouseMove = async:callback(function(e, layout)
-                    topicListSBMeta:mouseMove(e)
-                end),
+                    mouseMove = async:callback(function(e, layout)
+                        topicListSBMeta:mouseMove(e)
+                    end),
 
-                mouseRelease = async:callback(function(e, layout)
-                    if e.button ~= 1 then return end
+                    mouseRelease = async:callback(function(e, layout)
+                        if e.button ~= 1 then return end
 
-                    topicListSBMeta:mouseRelease(e)
+                        topicListSBMeta:mouseRelease(e)
 
-                    if topicListSBMeta.lastMovedDistance < 30 then
-                        self:addToHistory(dt.id)
-                        self:fillTopicsContent()
-                        self:selectTopic(dt.id, true)
-                    end
-                end),
-            },
-            content = ui.content {
-                {
-                    template = templates.textNormal,
-                    type = ui.TYPE.Text,
-                    props = {
-                        text = uiUtils.colorize(topicName, self.textFilter, "#"..config.data.ui.selectionColor:asHex(), "#"..textColor:asHex()),
-                        textSize = params.fontSize or 18,
-                        textColor = textColor,
-                        multiline = false,
-                        wordWrap = false,
-                        textAlignH = ui.ALIGNMENT.Start,
-                    },
+                        if topicListSBMeta.lastMovedDistance < 30 then
+                            self:addToHistory(dt.id)
+                            self:fillTopicsContent()
+                            self:selectTopic(dt.id, true)
+                        end
+                    end),
+                },
+                content = ui.content {
+                    {
+                        template = templates.textNormal,
+                        type = ui.TYPE.Text,
+                        props = {
+                            text = uiUtils.colorize(topicName, self.textFilter, "#"..config.data.ui.selectionColor:asHex(), "#"..textColor:asHex()),
+                            textSize = params.fontSize or 18,
+                            textColor = textColor,
+                            multiline = false,
+                            wordWrap = false,
+                            textAlignH = ui.ALIGNMENT.Start,
+                        },
+                    }
                 }
             }
-        }
 
-        content:add(contentData)
+            content:add(contentData)
 
-        heightInList = heightInList + params.fontSize
+            heightInList = heightInList + params.fontSize
 
-        ::continue::
+        end
     end
 
     local height = #content * (params.fontSize or 18)
@@ -1173,16 +1171,16 @@ local function create(params)
 
     local function onMouseWheelCallback(content, value)
         for _, dt in pairs(content) do
-            if not type(dt) == "table" then goto continue end
-            if dt.userData and dt.userData.onMouseWheel then
-                dt.userData.onMouseWheel(value)
-            end
+            if type(dt) == "table" then
+                if dt.userData and dt.userData.onMouseWheel then
+                    dt.userData.onMouseWheel(value)
+                end
 
-            if dt.content then
-                onMouseWheelCallback(dt.content, value)
-            end
+                if dt.content then
+                    onMouseWheelCallback(dt.content, value)
+                end
 
-            ::continue::
+            end
         end
     end
 

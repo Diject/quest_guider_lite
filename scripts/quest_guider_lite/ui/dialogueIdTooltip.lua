@@ -27,17 +27,17 @@ function this.getContentForTooltip(params)
         local arrayIndexByDiaId = {}
         local count = 1
         for _, info in ipairs(meta.params.playerQuestData.list) do
-            if not info.diaId then goto continue end
+            if info.diaId then
 
-            if not arrayIndexByDiaId[info.diaId] then
-                arrayIndexByDiaId[info.diaId] = count
-                table.insert(list, {diaId = info.diaId, index = info.index})
-                count = count + 1
-            else
-                list[arrayIndexByDiaId[info.diaId]].index = info.index
+                if not arrayIndexByDiaId[info.diaId] then
+                    arrayIndexByDiaId[info.diaId] = count
+                    table.insert(list, {diaId = info.diaId, index = info.index})
+                    count = count + 1
+                else
+                    list[arrayIndexByDiaId[info.diaId]].index = info.index
+                end
+
             end
-
-            ::continue::
         end
     elseif recordInfo then
         table.insert(list, {diaId = recordInfo.diaId, index = recordInfo.index})
