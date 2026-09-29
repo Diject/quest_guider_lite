@@ -887,13 +887,17 @@ local lastDialogueId
 return {
     interfaceName = commonData.interfaceName,
     interface = {
-        version = 7,
+        version = 8,
         getConfig = function ()
             return configLib.data
         end,
         setConfigValue = function (valuePath, value)
             configLib.setValue(valuePath, value)
         end,
+        ---@type fun(recordId: string) : questDataGenerator.objectInfo?
+        getObjectData = playerDataHandler.getObjectData,
+        ---@type fun(questId: string) : questDataGenerator.questData?
+        getQuestData = playerDataHandler.getQuestData,
     },
     engineHandlers = {
         onQuestUpdate = function(questId, stage)
