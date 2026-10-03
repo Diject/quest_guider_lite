@@ -7,7 +7,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local this = {}
 
 this.inputSectionVersion = 1
-this.configVersion = 1
+this.configVersion = 2
 
 ---@class questGuider.config
 this.default = {
@@ -56,6 +56,7 @@ this.default = {
     journal = {
         overrideJournal = false,
         menuKey = "H",
+        menuKeyAlt = "C_LeftShoulder + C_Back",
         objectNames = 3,
         widthProportional = 75, -- %
         heightProportional = 70, -- %

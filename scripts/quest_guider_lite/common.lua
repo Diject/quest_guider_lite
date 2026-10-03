@@ -32,6 +32,7 @@ this.localDataName = "QuestGuider:playerData"
 this.advWMapWidgetId = "QuestGuider:Widget"
 
 this.journalMenuTriggerId = "QGL:journal.menuKey"
+this.journalMenuAltTriggerId = "QGL:journal.menuKeyAlt"
 this.toggleMarkersTriggerId = "QGL:markers.toggleVisibility"
 this.previousQuestTriggerId = "QGL:previousQuest"
 this.nextQuestTriggerId = "QGL:nextQuest"

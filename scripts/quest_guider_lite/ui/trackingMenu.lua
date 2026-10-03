@@ -17,6 +17,7 @@ local tracking = require("scripts.quest_guider_lite.trackingLocal")
 local localStorage = require("scripts.quest_guider_lite.storage.localStorage")
 local playerDataHandler = require("scripts.quest_guider_lite.storage.playerDataHandler")
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
+local realTimer = require("scripts.quest_guider_lite.realTimer")
 
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local timeLib = require("scripts.quest_guider_lite.timeLocal")
@@ -1493,7 +1494,8 @@ function this.createContent(params)
             autoSize = true,
             horizontal = false,
             align = ui.ALIGNMENT.Center,
-            relativePosition = params.relativePosition or util.vector2(0, 0)
+            relativePosition = params.relativePosition or util.vector2(0, 0),
+            alpha = 0,
         },
         userData = {
 
@@ -1529,6 +1531,15 @@ function this.createMenu(params)
     local meta = this.createContent(params)
 
     meta.menu = ui.create(meta.layout)
+
+    local function alphaTimer()
+        meta.layout.props.alpha = math.min(1, meta.layout.props.alpha + core.getRealFrameDuration() * 5)
+        meta:update()
+        if meta.layout.props.alpha ~= 1 then
+            realTimer.newTimer(0, alphaTimer)
+        end
+    end
+    realTimer.newTimer(0, alphaTimer)
 
     meta:fillTrackingListContent()
 

@@ -13,14 +13,13 @@ this.activeMenus = {}
 
 this.onMenuModeActivated = nil
 this.onMenuModeDeactivated = nil
+this.isMenuModeCallbackActive = nil
 
 
 local function deactivateMenuMode()
     menuMode.deactivate()
     controllerScrollTimer.stop()
-    if this.onMenuModeDeactivated then
-        this.onMenuModeDeactivated()
-    end
+    this.activateDeactivateCallback(false)
 end
 
 
@@ -110,9 +109,7 @@ function this.destroyAllMenus()
         this.activeMenus[id] = nil
     end
     tooltip.destroyLast()
-    if this.onMenuModeDeactivated then
-        this.onMenuModeDeactivated()
-    end
+    this.activateDeactivateCallback(false)
     if menuMode.isActive() then
         deactivateMenuMode()
     end
@@ -129,8 +126,21 @@ end
 
 function this.activateMenuMode()
     menuMode.activate()
-    if this.onMenuModeActivated then
-        this.onMenuModeActivated()
+    this.activateDeactivateCallback(true)
+end
+
+
+function this.activateDeactivateCallback(activate)
+    if activate then
+        if this.onMenuModeActivated and not this.isMenuModeCallbackActive then
+            this.onMenuModeActivated()
+        end
+        this.isMenuModeCallbackActive = true
+    else
+        if this.onMenuModeDeactivated and this.isMenuModeCallbackActive then
+            this.onMenuModeDeactivated()
+        end
+        this.isMenuModeCallbackActive = false
     end
 end
 

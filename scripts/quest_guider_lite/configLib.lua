@@ -47,6 +47,8 @@ for _, section in pairs(this.storageSections) do
 
             if key == "journal.menuKey" then
                 I.DijectKeyBindings.registerKey(commonData.journalMenuTriggerId, value)
+            elseif key == "journal.menuKeyAlt" then
+                I.DijectKeyBindings.registerKey(commonData.journalMenuAltTriggerId, value)
             end
         else
             this.loadFromStorage(section)

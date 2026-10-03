@@ -26,6 +26,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local log = require("scripts.quest_guider_lite.utils.log")
 
+local hotkeyMenu = require("scripts.quest_guider_lite.ui.gamepad.hotkeyInfoMenu")
 local button = require("scripts.quest_guider_lite.ui.button")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -700,6 +701,7 @@ local function create(params)
     function meta.close()
         if params.onClose then params.onClose() end
         cacheLib.clear("hasPhrase")
+        hotkeyMenu.destroyTopicsInfo()
         if not meta.menu or not meta.menu.layout then return end
         meta.menu:destroy()
         menuHandler.unregisterMenu(params.menuId)
@@ -1105,6 +1107,7 @@ local function create(params)
             horizontal = false,
             align = ui.ALIGNMENT.Center,
             relativePosition = params.relativePosition,
+            alpha = 0,
         },
         userData = {
 
@@ -1162,11 +1165,23 @@ local function create(params)
 
     meta.menu = ui.create(mainFlex)
 
+    local function alphaTimer()
+        mainFlex.props.alpha = math.min(1, mainFlex.props.alpha + core.getRealFrameDuration() * 5)
+        meta:update()
+        if mainFlex.props.alpha ~= 1 then
+            realTimer.newTimer(0, alphaTimer)
+        end
+    end
+    realTimer.newTimer(0, alphaTimer)
+
     meta:fillTopicsContent()
 
-    local keyInfo = keysModule.getTopicsMenuHotkeyInfoStr()
-    if keyInfo then
-        meta:showInfoMessage(" "..keyInfo.." ", not keysModule.isGamepad and math.min(45, stringLib.length(keyInfo) * 0.4) or nil)
+    -- local keyInfo = keysModule.getTopicsMenuHotkeyInfoStr()
+    -- if keyInfo then
+    --     meta:showInfoMessage(" "..keyInfo.." ", not keysModule.isGamepad and math.min(45, stringLib.length(keyInfo) * 0.4) or nil)
+    -- end
+    if config.data.journal.bottomInfoText.enabled then
+        hotkeyMenu.createTopicsMenuHotkeyInfo()
     end
 
     local function onMouseWheelCallback(content, value)

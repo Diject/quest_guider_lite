@@ -61,11 +61,15 @@ local l10n = core.l10n(commonData.l10nKey)
 
 local questBoxUpdateQueue = {}
 local questBoxUpdateTimer = nil
+local lastUiModeTimestamp = 0
 
-pcall(function ()
-    if not ui.layers.indexOf(commonData.messageLayer) then
-        ui.layers.insertBefore("DragAndDrop", commonData.messageLayer, { interactive = true })
-    end
+-- delay 1 frame to avoid errors when other mods create the same layer at the same time
+realTimer.newTimer(0, function ()
+    pcall(function ()
+        if not ui.layers.indexOf(commonData.messageLayer) then
+            ui.layers.insertBefore("DragAndDrop", commonData.messageLayer, { interactive = true })
+        end
+    end)
 end)
 if not ui.layers.indexOf(commonData.mainMenuLayer) then
     ui.layers.insertAfter("Windows", commonData.mainMenuLayer, { interactive = true })
@@ -175,43 +179,47 @@ end
 
 controllerScrollTimer.callback = function (axisVal)
     axisVal = -axisVal
-    if axisVal > 0.3 then
-        onMouseWheel((axisVal - 0.3) * 3)
-    elseif axisVal < -0.3 then
-        onMouseWheel((axisVal + 0.3) * 3)
+    if math.abs(axisVal) < 0.3 then return end
+    axisVal = axisVal * core.getRealFrameDuration() * 12
+    if axisVal > 0 then
+        onMouseWheel(axisVal)
+    elseif axisVal < 0 then
+        onMouseWheel(axisVal)
     end
+    return true
 end
 
 
 local gamepadJournalScrollEnabled = false
 local function gamepadJournalScroll(lTr, rTr)
-    if not gamepadJournalScrollEnabled then return end
-    lTr = lTr < 0.5 and 0 or lTr
-    rTr = rTr < 0.5 and 0 or rTr
+    -- if not gamepadJournalScrollEnabled then return end
+    lTr = lTr < 0.25 and 0 or lTr
+    rTr = rTr < 0.25 and 0 or rTr
 
     if menuHandler.getMenu(commonData.trackingMenuId) then
         return
     end
 
-    local v = rTr - lTr
-    if math.abs(v) < 0.5 then return end
+    local v = (rTr - lTr)
+    if math.abs(v) < 0.25 then return end
+    v = v * core.getRealFrameDuration() * 8 * config.data.journal.mouseScrollAmount / 40
 
     local topicMenu = menuHandler.getMenu(commonData.topicsMenuId)
     if topicMenu then
         topicMenu:scrollInfo(v)
-        return
+        return true
     end
 
     local journalMenu = menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId)
     if journalMenu then
         journalMenu:scrollInfo(v)
-        return
+        return true
     end
 
     local firstInitMenu = menuHandler.getMenu(commonData.firstInitMenuId)
     if firstInitMenu then
         firstInitMenu:scrollInfo(v)
-        return
+        return true
     end
 end
 
@@ -342,6 +350,13 @@ end
 menuBuilders.trackingMenu = buildTrackingMenu
 
 
+local function isShouldReplacePrevousMenu()
+    local lastUiModeId = I.UI.getMode()
+    return lastUiModeId and (core.getRealTime() - lastUiModeTimestamp) < 1 and #I.UI.modes == 1 and
+        not menuMode.essentialModes[lastUiModeId] and not menuMode.isActivated()
+end
+
+
 local function buildMainQuestMenu(nearbyMode)
     ---@type questGuider.ui.customJournal.params
     local params = {
@@ -420,7 +435,19 @@ local function toggleMenu(withoutMenuMode)
         menuHandler.destroyMenu(commonData.firstInitMenuId)
     else
         if not withoutMenuMode then
-            menuHandler.activateMenuMode()
+            local replacePreviousMode = isShouldReplacePrevousMenu()
+            if not menuMode.isMenuInteractive() then
+                menuHandler.activateMenuMode()
+            elseif replacePreviousMode then
+                local lastUiModeId = I.UI.getMode()
+                if lastUiModeId == menuMode.modeId and menuMode.isModeActive(lastUiModeId) then
+                    I.UI.removeMode(lastUiModeId)
+                end
+                menuHandler.activateMenuMode()
+                if lastUiModeId ~= menuMode.modeId and menuMode.isModeActive(lastUiModeId) then
+                    I.UI.removeMode(lastUiModeId)
+                end
+            end
         end
 
         if configLib.data.journal.firstInitMenu and playerDataHandler.data.isReady then
@@ -442,11 +469,26 @@ local function handleInventoryItems(preserveDifference)
     questLog.handleInventory()
 end
 
-
-I.DijectKeyBindings.action.register(commonData.journalMenuTriggerId, function()
+local function toggleJournalMenu()
     handleInventoryItems()
 
-    toggleMenu()
+    -- 3 frame delay
+    realTimer.newTimer(0, function ()
+        realTimer.newTimer(0, function ()
+            realTimer.newTimer(0, function ()
+                toggleMenu()
+            end)
+        end)
+    end)
+end
+
+I.DijectKeyBindings.action.register(commonData.journalMenuTriggerId, function()
+    toggleJournalMenu()
+end)
+
+
+I.DijectKeyBindings.action.register(commonData.journalMenuAltTriggerId, function()
+    toggleJournalMenu()
 end)
 
 
@@ -500,10 +542,14 @@ local function markerClick(userData)
 
     if userData.type == "tracking" and userData.questName then ---@diagnostic disable-line: need-check-nil
         if not menuHandler.getMenu(commonData.journalMenuId) then
+            advWMapIntegration.setMapHotkeysActive(false)
             menuHandler.registerMenu(commonData.journalMenuId, createQuestMenu{
                 fontSize = config.data.ui.fontSize,
                 sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
                 relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+                onClose = function ()
+                    advWMapIntegration.setMapHotkeysActive(true)
+                end
             })
         end
         menuHandler.getMenu(commonData.journalMenuId):selectQuest(userData.questName) ---@diagnostic disable-line: need-check-nil
@@ -528,6 +574,7 @@ local function giverMarkerClick(userData)
     end
 
     if hasNonTrackedQuest then
+        advWMapIntegration.setMapHotkeysActive(false)
         menuHandler.registerMenu(commonData.allQuestsMenuId, createQuestMenu{
             fontSize = config.data.ui.fontSize,
             sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
@@ -544,6 +591,9 @@ local function giverMarkerClick(userData)
             nearbyModeDefault = false,
             allEntriesDefault = false,
             hideJournalBtn = true,
+            onClose = function ()
+                advWMapIntegration.setMapHotkeysActive(true)
+            end
         })
     end
 end
@@ -564,12 +614,18 @@ local function closeTopMenu()
 
     ---@type AdvancedWorldMap.Interface
     local advWMap = I.AdvancedWorldMap
+    local isMapOpenedByRequest = nil
     if advWMap and advWMap.version >= 18 then
-        local menu = advWMap.getMapMenu()
+        local mapMenu = advWMap.getMapMenu()
 
-        if menu and menu:isVisible() then
-            advWMap.closeMapMenu()
-            closed = true
+        if mapMenu and mapMenu:isVisible() then
+            isMapOpenedByRequest = mapMenu.userData.qGuidersRequest
+
+            if isMapOpenedByRequest then
+                advWMap.closeMapMenu()
+                closed = true
+            end
+            mapMenu.userData.qGuidersRequest = nil
         end
     end
 
@@ -583,13 +639,14 @@ local function closeTopMenu()
     end
 
     if closed then
-        if menuHandler.hasActiveMenus() then
+        if menuHandler.hasActiveMenus() and not menuMode.isMenuInteractive() then
             menuHandler.activateMenuMode()
         end
 
         return
     end
     menuHandler.destroyAllMenus()
+    menuMode.setActivatedFlag(false)
 end
 
 
@@ -605,6 +662,10 @@ local function onControllerButtonPress(button)
     if button == input.CONTROLLER_BUTTON.B then
         closeTopMenu()
     end
+end
+
+local function onMouseButtonPress()
+    keysModule.isGamepad = false
 end
 
 
@@ -953,6 +1014,7 @@ return {
         onFrame = function(dt)
             realTimer.updateTimers()
         end,
+        onMouseButtonPress = onMouseButtonPress,
         onMouseWheel = onMouseWheel,
         onMouseButtonRelease = onMouseButtonRelease,
     },
@@ -978,6 +1040,9 @@ return {
 
             if e.oldMode == "Loading" then
                 advWMapIntegration.removeInvalidDoorGiverMarkers()
+            end
+            if e.newMode then
+                lastUiModeTimestamp = core.getRealTime()
             end
         end,
 

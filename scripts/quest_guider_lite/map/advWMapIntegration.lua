@@ -954,7 +954,8 @@ function this.markObjectTemp(objId, positions)
         if p then
             if trackingInt and this.trackingLib and not this.trackingLib.getTrackedObjectData(objId) then
                 local obj = getObject(objId)
-                trackingInt.addMarker{
+                local mId
+                mId = trackingInt.addMarker{
                     template = {
                         path = commonInfo.mapMarkerPath,
                         size = util.vector2(1, 1) * config.data.tracking.advWMapMarkers.size,
@@ -967,6 +968,11 @@ function this.markObjectTemp(objId, positions)
                     positions = {{pos = p, id = cellId}},
                     short = true,
                     priority = 10021,
+                    onUpdate = function (marker, template, object)
+                        if not menuHandler.hasActiveMenus() and mId then
+                            trackingInt.removeMarker(mId)
+                        end
+                    end
                 }
             end
 
@@ -976,6 +982,8 @@ function this.markObjectTemp(objId, positions)
             map.mapWidget:focusOnWorldPosition(p)
             map.mapWidget:updateMarkers(true)
         end
+
+        map.userData.qGuidersRequest = true
 
         local oldLayer
         if map.menu.layout.layer ~= commonInfo.topicMenuLayer then
@@ -994,11 +1002,34 @@ function this.markObjectTemp(objId, positions)
 
         interface.realTimer(1, timerFunc)
 
+        -- disable hotkeys
+        if interface and interface.version >= 21 and menuHandler.isMenuModeCallbackActive then
+            menuHandler.activateDeactivateCallback(false)
+
+            local function restoreCallback()
+                if not menuHandler.hasActiveMenus() then return end
+                local menu = interface.getMapMenu()
+
+                if menu and menu:isVisible() and menu.mapWidget:isInActiveMode() then
+                    realTimer.newTimer(0.25, restoreCallback)
+                else
+                    menuHandler.activateDeactivateCallback(true)
+                end
+            end
+            restoreCallback()
+        end
+
         map:update()
 
         return true
     end
 
+end
+
+
+function this.setMapHotkeysActive(active)
+    if not interface or interface.version < 21 then return end
+    interface.setHotkeysActive(active)
 end
 
 
