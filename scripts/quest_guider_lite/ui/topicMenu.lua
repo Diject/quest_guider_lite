@@ -1268,7 +1268,7 @@ local function create(params)
         local sBoxMeta = qInfoScrollBox.userData.scrollBoxMeta
         if not sBoxMeta then return end
 
-        sBoxMeta:setScrollPosition(sBoxMeta:getScrollPosition() + value * (self.params.fontSize or 18) * 3)
+        sBoxMeta:setScrollPosition(sBoxMeta:getScrollPosition() + value * (self.params.fontSize or 18) * 3, true)
     end
 
 

@@ -74,7 +74,11 @@ scrollBoxMeta.getScrollPosition = function(self)
 end
 
 ---@param height number
-scrollBoxMeta.setScrollPosition = function(self, height)
+scrollBoxMeta.setScrollPosition = function(self, height, limit)
+    if limit then
+        height = math.max(-self.maxPositiveShift, math.min(self.params.maxNegativeShift, -height))
+        height = -height
+    end
     self:moveScrollPanel(height)
     self:updateScrollPosition()
 

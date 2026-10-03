@@ -527,7 +527,7 @@ function this.new(params)
     end
 
     meta.scrollInfo = function (self, value)
-        sBoxMeta:setScrollPosition(sBoxMeta:getScrollPosition() + value * (self.params.fontSize or 18) * 3)
+        sBoxMeta:setScrollPosition(sBoxMeta:getScrollPosition() + value * (self.params.fontSize or 18) * 3, true)
     end
 
     meta.btnFunction = function ()
