@@ -303,6 +303,7 @@ function this.checkConditionsForQuest(questId, questIndex, ref, player, params)
             [myTypes.requirementType.CustomDialogue] = true,
             [myTypes.requirementType.CustomDisposition] = true,
             [myTypes.requirementType.NPCReputation] = true,
+            [myTypes.requirementType.CustomLocal] = true,
         }
 
         local truthTable = {
