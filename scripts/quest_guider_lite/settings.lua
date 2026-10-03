@@ -293,6 +293,13 @@ if configVersion ~= config.configVersion then
     if not configVersion or configVersion < 2 and (I.DijectKeyBindings.version < 2 or I.DijectKeyBindings.getActionKey(commonData.journalMenuAltTriggerId) == nil) then
         I.DijectKeyBindings.registerKey(commonData.journalMenuAltTriggerId, config.default.journal.menuKeyAlt)
     end
+    if not configVersion or configVersion < 3 then
+        local mainModSettings = storage.playerSection(commonData.configJournalSectionName)
+        local override = mainModSettings:get("journal.overrideJournal")
+        if override then
+            defaultSection:set("message.replaceJournal", 40)
+        end
+    end
 end
 
 

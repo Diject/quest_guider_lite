@@ -7,7 +7,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local this = {}
 
 this.inputSectionVersion = 1
-this.configVersion = 2
+this.configVersion = 3
 
 ---@class questGuider.config
 this.default = {
@@ -137,6 +137,9 @@ this.default = {
         },
         initialized = false,
     },
+    message = {
+        replaceJournal = 0,
+    }
 }
 
 

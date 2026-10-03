@@ -353,7 +353,7 @@ menuBuilders.trackingMenu = buildTrackingMenu
 local function isShouldReplacePrevousMenu()
     local lastUiModeId = I.UI.getMode()
     return lastUiModeId and (core.getRealTime() - lastUiModeTimestamp) < 1 and #I.UI.modes == 1 and
-        not menuMode.essentialModes[lastUiModeId] and not menuMode.isActivated()
+        not menuMode.essentialModes[lastUiModeId] and not menuMode.isActivated() and not (lastUiModeId == "Journal" and config.data.journal.overrideJournal)
 end
 
 
@@ -428,6 +428,10 @@ menuBuilders.allQuestsMenu = buildAllQuestsMenu
 
 
 local function toggleMenu(withoutMenuMode)
+    if not withoutMenuMode and I.UI.getMode() == "Journal" and config.data.journal.overrideJournal then
+        return
+    end
+
     if menuHandler.getMenu(commonData.journalMenuId) or menuHandler.getMenu(commonData.allQuestsMenuId) then
         menuHandler.destroyMenu(commonData.journalMenuId)
         menuHandler.destroyMenu(commonData.allQuestsMenuId)
@@ -448,6 +452,8 @@ local function toggleMenu(withoutMenuMode)
                     I.UI.removeMode(lastUiModeId)
                 end
             end
+        else
+            menuHandler.activateDeactivateCallback(true)
         end
 
         if configLib.data.journal.firstInitMenu and playerDataHandler.data.isReady then
@@ -521,20 +527,24 @@ I.DijectKeyBindings.action.register(commonData.trackingMenuTriggerId, function()
 end)
 
 
-if config.data.journal.overrideJournal then
-    I.UI.registerWindow("Journal",
-        function()
-            handleInventoryItems()
+local function registerAsDefault()
+    if config.data.journal.overrideJournal then
+        I.UI.registerWindow("Journal",
+            function()
+                handleInventoryItems()
 
-            toggleMenu(true)
-            menuMode.setActivatedFlag(true)
-        end,
-        function ()
-            realTimer.newTimer(0.1, function ()
-                menuHandler.destroyMenu(commonData.journalMenuId)
-            end)
-        end)
+                toggleMenu(true)
+                menuMode.setActivatedFlag(true)
+            end,
+            function ()
+                realTimer.newTimer(0.1, function ()
+                    menuHandler.destroyMenu(commonData.journalMenuId)
+                end)
+            end
+        )
+    end
 end
+registerAsDefault()
 
 
 local function markerClick(userData)
@@ -987,6 +997,49 @@ do
 end
 
 
+local function replaceJournalMessage()
+    if config.data.journal.overrideJournal or
+        config.data.message.replaceJournal >= 40 then return end
+
+    realTimer.newTimer(0.1, function ()
+        if menuHandler.hasActiveMenus() then return end
+
+        if config.data.message.replaceJournal % 10 == 0 then
+            menuHandler.registerMenu(commonData.messageBoxMenuId, messageBox.newSimple{
+                message = l10n("replaceJournalMessageText", {
+                    key1 = keysModule.keyCombinationToString(
+                        I.DijectKeyBindings.version < 2 and config.data.journal.menuKey or
+                            I.DijectKeyBindings.getActionKey(commonData.journalMenuTriggerId) or ""
+                    ),
+                    key2 = keysModule.keyCombinationToString(I.DijectKeyBindings.version < 2 and config.data.journal.menuKeyAlt or
+                            I.DijectKeyBindings.getActionKey(commonData.journalMenuAltTriggerId)) or ""
+                }),
+                relativeSize = util.vector2(0.25, 0.2),
+                yesCallback = function ()
+                    I.UI.removeMode("Journal")
+                    configLib.setValue("journal.overrideJournal", true)
+                    configLib.setValue("message.replaceJournal", 40)
+                    registerAsDefault()
+                    I.UI.addMode("Journal")
+                end,
+                noCallback = function ()
+                    I.UI.removeMode("Journal")
+                    configLib.setValue("journal.overrideJournal", false)
+                    configLib.setValue("message.replaceJournal", 40)
+                    I.UI.addMode("Journal")
+                end,
+                btn3Name = keysModule.isGamepad and l10n("LaterA") or l10n("LaterBtn"),
+                btn3Callback = function ()
+                    I.UI.removeMode("Journal")
+                    I.UI.addMode("Journal")
+                end
+            })
+        end
+        configLib.setValue("message.replaceJournal", config.data.message.replaceJournal + 1)
+    end)
+end
+
+
 local function updateQuestGivers()
     core.sendGlobalEvent("QGL:updateQuestGiverMarkers", {player = self.object})
     advWMapIntegration.updateGiversMarker()
@@ -1101,6 +1154,10 @@ return {
             end
             if e.newMode then
                 lastUiModeTimestamp = core.getRealTime()
+            end
+
+            if e.newMode == "Journal" then
+                replaceJournalMessage()
             end
         end,
 

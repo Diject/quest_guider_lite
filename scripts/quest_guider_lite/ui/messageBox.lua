@@ -2,18 +2,24 @@ local async = require("openmw.async")
 local ui = require("openmw.ui")
 local util = require("openmw.util")
 local core = require("openmw.core")
+local I = require("openmw.interfaces")
 
 local customTemplates = require("scripts.quest_guider_lite.ui.templates")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local commonData = require("scripts.quest_guider_lite.common")
 
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
+local menuMode = require("scripts.quest_guider_lite.ui.menuMode")
+local keyModule = require("scripts.quest_guider_lite.input.keys")
+local realTimer = require("scripts.quest_guider_lite.realTimer")
 
 local config = require("scripts.quest_guider_lite.configLib")
 
 local borders = require("scripts.quest_guider_lite.ui.borders").thick
 local button = require("scripts.quest_guider_lite.ui.button")
 local interval = require("scripts.quest_guider_lite.ui.interval")
+
+local l10n = core.l10n(commonData.l10nKey)
 
 
 
@@ -29,6 +35,8 @@ local this = {}
 ---@field message string?
 ---@field yesCallback function?
 ---@field noCallback function?
+---@field btn3Name string?
+---@field btn3Callback function?
 ---@field onClose function?
 
 
@@ -44,7 +52,10 @@ function this.newSimple(params)
     if params.relativeSize then
         params.size = params.size or util.vector2(screenSize.x * params.relativeSize.x, screenSize.y * params.relativeSize.y)
     end
-    params.size = params.size or util.vector2(150, 200)
+    params.size = params.size or util.vector2(300, 200)
+    if params.size.x < 400 or params.size.x < 250 then
+        params.size = util.vector2(math.max(300, params.size.x), math.max(200, params.size.y))
+    end
 
     if not params.relativePosition then
         params.relativePosition = util.vector2((screenSize.x - params.size.x) / 2 / screenSize.x, (screenSize.y - params.size.y) / 2 / screenSize.y)
@@ -61,7 +72,23 @@ function this.newSimple(params)
         meta.menu:update()
     end
 
+    local function yesCallback()
+        meta:close()
+        if params.yesCallback then params.yesCallback() end
+    end
+    local function noCallback()
+        meta:close()
+        if params.noCallback then params.noCallback() end
+    end
+    local function btn3Callback()
+        meta:close()
+        if params.btn3Callback then params.btn3Callback() end
+    end
+
     function meta:close()
+        I.DijectKeyBindings.keybind.unregister("C_Y", yesCallback, -100)
+        I.DijectKeyBindings.keybind.unregister("C_X", noCallback, -100)
+        I.DijectKeyBindings.keybind.unregister("C_A", btn3Callback, -100)
         if params.onClose then params.onClose() end
         if not self.menu or not self.menu.layout then return end
         self.menu:destroy()
@@ -73,60 +100,52 @@ function this.newSimple(params)
 
     local mainSize = util.vector2(params.size.x, params.size.y - headerSize.y)
 
+    local buttons = {}
+    table.insert(buttons, button{
+        updateFunc = meta.update,
+        textSize = params.fontSize,
+        text = keyModule.isGamepad and l10n("YesY") or core.getGMST("sYes"),
+        event = yesCallback,
+    })
+    table.insert(buttons, interval(params.fontSize * 2, 0))
+    table.insert(buttons, button{
+        updateFunc = meta.update,
+        textSize = params.fontSize,
+        text = keyModule.isGamepad and l10n("NoX") or core.getGMST("sNo"),
+        event = noCallback
+    })
+    if params.btn3Name then
+        table.insert(buttons, interval(params.fontSize * 2, 0))
+        table.insert(buttons, button{
+            updateFunc = meta.update,
+            textSize = params.fontSize,
+            text = params.btn3Name,
+            event = btn3Callback,
+        })
+    end
+
     local mainLayout
     mainLayout = {
-        type = ui.TYPE.Widget,
+        type = ui.TYPE.Flex,
         props = {
-            size = mainSize,
-            position = util.vector2(0, headerSize.y),
-        },
-        userData = {
-
+            arrange = ui.ALIGNMENT.Center,
         },
         content = ui.content {
             {
-                type = ui.TYPE.Image,
-                props = {
-                    resource = uiUtils.whiteTexture,
-                    relativeSize = util.vector2(1, 1),
-                    color = config.data.ui.backgroundColor,
-                }
-            },
-            {
-                type = ui.TYPE.Text,
+                type = ui.TYPE.TextEdit,
                 props = {
                     text = params.message,
                     textSize = params.fontSize,
-                    autoSize = false,
-                    size = util.vector2(mainSize.x, mainSize.y - params.fontSize * 2),
-                    textColor = config.data.ui.defaultColor,
                     multiline = true,
                     wordWrap = true,
+                    readOnly = true,
+                    autoSize = true,
+                    size = util.vector2(mainSize.x, 0),
+                    anchor = util.vector2(0.5, 0),
+                    textColor = config.data.ui.defaultColor,
                     textAlignH = ui.ALIGNMENT.Center,
                     textAlignV = ui.ALIGNMENT.Center,
                 },
-                userData = {},
-                events = {
-                    mousePress = async:callback(function(coord, layout)
-                        layout.userData.lastMousePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
-                    end),
-
-                    mouseRelease = async:callback(function(_, layout)
-                        layout.userData.lastMousePos = nil
-                    end),
-
-                    mouseMove = async:callback(function(coord, layout)
-                        if not layout.userData.lastMousePos then return end
-
-                        local props = meta.menu.layout.props
-                        local relativePos = util.vector2(coord.position.x / screenSize.x, coord.position.y / screenSize.y)
-
-                        props.relativePosition = props.relativePosition - (layout.userData.lastMousePos - relativePos)
-                        meta:update()
-
-                        layout.userData.lastMousePos = relativePos
-                    end),
-                }
             },
             {
                 type = ui.TYPE.Flex,
@@ -134,40 +153,19 @@ function this.newSimple(params)
                     autoSize = false,
                     horizontal = true,
                     anchor = util.vector2(0.5, 0),
-                    position = util.vector2(mainSize.x / 2, mainSize.y - params.fontSize * 2),
+                    position = util.vector2(mainSize.x / 2, mainSize.y - params.fontSize * 0.5),
                     size = util.vector2(mainSize.x, params.fontSize * 2),
                     align = ui.ALIGNMENT.Center,
                     arrange = ui.ALIGNMENT.Center,
                 },
-                content = ui.content {
-                    button{
-                        updateFunc = meta.update,
-                        textSize = params.fontSize,
-                        text = core.getGMST("sYes"),
-                        event = function (layout)
-                            meta:close()
-                            if params.yesCallback then params.yesCallback() end
-                        end
-                    },
-                    interval(params.fontSize * 2, 0),
-                    button{
-                        updateFunc = meta.update,
-                        textSize = params.fontSize,
-                        text = core.getGMST("sNo"),
-                        event = function (layout)
-                            meta:close()
-                            if params.noCallback then params.noCallback() end
-                        end
-                    },
-                }
+                content = ui.content(buttons)
             },
-            borders(),
         },
     }
 
 
     local layout = {
-        type = ui.TYPE.Widget,
+        template = customTemplates.boxSolidThick,
         layer = commonData.messageLayer,
         props = {
             size = params.size,
@@ -183,6 +181,21 @@ function this.newSimple(params)
 
 
     meta.menu = ui.create(layout)
+
+    I.DijectKeyBindings.keybind.register("C_Y", yesCallback, -100)
+    I.DijectKeyBindings.keybind.register("C_X", noCallback, -100)
+    I.DijectKeyBindings.keybind.register("C_A", btn3Callback, -100)
+
+    local function autoClose()
+        if not meta.menu or not meta.menu.layout then return end
+
+        if not menuMode.isMenuInteractive() then
+            meta:close()
+        else
+            realTimer.newTimer(0.2, autoClose)
+        end
+    end
+    realTimer.newTimer(0.2, autoClose)
 
     return meta
 end
