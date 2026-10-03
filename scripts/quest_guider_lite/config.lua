@@ -7,7 +7,7 @@ local tableLib = require("scripts.quest_guider_lite.utils.table")
 local this = {}
 
 this.inputSectionVersion = 1
-this.configVersion = 1
+this.configVersion = 2
 
 ---@class questGuider.config
 this.default = {
@@ -45,9 +45,11 @@ this.default = {
             size = 12,
             wSize = 18,
             maxWorldMapMarkersForCell = 2,
+            questItemLimit = 5,
             details = {
                 givers = true,
                 markers = true,
+                questItems = true,
             }
         },
         toggleVisibilityKey = "P", -- deprecated

@@ -517,7 +517,7 @@ local function giverMarkerClick(userData)
     end
 
     local objName = userData.objName or ""
-    menuHandler.destroyMenu(objName)
+    menuHandler.destroyMenu(commonData.allQuestsMenuId)
 
     local hasNonTrackedQuest = false
     for _, diaId in pairs(userData.diaIds or {}) do
@@ -546,6 +546,63 @@ local function giverMarkerClick(userData)
             hideJournalBtn = true,
         })
     end
+end
+
+local mapQuestItemClickDelayTimer
+local mapQuestItemClickDiaIds = {}
+
+---@param itemData questDataGenerator.objectInfo
+local function mapQuestItemClick(itemData, objName)
+    local threshold = config.data.tracking.advWMapMarkers.questItemLimit
+    if threshold == 0 then return end
+
+    if not itemData or not itemData.stages or (itemData.norm or itemData.total or itemData.inWorld or 0) > threshold then return end
+
+    menuHandler.destroyMenu(commonData.allQuestsMenuId)
+
+    for _, dt in pairs(itemData.stages) do
+        local q = playerQuests.getQuestDataByDiaId(dt.id)
+        local qName = playerQuests.getQuestNameByDiaId(dt.id)
+
+        if not playerQuests.isFinished(dt.id) and not playerQuests.isHidden(qName or "") then
+
+            local currentIndex = playerQuests.getCurrentIndex(dt.id)
+            if currentIndex and currentIndex ~= 0 then
+                if currentIndex < dt.index then
+                    mapQuestItemClickDiaIds[dt.id] = true
+                end
+            else
+                mapQuestItemClickDiaIds[dt.id] = true
+            end
+
+        end
+    end
+
+    if mapQuestItemClickDelayTimer then mapQuestItemClickDelayTimer() end
+    mapQuestItemClickDelayTimer = realTimer.newTimer(0.2, function ()
+        mapQuestItemClickDelayTimer = nil
+
+        if next(mapQuestItemClickDiaIds) then
+            menuHandler.registerMenu(commonData.allQuestsMenuId, createQuestMenu{
+                fontSize = config.data.ui.fontSize,
+                sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
+                relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
+                menuId = commonData.allQuestsMenuId,
+                headerName = objName or "",
+                questList = tableLib.keys(mapQuestItemClickDiaIds),
+                isQuestList = true,
+                showReqsForAll = true,
+                showOnlyMainDia = true,
+                hideStageText = true,
+                showReqDiaEntryText = true,
+                allQuestsMode = true,
+                nearbyModeDefault = false,
+                allEntriesDefault = false,
+                hideJournalBtn = true,
+            })
+        end
+        mapQuestItemClickDiaIds = {}
+    end)
 end
 
 
@@ -932,6 +989,7 @@ return {
                         handleTracking()
                         updateQuestGivers()
                         tracking.updateTemporaryMarkers()
+                        advWMapIntegration.updateAllQuestItemsMarkers()
                         onQuestUpdateTimerStarted = false
                     end)
                 end
@@ -1188,6 +1246,15 @@ return {
             tb.objName = (record or {}).name or l10n("questGiverU")
 
             giverMarkerClick(tb)
+        end,
+
+        ---@param data AdvWMap_tracking.onClickCallbackParams
+        [commonData.advWMapQuestItemsCallback] = function (data)
+            if data.button ~= 1 or not data.object or not data.template.userData or
+                    not data.template.userData.itemData then return end
+
+            local itemData = data.template.userData.itemData
+            mapQuestItemClick(itemData, data.template.userData.objectName)
         end,
 
         ["QGL:getPositionsForTrackingMenu"] = function (data)

@@ -4,6 +4,8 @@ local util = require("openmw.util")
 local core = require("openmw.core")
 local types = require("openmw.types")
 local playerRef = require("openmw.self")
+local vfs = require("openmw.vfs")
+local Container = types.Container
 
 local config = require("scripts.quest_guider_lite.config")
 local uiUtils = require("scripts.quest_guider_lite.ui.utils")
@@ -20,6 +22,8 @@ local realTimer = require("scripts.quest_guider_lite.realTimer")
 local getObject = require("scripts.quest_guider_lite.core.getObject")
 
 local trackingMenu = require("scripts.quest_guider_lite.ui.trackingMenu")
+
+local allQuestItemsModule = require("scripts.quest_guider_lite.map.advWMapAllQuestItems")
 
 local l10n = core.l10n(commonInfo.l10nKey)
 local storageLabel = commonInfo.aWMIntegrationDataLabel
@@ -53,6 +57,7 @@ this.doorGiversTemplate = nil
 this.markerTemplatesVis = {}
 
 this.giverMarkersVisible = true
+this.allItemsMarkersVisible = true
 
 ---@type AdvancedWorldMap.Menu.Map?
 this.activeMenu = nil
@@ -141,6 +146,9 @@ function this.init()
     if this.storageData.giversVisibility == nil then
         this.storageData.giversVisibility = true
     end
+    if this.storageData.allItemsVisibility == nil then
+        this.storageData.allItemsVisibility = true
+    end
     if this.storageData.markersVisibility == nil then
         this.storageData.markersVisibility = true
     end
@@ -158,6 +166,7 @@ function this.init()
     end
 
     this.updateGiversMarker(true)
+    allQuestItemsModule.updateAllQuestItemsMarker(this, trackingInt, interface)
 
     if not interface then
         local dmSize = util.vector2(1, 1) * math.floor(config.data.tracking.advWMapMarkers.size * 0.6)
@@ -437,7 +446,7 @@ function this.init()
 
         local markersCB = interface.uiElements.checkbox{
             updateFunc = e.menu.update,
-            text = l10n("markers"),
+            text = l10n("trackedObjects"),
             textSize = cfg.ui.fontSize,
             anchor = util.vector2(0, 0.5),
             position = util.vector2(cfg.ui.fontSize, cfg.ui.fontSize * 0.75),
@@ -469,6 +478,23 @@ function this.init()
             end
         }
 
+        local allItemsCB = interface.uiElements.checkbox{
+            updateFunc = e.menu.update,
+            text = l10n("questItems"),
+            textSize = cfg.ui.fontSize,
+            anchor = util.vector2(0, 0.5),
+            position = util.vector2(cfg.ui.fontSize, cfg.ui.fontSize * 0.75),
+            checked = this.storageData.allItemsVisibility == true,
+            getScrollBoxMeta = function ()
+                return e.scrollBox
+            end,
+            event = function (checked, layout)
+                this.storageData.allItemsVisibility = checked
+                allQuestItemsModule.updateAllQuestItemsMarker(this, trackingInt, interface)
+                trackingInt.update()
+            end
+        }
+
         flexContent:add(
             addVPadding(label)
         )
@@ -477,6 +503,9 @@ function this.init()
         )
         flexContent:add(
             addVPadding(giversCB)
+        )
+        flexContent:add(
+            addVPadding(allItemsCB)
         )
 
         e.content:add{
@@ -831,6 +860,12 @@ function this.updateGiverMarkersVisibility()
     if not trackingInt then return end
 
     this.setGiverMarkersVisibility(this.giverMarkersVisible)
+end
+
+
+function this.updateAllQuestItemsMarkers()
+    if not trackingInt then return end
+    allQuestItemsModule.updateAllQuestItemsMarker(this, trackingInt, interface)
 end
 
 
