@@ -103,6 +103,7 @@ this.dialogueTimeDataLabel = "diaTime"
 
 this.advWMapMarkerCallback = "QGL:advWMapMarkerCallback"
 this.advWMapGiverCallback = "QGL:advWMapGiverCallback"
+this.advWMapQuestItemsCallback = "QGL:advWMapQuestItemsCallback"
 
 this.hudMarkerPath = "textures/icons/quest_guider/HUDMarker.dds"
 this.hudQuestionMarkPath = "textures/icons/quest_guider/HUDQuestionMark.dds"
@@ -123,6 +124,7 @@ this.mapGiverMarkerPath = "textures/icons/quest_guider/exclamationMarkM.dds"
 this.mapGiverMarkerUpPath = "textures/icons/quest_guider/exclamationMarkUpM.dds"
 this.mapGiverMarkerDownPath = "textures/icons/quest_guider/exclamationMarkDownM.dds"
 this.mapWidgetIcoPath = "textures/icons/quest_guider/mapWidgetIco.png"
+this.mapQuestItemBacgroundPath = "textures/icons/quest_guider/questItemBg.png"
 
 this.noteLabelIcoPath = "textures/icons/quest_guider/featherIco.png"
 

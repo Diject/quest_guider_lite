@@ -95,8 +95,8 @@ function this.new(params)
         }
     end
 
-    local function insertCBToContent(configTable, configTableName)
-        return {
+    local function insertCBToContent(configTable, configTableName, hasQuestItems)
+        local res = {
             type = ui.TYPE.Flex,
             props = {
                 horizontal = false,
@@ -109,8 +109,12 @@ function this.new(params)
                     getScrollBoxMeta = function() return sBoxMeta end,
                     checked = configTable.details.givers,
                     event = function (checked, layout)
-                        config.setValue(configTableName..".details", {markers = configTable.details.markers, givers = checked})
-                        if not checked and not configTable.details.markers then
+                        config.setValue(configTableName..".details", {
+                            markers = configTable.details.markers,
+                            givers = checked,
+                            questItems = configTable.details.questItems}
+                        )
+                        if not checked and not configTable.details.markers and not configTable.details.questItems then
                             config.setValue(configTableName..".enabled", checked)
                         end
                         if checked and not configTable.enabled then
@@ -126,8 +130,12 @@ function this.new(params)
                     getScrollBoxMeta = function() return sBoxMeta end,
                     checked = configTable.details.markers,
                     event = function (checked, layout)
-                        config.setValue(configTableName..".details", {markers = checked, givers = configTable.details.givers})
-                        if not checked and not configTable.details.givers then
+                        config.setValue(configTableName..".details", {
+                            markers = checked,
+                            givers = configTable.details.givers,
+                            questItems = configTable.details.questItems}
+                        )
+                        if not checked and not configTable.details.givers and not configTable.details.questItems  then
                             config.setValue(configTableName..".enabled", checked)
                         end
                         if checked and not configTable.enabled then
@@ -137,6 +145,32 @@ function this.new(params)
                 }
             }
         }
+
+        if hasQuestItems then
+            res.content:add(interval(0, params.fontSize / 4))
+            res.content:add(checkBox{
+                updateFunc = meta.update,
+                text = l10n("firstInitQuestItems"),
+                textSize = params.fontSize,
+                getScrollBoxMeta = function() return sBoxMeta end,
+                checked = configTable.details.questItems,
+                event = function (checked, layout)
+                    config.setValue(configTableName..".details", {
+                        markers = configTable.details.markers,
+                        givers = checked,
+                        questItems = configTable.details.questItems}
+                    )
+                    if not checked and not configTable.details.givers and not configTable.details.markers then
+                        config.setValue(configTableName..".enabled", checked)
+                    end
+                    if checked and not configTable.enabled then
+                        config.setValue(configTableName..".enabled", checked)
+                    end
+                end
+            })
+        end
+
+        return res
     end
 
 
@@ -269,7 +303,7 @@ function this.new(params)
                     content = ui.content{
                         insertLabelToContent(l10n("firstInitMapMarkersCategory")),
                         interval(0, params.fontSize / 2),
-                        insertCBToContent(config.data.tracking.advWMapMarkers, "tracking.advWMapMarkers"),
+                        insertCBToContent(config.data.tracking.advWMapMarkers, "tracking.advWMapMarkers", true),
                     }
                 },
                 {

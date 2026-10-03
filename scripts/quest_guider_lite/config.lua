@@ -45,9 +45,11 @@ this.default = {
             size = 12,
             wSize = 18,
             maxWorldMapMarkersForCell = 2,
+            questItemLimit = 5,
             details = {
                 givers = true,
                 markers = true,
+                questItems = true,
             }
         },
         toggleVisibilityKey = "P", -- deprecated

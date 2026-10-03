@@ -277,7 +277,20 @@ if configVersion ~= config.configVersion then
         local uiSection = storage.playerSection(commonData.configUISectionName)
         uiSection:set("ui.headerBackgroundAlpha", config.default.ui.headerBackgroundAlpha)
     end
-    if configVersion < 2 and (I.DijectKeyBindings.version < 2 or I.DijectKeyBindings.getActionKey(commonData.journalMenuAltTriggerId) == nil) then
+    if configVersion and configVersion < 2 then
+        local trackingSection = storage.playerSection(commonData.configTrackingSectionName)
+        local advWMTracking = trackingSection:get("tracking.advWMapMarkers.details")
+        if advWMTracking then
+            if advWMTracking.givers and advWMTracking.markers then
+                trackingSection:set("tracking.advWMapMarkers.details", {
+                    givers = true,
+                    markers = true,
+                    questItems = true
+                })
+            end
+        end
+    end
+    if not configVersion or configVersion < 2 and (I.DijectKeyBindings.version < 2 or I.DijectKeyBindings.getActionKey(commonData.journalMenuAltTriggerId) == nil) then
         I.DijectKeyBindings.registerKey(commonData.journalMenuAltTriggerId, config.default.journal.menuKeyAlt)
     end
 end
@@ -353,8 +366,10 @@ I.Settings.registerGroup{
             checkBoxes = {
                 {key = "givers", name = "questGiversLabel", default = config.default.tracking.advWMapMarkers.details.givers},
                 {key = "markers", name = "questObjectsLabel", default = config.default.tracking.advWMapMarkers.details.markers},
+                {key = "questItems", name = "questItemsLabel", default = config.default.tracking.advWMapMarkers.details.questItems},
             }
         },
+        numberSetting{key = "tracking.advWMapMarkers.questItemLimit", name = "advWMapQuestItemLimit", description = "advWMapQuestItemLimitDescription", integer = true, min = 0, default = config.default.tracking.advWMapMarkers.questItemLimit},
         numberSetting{key = "tracking.advWMapMarkers.size", name = "advWMapMarkerSize", description = "advWMapMarkerSizeDescription", integer = true, min = 1, default = config.default.tracking.advWMapMarkers.size},
         numberSetting{key = "tracking.advWMapMarkers.wSize", name = "advWMapMarkerSizeOnWorldMap", description = "advWMapMarkerSizeOnWorldMapDescription", integer = true, min = 1, default = config.default.tracking.advWMapMarkers.wSize},
         boolSetting{key = "tracking.toggleVisibilityByJournalKey", name = "enableShiftJournalMarkersToggle", description = "enableShiftJournalMarkersToggleDescription", default = config.default.tracking.toggleVisibilityByJournalKey},
