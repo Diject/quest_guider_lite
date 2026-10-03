@@ -369,4 +369,42 @@ function this.destroyTopicsInfo()
 end
 
 
+function this.createFirstInitMenuHotkeyInfo()
+    if not keyModule.isGamepad then return end
+    local keyConfig = config.data.input.keys
+    local contentTable = {}
+    local count = 0
+
+    if keyModule.isGamepad and config.data.input.gamepadJournalScroll then
+        addBtnInfoLay(contentTable, {"C_LT", "C_RT"}, l10n("GamepadActionScroll"))
+        count = count + 1
+    end
+
+    if keyModule.isGamepad then
+        addBtnInfoLay(contentTable, {"C_RSTICK"}, l10n("GamepadActionCursorScroll"))
+        count = count + 1
+    end
+
+    if keyModule.isGamepad then
+        addBtnInfoLay(contentTable, {"C_Y"}, core.getGMST("sOk"))
+    end
+
+    if keyModule.isGamepad then
+        addBtnInfoLay(contentTable, {"C_X"}, l10n("GamepadActionRecreateMarkers"))
+    end
+
+    if keyModule.isGamepad then
+        addBtnInfoLay(contentTable, {"C_B"}, l10n("GamepadActionClose"))
+    end
+
+    if count <= 1 then return end
+
+    this.create(contentTable, "fInit")
+end
+
+function this.destroyFirstInitInfo()
+    this.destroy("fInit")
+end
+
+
 return this

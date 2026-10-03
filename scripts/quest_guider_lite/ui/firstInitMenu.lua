@@ -13,6 +13,7 @@ local config = require("scripts.quest_guider_lite.configLib")
 local tracking = require("scripts.quest_guider_lite.trackingLocal")
 
 local menuHandler = require("scripts.quest_guider_lite.menuHandler")
+local hotkeyMenu = require("scripts.quest_guider_lite.ui.gamepad.hotkeyInfoMenu")
 
 local templates = require("scripts.quest_guider_lite.ui.templates")
 local borders = require("scripts.quest_guider_lite.ui.borders")
@@ -69,6 +70,7 @@ function this.new(params)
         I.DijectKeyBindings.keybind.unregister("Enter", meta.btnFunction)
         I.DijectKeyBindings.keybind.unregister("C_X", meta.btnRecreateFunction)
         I.DijectKeyBindings.keybind.unregister("X", meta.btnRecreateFunction)
+        hotkeyMenu.destroyFirstInitInfo()
         self.menu:destroy()
         menuHandler.unregisterMenu(params.menuId)
     end
@@ -505,6 +507,8 @@ function this.new(params)
 
     meta.menu = ui.create(layoutWithBorders)
     sBoxMeta:setScrollPosition(0)
+
+    hotkeyMenu.createFirstInitMenuHotkeyInfo()
 
     local function onMouseWheelCallback(content, value)
         for _, dt in pairs(content) do

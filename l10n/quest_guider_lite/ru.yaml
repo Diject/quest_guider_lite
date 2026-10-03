@@ -339,6 +339,7 @@ GamepadActionNearbyMenu: "Рядом"
 GamepadActionTopicsMenu: "Диалоги"
 GamepadActionMore: "Больше"
 GamepadActionAlphabetical: "По алфавиту"
+GamepadActionRecreateMarkers: "Пересоздать маркеры"
 
 true_l: "true"
 false_l: "false"

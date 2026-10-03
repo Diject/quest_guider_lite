@@ -339,6 +339,7 @@ GamepadActionNearbyMenu: "Nearby"
 GamepadActionTopicsMenu: "Topics"
 GamepadActionMore: "More"
 GamepadActionAlphabetical: "Alphabetical"
+GamepadActionRecreateMarkers: "Recreate markers"
 
 true_l: "true"
 false_l: "false"
