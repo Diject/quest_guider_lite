@@ -36,13 +36,11 @@ I.Settings.registerRenderer(rendererName, function(value, set, argument)
 
     local actionId = argument.action
 
-    local binding = bindingSection:get(actionId)
-
     local recorder
     recorder = {
         template = I.MWUI.templates.textNormal,
         props = {
-            text = bindingSection:get(actionId) or l10n("Undefined"),
+            text = bindingSection:get(actionId) or l10n("Undefined (click to set)"),
             textSize = 16,
             size = util.vector2(250, 32),
             autoSize = false,
@@ -54,20 +52,23 @@ I.Settings.registerRenderer(rendererName, function(value, set, argument)
         },
         events = {
             mouseRelease = async:callback(function(e)
-                if recording ~= nil then return end
+                if recording ~= nil or (e.button ~= 1 and e.button ~= 3) then return end
+                local binding = bindingSection:get(actionId)
                 if e.button == 1 then
-                    if binding ~= nil then bindingSection:set(actionId, nil) end
-                    recording = {
-                        id = actionId,
-                        arg = arg,
-                        func = function(val) set(val) end,
-                        combLen = 0,
-                    }
-                    set(nil)
-                elseif e.button == 3 then
-                    bindingSection:set(actionId, nil)
-                    set(nil)
+                    if binding ~= nil then
+                        bindingSection:set(actionId, nil)
+                        set(nil)
+                        return
+                    end
                 end
+                bindingSection:set(actionId, nil)
+                recording = {
+                    id = actionId,
+                    arg = arg,
+                    func = function(val) set(val) end,
+                    combLen = 0,
+                }
+                set(nil)
             end),
         },
     }
