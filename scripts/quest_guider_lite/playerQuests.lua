@@ -419,11 +419,18 @@ end
 ---@return string?
 ---@return string? topicId
 function this.getJournalText(diaId, index)
+    local hash = diaId.."_t_"..tostring(index)
+    local cached = this.dialogueInfoCache[hash]
+    if cached then
+        return table.unpack(cached) ---@diagnostic disable-line: redundant-return-value
+    end
+
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
     for _, info in pairs(dia.infos) do
         if info.questStage == index then
+            this.dialogueInfoCache[hash] = {info.text, info.id}
             return info.text, info.id
         end
     end
@@ -435,6 +442,12 @@ end
 ---@return string?
 ---@return string? topicId
 function this.getPlayerJournalText(diaId, index)
+    local hash = diaId.."_t_"..tostring(index)
+    local cached = this.dialogueInfoCache[hash]
+    if cached then
+        return table.unpack(cached) ---@diagnostic disable-line: redundant-return-value
+    end
+
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
@@ -450,6 +463,7 @@ function this.getPlayerJournalText(diaId, index)
                 if dt.jIndex then
                     local entry = entries[dt.jIndex]
                     if entry and entry.questId == diaId then
+                        this.dialogueInfoCache[hash] = {entry.text, entry.id}
                         return entry.text, entry.id
                     end
                 end
@@ -460,6 +474,7 @@ function this.getPlayerJournalText(diaId, index)
 
     for _, info in pairs(dia.infos) do
         if info.questStage == index then
+            this.dialogueInfoCache[hash] = {info.text, info.id}
             return info.text, info.id
         end
     end
@@ -469,11 +484,18 @@ end
 ---@param diaId string
 ---@param topicId string
 function this.getJournalTopic(diaId, topicId)
+    local hash = diaId.."_tp_"..topicId
+    local cached = this.dialogueInfoCache[hash]
+    if cached then
+        return table.unpack(cached) ---@diagnostic disable-line: redundant-return-value
+    end
+
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
     for _, info in pairs(dia.infos) do
         if info.id == topicId then
+            this.dialogueInfoCache[hash] = {info}
             return info
         end
     end
