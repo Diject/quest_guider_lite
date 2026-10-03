@@ -29,15 +29,17 @@ function this.isDialogueTopicAvailable(ref, diaId, infoId, options)
 
     local dia = core.dialogue.topic.records[diaId] or core.dialogue.greeting.records[diaId]
     if not dia then
-        for _, list in pairs({core.dialogue.topic.records, core.dialogue.greeting.records}) do
-            for _, d in pairs(list) do
-                if d.id:lower() == diaId then
-                    dia = d
-                    goto tonext
+        local function findDia()
+            for _, list in pairs({core.dialogue.topic.records, core.dialogue.greeting.records}) do
+                for _, d in pairs(list) do
+                    if d.id:lower() == diaId then
+                        dia = d
+                        return
+                    end
                 end
             end
         end
-        ::tonext::
+        findDia()
     end
 
     if not dia then return end
@@ -52,22 +54,22 @@ function this.isDialogueTopicAvailable(ref, diaId, infoId, options)
     for i = #dia.infos, 1, -1 do
         local info = dia.infos[i]
         local res = this.checkDialogueRecordInfoRequirements(ref, info, options)
-        if not res then goto continue end
+        if res then
 
-        for _, infoData in ipairs(data) do
-            if infoData.id == info.id then
-                local r = requirementChecker.checkBlock(infoData.reqs, checkBlockOptions, playerRef)
+            for _, infoData in ipairs(data) do
+                if infoData.id == info.id then
+                    local r = requirementChecker.checkBlock(infoData.reqs, checkBlockOptions, playerRef)
 
-                if r then
-                    return info.id == infoId, info.id
+                    if r then
+                        return info.id == infoId, info.id
+                    end
+                    break
                 end
-                break
             end
+
+            if res then return info.id == infoId, info.id end
+
         end
-
-        if res then return info.id == infoId, info.id end
-
-        ::continue::
     end
 end
 

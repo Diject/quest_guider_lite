@@ -58,6 +58,7 @@ this.default = {
     journal = {
         overrideJournal = false,
         menuKey = "H",
+        menuKeyAlt = "C_LeftShoulder + C_Back",
         objectNames = 3,
         widthProportional = 75, -- %
         heightProportional = 70, -- %

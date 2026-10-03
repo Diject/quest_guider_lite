@@ -42,15 +42,15 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
 
     local bestResult = nil
 
-    for _, door in pairs(cell:getAll(types.Door)) do
-        if not types.Door.isTeleport(door) or not door.enabled then goto continue end
+    local function processDoor(door)
+        if not types.Door.isTeleport(door) or not door.enabled then return end
 
         local destCell = protectedDoor.destCell(door)
         local destPos = protectedDoor.destPosition(door)
 
-        if not destCell or not destPos or not destCell.id then goto continue end
+        if not destCell or not destPos or not destCell.id then return end
 
-        if checked[destCell.id] and checked[destCell.id] < depth + 1 then goto continue end
+        if checked[destCell.id] and checked[destCell.id] < depth + 1 then return end
 
         local destCellData = tes3.getCellData(destCell)
 
@@ -75,10 +75,14 @@ function this.findExitPos(cell, path, checked, cellPath, depth)
                 bestResult = candidate
             end
 
-            if bestResult[6] == 1 then break end
+            if bestResult[6] == 1 then return true end
         end
+    end
 
-        ::continue::
+    for _, door in pairs(cell:getAll(types.Door)) do
+        if processDoor(door) then
+            break
+        end
     end
 
     if bestResult then
@@ -147,13 +151,13 @@ function this.findReachableCellsByNode(node, cells, depth, mDepth, blackList)
         cells[node.cell.id] = {cell = node.cell, depth = depth}
     end
 
-    for _, door in pairs(node.cell:getAll(types.Door)) do
-        if not types.Door.isTeleport(door) or not door.enabled then goto continue end
+    local function processDoor(door)
+        if not types.Door.isTeleport(door) or not door.enabled then return end
 
         local destCell = protectedDoor.destCell(door)
         local destPos = protectedDoor.destPosition(door)
 
-        if not destCell or not destPos then goto continue end
+        if not destCell or not destPos then return end
 
         if destCell.isExterior then
             hasExitToExterior = true
@@ -163,8 +167,10 @@ function this.findReachableCellsByNode(node, cells, depth, mDepth, blackList)
             )
             hasExitToExterior = hasExitToExterior or hasExit
         end
+    end
 
-        ::continue::
+    for _, door in pairs(node.cell:getAll(types.Door)) do
+        processDoor(door)
     end
 
     return cells, hasExitToExterior
@@ -202,13 +208,13 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells, dep
 
     checked[cell.id] = depth
 
-    for _, door in pairs(cell:getAll(types.Door)) do
-        if not types.Door.isTeleport(door) or not door.enabled then goto continue end
+    local function processDoor(door)
+        if not types.Door.isTeleport(door) or not door.enabled then return end
 
         local destCell = protectedDoor.destCell(door)
         local destPos = protectedDoor.destPosition(door)
 
-        if not destCell or not destPos or not destCell.id then goto continue end
+        if not destCell or not destPos or not destCell.id then return end
 
         if destCell.isExterior then
             table.insert(res, {pos = utils.copyVector3(destPos), depth = depth})
@@ -216,8 +222,10 @@ function this.findExitPositions(cell, checked, res, resCells, entranceCells, dep
         else
             this.findExitPositions(destCell, checked, res, resCells, entranceCells, depth + 1)
         end
+    end
 
-        ::continue::
+    for _, door in pairs(cell:getAll(types.Door)) do
+        processDoor(door)
     end
 
     local lowestDepth = 9999
@@ -325,16 +333,18 @@ function this.getInteriorCellApproxDistancesToPos(cell, pos, distance, checked, 
         }
     end
 
-    for _, door in pairs(cell:getAll(types.Door)) do
-        if not types.Door.isTeleport(door) or not door.enabled then goto continue end
+    local function processDoor(door)
+        if not types.Door.isTeleport(door) or not door.enabled then return end
 
         local destCell = protectedDoor.destCell(door)
         local destPos = protectedDoor.destPosition(door)
-        if not destCell or not destPos then goto continue end
+        if not destCell or not destPos then return end
 
         this.getInteriorCellApproxDistancesToPos(destCell, destPos, distance + (pos - door.position):length(), checked, tableLib.copy(namePath))
+    end
 
-        ::continue::
+    for _, door in pairs(cell:getAll(types.Door)) do
+        processDoor(door)
     end
 
     cacheLib.set("getInteriorCellApproxDistancesToPos", hashVal, checked)
@@ -351,26 +361,26 @@ function this.fillDistanceToPlayer(posData, playerRef)
     local worldPlPosData = interiorCellDistance["__world__"]
 
     for _, pos in pairs(posData or {}) do
-        if not pos.position then goto continue end
+        if pos.position then
 
-        if not pos.id and worldPlPosData then
-            pos.distanceToPlayer = utils.distance2D(worldPlPosData.position, pos.position)
-            pos.pathFromPlayer = worldPlPosData.namePath
-        elseif pos.id then
-            local distData = interiorCellDistance[pos.id:lower()]
-            if distData then
-                pos.distanceToPlayer = distData.distance + utils.distance2D(distData.position, pos.position)
-                pos.pathFromPlayer = distData.namePath
-            elseif pos.exitPos and pos.isExitEx then
-                pos.distanceToPlayer = utils.distance2D(plPos, pos.exitPos)
+            if not pos.id and worldPlPosData then
+                pos.distanceToPlayer = utils.distance2D(worldPlPosData.position, pos.position)
+                pos.pathFromPlayer = worldPlPosData.namePath
+            elseif pos.id then
+                local distData = interiorCellDistance[pos.id:lower()]
+                if distData then
+                    pos.distanceToPlayer = distData.distance + utils.distance2D(distData.position, pos.position)
+                    pos.pathFromPlayer = distData.namePath
+                elseif pos.exitPos and pos.isExitEx then
+                    pos.distanceToPlayer = utils.distance2D(plPos, pos.exitPos)
+                else
+                    pos.distanceToPlayer = math.huge
+                end
             else
                 pos.distanceToPlayer = math.huge
             end
-        else
-            pos.distanceToPlayer = math.huge
-        end
 
-        ::continue::
+        end
     end
 end
 

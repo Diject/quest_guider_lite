@@ -66,23 +66,23 @@ function nextStagesMeta.updateObjectElements(self)
     local flex = self:getObjectsFlex()
 
     for _, elem in pairs(flex.content) do
-        if not elem.userData or not elem.userData.diaId or not elem.userData.objectId then goto continue end
+        if elem.userData and elem.userData.diaId and elem.userData.objectId then
 
-        local disabledState = tracking.getDisabledState{objectId = elem.userData.objectId, questId = elem.userData.diaId}
-        local trackedState = tracking.isObjectTracked{diaId = elem.userData.diaId, objectId = elem.userData.objectId}
-        local trackingData = tracking.markerByObjectId[elem.userData.objectId]
+            local disabledState = tracking.getDisabledState{objectId = elem.userData.objectId, questId = elem.userData.diaId}
+            local trackedState = tracking.isObjectTracked{diaId = elem.userData.diaId, objectId = elem.userData.objectId}
+            local trackingData = tracking.markerByObjectId[elem.userData.objectId]
 
-        local textElem = elem.content[1].content[1].content[1]
-        if not trackedState or not trackingData then
-            textElem.props.textColor = config.data.ui.defaultColor
-        elseif not disabledState then
-            textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
-                or config.data.ui.defaultColor
-        elseif disabledState then
-            textElem.props.textColor = config.data.ui.disabledColor
+            local textElem = elem.content[1].content[1].content[1]
+            if not trackedState or not trackingData then
+                textElem.props.textColor = config.data.ui.defaultColor
+            elseif not disabledState then
+                textElem.props.textColor = trackingData.color and util.color.rgb(trackingData.color[1], trackingData.color[2], trackingData.color[3])
+                    or config.data.ui.defaultColor
+            elseif disabledState then
+                textElem.props.textColor = config.data.ui.disabledColor
+            end
+
         end
-
-        ::continue::
     end
 end
 
@@ -137,116 +137,116 @@ function nextStagesMeta._fill(self, nextBtnsMeta)
 
             local curentIndex = playerQuests.getCurrentIndex(diaId) or 0
             for _, nextData in ipairs(diaData) do
-                if not params.isQuestListMode and curentIndex >= nextData.index then goto continue end
+                local isContinue = not params.isQuestListMode and curentIndex >= nextData.index
 
-                nextBtnsMeta:add{
-                    text = string.format(format, tostring(nextData.index)),
-                    textSize = params.fontSize,
-                    parentScrollBoxUserData = self.params.parentScrollBoxUserData,
-                    updateFunc = params.updateFunc,
-                    tooltipContent = ui.content{
-                        {
-                            type = ui.TYPE.Text,
-                            props = {
-                                text = string.format(l10n("idIndexShort"), diaId, nextData.index),
-                                textColor = config.data.ui.defaultColor,
-                                autoSize = true,
-                                textSize = params.fontSize or 18,
-                                multiline = false,
-                                wordWrap = false,
-                            },
-                        },
-                    },
-                    event = function (layout)
-                        local variantBtnFlex = self:getHeaderVariantBtnsFlex()
-
-                        local variantBtnBlockFlex = buttonBlock.new{
-                            width = params.size.x - stringLib.length(l10n("variantsColon")) * config.data.journal.textHeightMulRecord * config.data.ui.fontSize,
-                            anchor = util.vector2(0, 0),
-                            customWidthMul = 0.5,
-                            updateFunc = params.updateFunc,
-                        }
-                        local variantBtnBlockMeta = variantBtnBlockFlex.userData.meta
-
-                        variantBtnFlex.content = ui.content{
+                if not isContinue then
+                    nextBtnsMeta:add{
+                        text = string.format(format, tostring(nextData.index)),
+                        textSize = params.fontSize,
+                        parentScrollBoxUserData = self.params.parentScrollBoxUserData,
+                        updateFunc = params.updateFunc,
+                        tooltipContent = ui.content{
                             {
                                 type = ui.TYPE.Text,
                                 props = {
-                                    text = l10n("variantsColon"),
+                                    text = string.format(l10n("idIndexShort"), diaId, nextData.index),
                                     textColor = config.data.ui.defaultColor,
                                     autoSize = true,
                                     textSize = params.fontSize or 18,
-                                    anchor = util.vector2(0, 0.5),
                                     multiline = false,
                                     wordWrap = false,
                                 },
                             },
-                            variantBtnBlockFlex,
-                        }
-                        local reqFlex = self:getRequirementsFlex()
-                        reqFlex.content = ui.content{}
-                        local posFlex = self:getObjectsFlex()
-                        posFlex.content = ui.content{}
+                        },
+                        event = function (layout)
+                            local variantBtnFlex = self:getHeaderVariantBtnsFlex()
 
-                        ---@type questGuider.ui.buttonMeta
-                        local btnMeta = layout.userData.meta
-                        local btn = btnMeta:getButtonTextElement()
-                        if btn then
-                            resetColorOfButtons(self:getHeaderNextBtnsFlex())
-                            btn.props.textColor = config.data.ui.selectionColor
-                        end
-
-                        for i, reqs in ipairs(nextData.requirements) do
-                            variantBtnBlockMeta:add{
-                                text = string.format("-%d-", i),
-                                textSize = params.fontSize,
-                                anchor = util.vector2(0, 0.5),
-                                parentScrollBoxUserData = self.params.parentScrollBoxUserData,
+                            local variantBtnBlockFlex = buttonBlock.new{
+                                width = params.size.x - stringLib.length(l10n("variantsColon")) * config.data.journal.textHeightMulRecord * config.data.ui.fontSize,
+                                anchor = util.vector2(0, 0),
+                                customWidthMul = 0.5,
                                 updateFunc = params.updateFunc,
-                                event = function (layout)
-                                    local reqFlex = self:getRequirementsFlex()
-                                    reqFlex.content = ui.content{
-                                        interval(0, self.params.fontSize / 2)
-                                    }
-                                    local posFlex = self:getObjectsFlex()
-                                    posFlex.content = ui.content{
-                                        interval(0, self.params.fontSize / 2)
-                                    }
-
-                                    ---@type questGuider.ui.buttonMeta
-                                    local btnMeta = layout.userData.meta
-                                    local btn = btnMeta:getButtonTextElement()
-                                    if btn then
-                                        resetColorOfButtons(self:getHeaderVariantBtnsFlex().content[2])
-                                        btn.props.textColor = config.data.ui.selectionColor
-                                    end
-
-                                    trackingElementLib.addObjectPositionInfo(posFlex.content, {
-                                        diaId = diaId,
-                                        diaIndex = nextData.index,
-                                        reqs = reqs,
-                                        objPoss = nextStageData.objectPositions,
-                                        width = self.params.size.x,
-                                        fontSize = config.data.ui.fontSize,
-                                        parentScrollBoxUserData = self.params.parentScrollBoxUserData,
-                                        hideTrackButtons = self.params.hideTrackButtons,
-                                        parentContent = self:getLayout().content,
-                                        updateFunc = self.update
-                                    })
-
-                                    addRequirements(reqFlex.content, reqs)
-
-                                    params.updateHeightFunc()
-                                end,
                             }
+                            local variantBtnBlockMeta = variantBtnBlockFlex.userData.meta
+
+                            variantBtnFlex.content = ui.content{
+                                {
+                                    type = ui.TYPE.Text,
+                                    props = {
+                                        text = l10n("variantsColon"),
+                                        textColor = config.data.ui.defaultColor,
+                                        autoSize = true,
+                                        textSize = params.fontSize or 18,
+                                        anchor = util.vector2(0, 0.5),
+                                        multiline = false,
+                                        wordWrap = false,
+                                    },
+                                },
+                                variantBtnBlockFlex,
+                            }
+                            local reqFlex = self:getRequirementsFlex()
+                            reqFlex.content = ui.content{}
+                            local posFlex = self:getObjectsFlex()
+                            posFlex.content = ui.content{}
+
+                            ---@type questGuider.ui.buttonMeta
+                            local btnMeta = layout.userData.meta
+                            local btn = btnMeta:getButtonTextElement()
+                            if btn then
+                                resetColorOfButtons(self:getHeaderNextBtnsFlex())
+                                btn.props.textColor = config.data.ui.selectionColor
+                            end
+
+                            for i, reqs in ipairs(nextData.requirements) do
+                                variantBtnBlockMeta:add{
+                                    text = string.format("-%d-", i),
+                                    textSize = params.fontSize,
+                                    anchor = util.vector2(0, 0.5),
+                                    parentScrollBoxUserData = self.params.parentScrollBoxUserData,
+                                    updateFunc = params.updateFunc,
+                                    event = function (layout)
+                                        local reqFlex = self:getRequirementsFlex()
+                                        reqFlex.content = ui.content{
+                                            interval(0, self.params.fontSize / 2)
+                                        }
+                                        local posFlex = self:getObjectsFlex()
+                                        posFlex.content = ui.content{
+                                            interval(0, self.params.fontSize / 2)
+                                        }
+
+                                        ---@type questGuider.ui.buttonMeta
+                                        local btnMeta = layout.userData.meta
+                                        local btn = btnMeta:getButtonTextElement()
+                                        if btn then
+                                            resetColorOfButtons(self:getHeaderVariantBtnsFlex().content[2])
+                                            btn.props.textColor = config.data.ui.selectionColor
+                                        end
+
+                                        trackingElementLib.addObjectPositionInfo(posFlex.content, {
+                                            diaId = diaId,
+                                            diaIndex = nextData.index,
+                                            reqs = reqs,
+                                            objPoss = nextStageData.objectPositions,
+                                            width = self.params.size.x,
+                                            fontSize = config.data.ui.fontSize,
+                                            parentScrollBoxUserData = self.params.parentScrollBoxUserData,
+                                            hideTrackButtons = self.params.hideTrackButtons,
+                                            parentContent = self:getLayout().content,
+                                            updateFunc = self.update
+                                        })
+
+                                        addRequirements(reqFlex.content, reqs)
+
+                                        params.updateHeightFunc()
+                                    end,
+                                }
+                            end
+
+                            params.updateHeightFunc()
+                            self:update()
                         end
-
-                        params.updateHeightFunc()
-                        self:update()
-                    end
-                }
-
-                ::continue::
+                    }
+                end
             end
         end
     end

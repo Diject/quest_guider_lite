@@ -559,7 +559,7 @@ function questBoxMeta._fillJournal(self, content, params)
         addLogEntryElement()
 
         local qInfo = playerQuestDataList[i]
-        if not qInfo then goto continue end
+        if not qInfo then return end
 
         if not qInfo.diaId then return end
 
@@ -621,7 +621,7 @@ function questBoxMeta._fillJournal(self, content, params)
             end
         end
 
-        if not text and not next(linkedTexts) then goto continue end
+        if not text and not next(linkedTexts) then return end
 
         text = text or ""
 
@@ -1047,15 +1047,13 @@ function questBoxMeta._fillJournal(self, content, params)
         -- content:add(thinLineLayout)
         content:add(container)
         contentIndex = contentIndex + 1
-
-        ::continue::
     end
 
     if self.params.isQuestList then
-        for i = 1, playerQuestDataListCount do
+        local function processList(i)
             if params.showOnlyMainDia then
                 local qInfo = playerQuestDataList[i]
-                if not qInfo then goto continue end
+                if not qInfo then return end
 
                 if qInfo.diaId then
                     local mainDias = questBase.getQuestMainDialogueIdsMap(qInfo.diaId)
@@ -1066,8 +1064,10 @@ function questBoxMeta._fillJournal(self, content, params)
             else
                 addElement(i)
             end
+        end
 
-            ::continue::
+        for i = 1, playerQuestDataListCount do
+            processList(i)
         end
     else
         local i = playerQuestDataListCount

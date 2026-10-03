@@ -27,6 +27,7 @@ local uiUtils = require("scripts.quest_guider_lite.ui.utils")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
 local log = require("scripts.quest_guider_lite.utils.log")
 
+local hotkeyMenu = require("scripts.quest_guider_lite.ui.gamepad.hotkeyInfoMenu")
 local button = require("scripts.quest_guider_lite.ui.button")
 local scrollBox = require("scripts.quest_guider_lite.ui.scrollBox")
 local interval = require("scripts.quest_guider_lite.ui.interval")
@@ -260,14 +261,12 @@ function journalMeta.updateNextStageBlocks(self)
 
     for _, scrollContentElement in pairs(scrlBox:getContent()) do
         for _, nextStagesBlock in pairs(scrollContentElement.content or {}) do
-            if not nextStagesBlock.userData or not nextStagesBlock.userData or not nextStagesBlock.userData.meta
-                    or nextStagesBlock.userData.meta.type ~= commonData.elementMetatableTypes.nextStages then
-                goto continue
+            local isContinue = not nextStagesBlock.userData or not nextStagesBlock.userData or not nextStagesBlock.userData.meta
+                    or nextStagesBlock.userData.meta.type ~= commonData.elementMetatableTypes.nextStages
+
+            if not isContinue then
+                nextStagesBlock.userData.meta:updateObjectElements()
             end
-
-            nextStagesBlock.userData.meta:updateObjectElements()
-
-            ::continue::
         end
     end
 end
@@ -294,14 +293,14 @@ local function hasText(questData, text)
     end
 
     for _, dt in pairs(questData.list) do
-        if not dt.diaId then goto continue end
-        if dt.diaId:find(text, 1, true) then return true end
+        if dt.diaId then
+            if dt.diaId:find(text, 1, true) then return true end
 
-        local dateStr = timeLib.getDateByTime(timeLib.getTimestamp(dt))
-        if stringLib.utf8_lower(dateStr):find(text, 1, true) then
-            return true
+            local dateStr = timeLib.getDateByTime(timeLib.getTimestamp(dt))
+            if stringLib.utf8_lower(dateStr):find(text, 1, true) then
+                return true
+            end
         end
-        ::continue::
     end
 
     return false
@@ -400,18 +399,17 @@ function journalMeta.fillQuestsContent(self)
 
         if not hasTracked and self.params.menuId == commonData.journalMenuId and not next(dt.list) then
             questData[i] = nil
-            goto continue
+        else
+
+            val = dt.pinned and val + pinnedAddVal or
+                dt.generated and val - generatedSubVal or
+                (hasTracked and (dt.finished or dt.disabled)) and val - generatedSubVal or
+                dt.finished and val - finishedSubVal or
+                dt.disabled and val - disabledSubVal or val
+
+            compareVals[dt.name] = val
+
         end
-
-        val = dt.pinned and val + pinnedAddVal or
-            dt.generated and val - generatedSubVal or
-            (hasTracked and (dt.finished or dt.disabled)) and val - generatedSubVal or
-            dt.finished and val - finishedSubVal or
-            dt.disabled and val - disabledSubVal or val
-
-        compareVals[dt.name] = val
-
-        ::continue::
     end
 
     local function compareFunc(a, b)
@@ -482,22 +480,22 @@ function journalMeta.fillQuestsContent(self)
     local activeQuestsCount = 0
     local inactiveQuestsCount = 0
 
-    for _, dt in pairs(sortedData) do
+    local function processData(dt)
         if dt.disabled and not showHidden
                 or dt.finished and not showFinished then
-            goto continue
+            return
         end
 
         if dt.started and self.params.menuId == commonData.allQuestsMenuId and not showFinished then
-            goto continue
+            return
         end
 
         if params.isQuestList and (not dt.name or dt.name == "") then
-            goto continue
+            return
         end
 
         if self.textFilter ~= "" and not hasText(dt, self.textFilter) then
-            goto continue
+            return
         end
 
         if self.params.menuId ~= commonData.allQuestsMenuId and
@@ -676,8 +674,10 @@ function journalMeta.fillQuestsContent(self)
         else
             activeQuestsCount = activeQuestsCount + 1
         end
+    end
 
-        ::continue::
+    for _, dt in pairs(sortedData) do
+        processData(dt)
     end
 
     inactiveLabelLayout.content[1].props.text = l10n("inactiveQuestsLabelWithCount", {count = inactiveQuestsCount})
@@ -762,6 +762,7 @@ end
 ---@field hideJournalBtn boolean?
 ---@field createTopicMenuFunc function?
 ---@field createTrackingMenuFunc function?
+---@field userData any?
 ---@field onClose function?
 
 ---@param params questGuider.ui.customJournal.params
@@ -785,9 +786,15 @@ local function create(params)
     end
 
     meta.params = params
+    meta.userData = params.userData
 
     function meta.close()
         if params.onClose then params.onClose() end
+        if meta.params.menuId == commonData.allQuestsMenuId then
+            hotkeyMenu.destroyAllQuestsInfo()
+        else
+            hotkeyMenu.destroyJournalInfo()
+        end
         if not meta.menu or not meta.menu.layout then return end
         meta.menu:destroy()
         menuHandler.unregisterMenu(params.menuId)
@@ -1470,6 +1477,7 @@ local function create(params)
             horizontal = false,
             align = ui.ALIGNMENT.Center,
             relativePosition = params.relativePosition,
+            alpha = 0,
         },
         userData = {
 
@@ -1484,6 +1492,15 @@ local function create(params)
     }
 
     meta.menu = ui.create(mainFlex)
+
+    local function alphaTimer()
+        mainFlex.props.alpha = math.min(1, mainFlex.props.alpha + core.getRealFrameDuration() * 3)
+        meta:update()
+        if mainFlex.props.alpha ~= 1 then
+            realTimer.newTimer(0, alphaTimer)
+        end
+    end
+    realTimer.newTimer(0, alphaTimer)
 
     meta:fillQuestsContent()
     meta:update()
@@ -1531,25 +1548,23 @@ local function create(params)
         bottomTextTimer = realTimer.newTimer(0.03, increaseBottomTextAlpha, time)
     end
 
-
-    local keyInfo = keysModule.getJournalMenuHotkeyInfoStr(params.menuId == commonData.allQuestsMenuId)
-    if keyInfo then
-        meta:showInfoMessage(" "..keyInfo.." ", not keysModule.isGamepad and math.min(45, stringLib.length(keyInfo) * 0.3) or nil)
+    if config.data.journal.bottomInfoText.enabled then
+        hotkeyMenu.createJournalMenuHotkeyInfo(params.menuId == commonData.allQuestsMenuId)
     end
 
 
     local function onMouseWheelCallback(content, value)
         for _, dt in pairs(content) do
-            if not type(dt) == "table" then goto continue end
-            if dt.userData and dt.userData.onMouseWheel then
-                dt.userData.onMouseWheel(value)
-            end
+            if type(dt) == "table" then
+                if dt.userData and dt.userData.onMouseWheel then
+                    dt.userData.onMouseWheel(value)
+                end
 
-            if dt.content then
-                onMouseWheelCallback(dt.content, value)
-            end
+                if dt.content then
+                    onMouseWheelCallback(dt.content, value)
+                end
 
-            ::continue::
+            end
         end
     end
 

@@ -290,6 +290,9 @@ if configVersion ~= config.configVersion then
             end
         end
     end
+    if not configVersion or configVersion < 2 and (I.DijectKeyBindings.version < 2 or I.DijectKeyBindings.getActionKey(commonData.journalMenuAltTriggerId) == nil) then
+        I.DijectKeyBindings.registerKey(commonData.journalMenuAltTriggerId, config.default.journal.menuKeyAlt)
+    end
 end
 
 
@@ -302,6 +305,7 @@ I.Settings.registerGroup{
     order = 0,
     settings = {
         inputKey{key = "journal.menuKey", name = "customJournalKeyName", description = "customJournalKeyDescription", action = commonData.journalMenuTriggerId, default = config.default.journal.menuKey},
+        inputKey{key = "journal.menuKeyAlt", name = "customJournalKeyAltName", description = "customJournalKeyAltDescription", action = commonData.journalMenuAltTriggerId, default = config.default.journal.menuKeyAlt},
         boolSetting{key = "journal.overrideJournal", name = "overrideJournal", description = "overrideJournalDescription", default = config.default.journal.overrideJournal},
         numberSetting{key = "journal.widthProportional", name = "width", description = "widthDescription", integer = true, min = 30, max = 100, default = config.default.journal.widthProportional},
         numberSetting{key = "journal.heightProportional", name = "height", description = "heightDescription", integer = true, min = 20, max = 100, default = config.default.journal.heightProportional},

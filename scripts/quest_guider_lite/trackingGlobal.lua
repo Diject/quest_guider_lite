@@ -45,28 +45,28 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId, player)
     local doorByObjId = {}
 
     for objId, objData in pairs(markerByObjectId) do
-        if objData.doorMarkersDisabled then goto continue end
+        if not objData.doorMarkersDisabled then
 
-        for qId, markerInfo in pairs(objData.markers) do
-            local markerData = markerInfo.data
+            for qId, markerInfo in pairs(objData.markers) do
+                local markerData = markerInfo.data
 
-            for cellId, parentCellId in pairs(objData.targetCells or {}) do
-                for doorRef, doorData in pairs(doors) do
-                    local targetCellDt = doorData.cells[parentCellId]
-                    if targetCellDt then
-                        if not doorByObjId[objId] then doorByObjId[objId] = {} end
-                        if not doorByObjId[objId][doorRef] then doorByObjId[objId][doorRef] = {} end
+                for cellId, parentCellId in pairs(objData.targetCells or {}) do
+                    for doorRef, doorData in pairs(doors) do
+                        local targetCellDt = doorData.cells[parentCellId]
+                        if targetCellDt then
+                            if not doorByObjId[objId] then doorByObjId[objId] = {} end
+                            if not doorByObjId[objId][doorRef] then doorByObjId[objId][doorRef] = {} end
 
-                        table.insert(doorByObjId[objId][doorRef], targetCellDt)
+                            table.insert(doorByObjId[objId][doorRef], targetCellDt)
+                        end
                     end
                 end
             end
-        end
 
-        ::continue::
+        end
     end
 
-    for objId, objDoorDt in pairs(doorByObjId) do
+    local function processDoorDt(objId, objDoorDt)
         local depthHashTable = {}
 
         for doorRef, doorDt in pairs(objDoorDt) do
@@ -78,7 +78,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId, player)
         local depths = tableLib.keys(depthHashTable)
         table.sort(depths)
 
-        if #depths == 0 or depths[1] == 0 then goto continue end
+        if #depths == 0 or depths[1] == 0 then return end
 
         local lowestDepthHashTable = {}
         if depths[1] == 1 then
@@ -110,7 +110,7 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId, player)
 
             if shouldCreateMarker then
                 local objData = markerByObjectId[objId]
-                if not objData then goto continue end
+                if not objData then return end
 
                 for qId, markerInfo in pairs(objData.markers) do
 
@@ -161,8 +161,10 @@ function this.addMarkersForInteriorCell(cellId, markerByObjectId, player)
         for _, data in pairs(newMarkerData) do
             player:sendEvent("QGL:addMarkerForInteriorCellTracking", data)
         end
+    end
 
-        ::continue::
+    for objId, objDoorDt in pairs(doorByObjId) do
+        processDoorDt(objId, objDoorDt)
     end
 end
 

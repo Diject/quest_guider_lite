@@ -12,30 +12,10 @@ this.whiteTexture = ui.texture{ path = "white" }
 this.customTemplates = nil
 
 function this.removeFromContent(content, index)
-    if type(index) == "string" then
-        index = content.__nameIndex[index]
-    end
-
-    if not index then return end
-
-    local val = rawget(content, index)
-    if not val then return end
-
-    local oldName = val and val.name
-    if oldName then
-        content.__nameIndex[oldName] = nil
-    end
-
-    for i = index, #content - 1 do
-        local v = rawget(content, i + 1)
-        rawset(content, i, v)
-        if type(v.name) == 'string' then
-            content.__nameIndex[v.name] = i
-        end
-    end
-    rawset(content, #content, nil)
-
-    return index
+    local ss, res = pcall(function ()
+        content[index] = nil
+    end)
+    return ss and index or nil
 end
 
 
@@ -47,11 +27,10 @@ end
 
 
 function this.getFromContent(content, index)
-    if type(index) == "string" then
-        return rawget(content, content.__nameIndex[index])
-    else
-        return rawget(content, index)
-    end
+    local ss, res = pcall(function ()
+        return content[index]
+    end)
+    return ss and res or nil
 end
 
 

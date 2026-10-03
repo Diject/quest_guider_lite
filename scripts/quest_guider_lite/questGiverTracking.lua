@@ -168,33 +168,33 @@ end
 function this.updateQuestGiverMarkers(player)
 
     for trId, markerData in pairs(this.trackedQuestGivers) do
-        if markerData.player.id ~= player.id then goto continue end
+        if markerData.player.id == player.id then
 
-        markerData.player:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
-        markerData.player:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
-        markerData.markerId = nil
-        markerData.hudMarkerId = nil
+            markerData.player:sendEvent("QGL:removeProximityRecord", {recordId = markerData.markerId})
+            markerData.player:sendEvent("QGL:removeHUDMarker", {id = markerData.hudMarkerId})
+            markerData.markerId = nil
+            markerData.hudMarkerId = nil
 
-        local found = false
-        for refId, refDt in pairs(markerData.refs) do
-            if refDt.ref:isValid() then
-                found = true
-                if refDt.hudMarkerId or refDt.markerId then
-                    markerData.player:sendEvent("QGL:updateHUDMarkerVisibility", {id = refDt.hudMarkerId})
-                    markerData.player:sendEvent("QGL:updateProximityMarkerVisibility", {recordId = refDt.markerId})
+            local found = false
+            for refId, refDt in pairs(markerData.refs) do
+                if refDt.ref:isValid() then
+                    found = true
+                    if refDt.hudMarkerId or refDt.markerId then
+                        markerData.player:sendEvent("QGL:updateHUDMarkerVisibility", {id = refDt.hudMarkerId})
+                        markerData.player:sendEvent("QGL:updateProximityMarkerVisibility", {recordId = refDt.markerId})
+                    else
+                        this.createQuestGiverMarker(refDt.ref, markerData.player)
+                    end
                 else
-                    this.createQuestGiverMarker(refDt.ref, markerData.player)
+                    markerData.refs[refId] = nil
                 end
-            else
-                markerData.refs[refId] = nil
             end
-        end
 
-        if not found then
-            this.trackedQuestGivers[trId] = nil
-        end
+            if not found then
+                this.trackedQuestGivers[trId] = nil
+            end
 
-        ::continue::
+        end
     end
 end
 

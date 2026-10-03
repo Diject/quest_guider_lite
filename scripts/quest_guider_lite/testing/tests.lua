@@ -50,15 +50,13 @@ function this.descriptionLines()
     for qId, qStages in pairs(dataHandler.quests) do
 
         for name, qData in pairs(qStages) do
-            if name == "name" or name == "hasFinished" or name == "links" then
-                goto continue
-            end
+            local isContinue = name == "name" or name == "hasFinished" or name == "links"
 
-            for _, reqBlock in pairs(qData.requirements or {}) do
-                processReqBlock(reqBlock)
+            if not isContinue then
+                for _, reqBlock in pairs(qData.requirements or {}) do
+                    processReqBlock(reqBlock)
+                end
             end
-
-            ::continue::
         end
     end
 

@@ -188,17 +188,17 @@ function this.init()
 
     end
 
-    for qId, q in pairs(playerFunc.quests(playerRef)) do
+    local function processQuest(qId, q)
         if q.finished then
             this.finished[q.id] = true
         end
 
         local dia = core.dialogue.journal.records[q.id]
-        if not dia then goto continue end
+        if not dia then return end
         local qName = dia.questName or ""
 
         local qData = this.questData[qName]
-        if not qData then goto continue end
+        if not qData then return end
 
         if core.API_REVISION >= 93 and storageData then
 
@@ -257,8 +257,10 @@ function this.init()
                 this.finished[id] = true
             end
         end
+    end
 
-        ::continue::
+    for qId, q in pairs(playerFunc.quests(playerRef)) do
+        processQuest(qId, q)
     end
 
     initialized = true
@@ -302,60 +304,60 @@ function this.generateStorageQuestDataByDiaIdList(list)
 
     for _, diaId in pairs(list or {}) do
         local dialogue = core.dialogue.journal.records[diaId]
-        if not dialogue then goto continue end
+        if dialogue then
 
-        local qName = dialogue.questName or ""
+            local qName = dialogue.questName or ""
 
-        local plData = this.getQuestStorageData(qName)
+            local plData = this.getQuestStorageData(qName)
 
-        local startedFlag = plData and next(plData.list or {}) and true or false
+            local startedFlag = plData and next(plData.list or {}) and true or false
 
-        ---@type questGuider.playerQuest.storageQuestData
-        local storDt = res[qName]
-        if not storDt then
             ---@type questGuider.playerQuest.storageQuestData
-            storDt = {
-                list = {},
-                tempDias = {},
-                name = qName,
-                timestamp = plData and plData.timestamp,
-                globalTime = plData and plData.globalTime,
-                disabled = plData and plData.disabled,
-                finished = plData and plData.finished,
-                pinned = plData and plData.pinned,
-                started = startedFlag,
-                generated = (not plData or not startedFlag) and true or false,
-            }
-            res[qName] = storDt
-        end
-
-        local indexes = {}
-
-        for i, info in pairs(dialogue.infos) do
-            if info.text ~= qName then
-                table.insert(indexes, info.questStage)
+            local storDt = res[qName]
+            if not storDt then
+                ---@type questGuider.playerQuest.storageQuestData
+                storDt = {
+                    list = {},
+                    tempDias = {},
+                    name = qName,
+                    timestamp = plData and plData.timestamp,
+                    globalTime = plData and plData.globalTime,
+                    disabled = plData and plData.disabled,
+                    finished = plData and plData.finished,
+                    pinned = plData and plData.pinned,
+                    started = startedFlag,
+                    generated = (not plData or not startedFlag) and true or false,
+                }
+                res[qName] = storDt
             end
+
+            local indexes = {}
+
+            for i, info in pairs(dialogue.infos) do
+                if info.text ~= qName then
+                    table.insert(indexes, info.questStage)
+                end
+            end
+
+            table.sort(indexes)
+
+            local tempDia = {indexData = {}, count = 0}
+
+            for _, index in ipairs(indexes) do
+                ---@type questGuider.playerQuest.storageQuestInfo
+                local dt = {
+                    diaId = diaId,
+                    index = index,
+                    timestamp = nil,
+                }
+
+                table.insert(tempDia.indexData, dt)
+                tempDia.count = tempDia.count + 1
+            end
+
+            table.insert(storDt.tempDias, tempDia) ---@diagnostic disable-line: undefined-field
+
         end
-
-        table.sort(indexes)
-
-        local tempDia = {indexData = {}, count = 0}
-
-        for _, index in ipairs(indexes) do
-            ---@type questGuider.playerQuest.storageQuestInfo
-            local dt = {
-                diaId = diaId,
-                index = index,
-                timestamp = nil,
-            }
-
-            table.insert(tempDia.indexData, dt)
-            tempDia.count = tempDia.count + 1
-        end
-
-        table.insert(storDt.tempDias, tempDia) ---@diagnostic disable-line: undefined-field
-
-        ::continue::
     end
 
     for qName, qDt in pairs(res) do
@@ -417,11 +419,18 @@ end
 ---@return string?
 ---@return string? topicId
 function this.getJournalText(diaId, index)
+    local hash = diaId.."_t_"..tostring(index)
+    local cached = this.dialogueInfoCache[hash]
+    if cached then
+        return table.unpack(cached) ---@diagnostic disable-line: redundant-return-value
+    end
+
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
     for _, info in pairs(dia.infos) do
         if info.questStage == index then
+            this.dialogueInfoCache[hash] = {info.text, info.id}
             return info.text, info.id
         end
     end
@@ -433,6 +442,12 @@ end
 ---@return string?
 ---@return string? topicId
 function this.getPlayerJournalText(diaId, index)
+    local hash = diaId.."_t_"..tostring(index)
+    local cached = this.dialogueInfoCache[hash]
+    if cached then
+        return table.unpack(cached) ---@diagnostic disable-line: redundant-return-value
+    end
+
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
@@ -448,6 +463,7 @@ function this.getPlayerJournalText(diaId, index)
                 if dt.jIndex then
                     local entry = entries[dt.jIndex]
                     if entry and entry.questId == diaId then
+                        this.dialogueInfoCache[hash] = {entry.text, entry.id}
                         return entry.text, entry.id
                     end
                 end
@@ -458,6 +474,7 @@ function this.getPlayerJournalText(diaId, index)
 
     for _, info in pairs(dia.infos) do
         if info.questStage == index then
+            this.dialogueInfoCache[hash] = {info.text, info.id}
             return info.text, info.id
         end
     end
@@ -467,11 +484,18 @@ end
 ---@param diaId string
 ---@param topicId string
 function this.getJournalTopic(diaId, topicId)
+    local hash = diaId.."_tp_"..topicId
+    local cached = this.dialogueInfoCache[hash]
+    if cached then
+        return table.unpack(cached) ---@diagnostic disable-line: redundant-return-value
+    end
+
     local dia = core.dialogue.journal.records[diaId]
     if not dia then return end
 
     for _, info in pairs(dia.infos) do
         if info.id == topicId then
+            this.dialogueInfoCache[hash] = {info}
             return info
         end
     end
@@ -667,32 +691,31 @@ function this.getAndUpdateJournalQuestData(qName)
 
     if storData then
         for _, dt in pairs(storData.list) do
-            if not dt.diaId then goto continue end
+            if dt.diaId and dt.index then
 
-            local text, id = this.getJournalText(dt.diaId, dt.index)
+                local text, id = this.getJournalText(dt.diaId, dt.index)
 
-            if dt.jIndex then
-                local entry = entries[dt.jIndex]
-                if entry and (not id or entry.id == id) then
-                    text = entry.text
-                    id = entry.id
+                if dt.jIndex then
+                    local entry = entries[dt.jIndex]
+                    if entry and (not id or entry.id == id) then
+                        text = entry.text
+                        id = entry.id
+                    end
                 end
-            end
 
-            if text and id then
-                texts[id] = text
+                if text and id then
+                    texts[id] = text
+                end
             end
         end
 
         storData.journalIndex = entriesCount
-
-        ::continue::
     end
 
     local pos = 1
-    for i = storDataPos + 1, entriesCount do
+    local function processEntry(i)
         local entry = entries[i]
-        if not entry or not diaIds[entry.questId or ""] then goto continue end
+        if not entry or not diaIds[entry.questId or ""] then return end
 
         if not storData then
             ---@type questGuider.playerQuest.storageQuestData
@@ -706,7 +729,7 @@ function this.getAndUpdateJournalQuestData(qName)
         texts[entry.id] = entry.text
 
         local topic = this.getJournalTopic(entry.questId, entry.id)
-        if not topic then goto continue end
+        if not topic then return end
 
         local index = topic.questStage
 
@@ -748,8 +771,10 @@ function this.getAndUpdateJournalQuestData(qName)
         end
 
         pos = pos + 1
+    end
 
-        ::continue::
+    for i = storDataPos + 1, entriesCount do
+        processEntry(i)
     end
 
     return storData, texts
@@ -762,19 +787,19 @@ function this.getQuestDataTexts(qData)
     local entries = core.API_REVISION >= 93 and playerFunc.journal(playerRef).journalTextEntries or nil
     local res = {}
     for _, dt in pairs(qData.list) do
-        if not dt.diaId then goto continue end
-        if dt.jIndex and entries then
-            local entry = entries[dt.jIndex]
-            if entry then
-                res[entry.id] = entry.text
-            end
-        else
-            local text, id = this.getJournalText(dt.diaId, dt.index)
-            if text and id then
-                res[id] = text
+        if dt.diaId and dt.index then
+            if dt.jIndex and entries then
+                local entry = entries[dt.jIndex]
+                if entry then
+                    res[entry.id] = entry.text
+                end
+            else
+                local text, id = this.getJournalText(dt.diaId, dt.index)
+                if text and id then
+                    res[id] = text
+                end
             end
         end
-        ::continue::
     end
 
     return res
