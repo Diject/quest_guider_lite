@@ -553,11 +553,13 @@ local function markerClick(userData)
     if userData.type == "tracking" and userData.questName then ---@diagnostic disable-line: need-check-nil
         if not menuHandler.getMenu(commonData.journalMenuId) then
             advWMapIntegration.setMapHotkeysActive(false)
+            menuHandler.activateDeactivateCallback(true)
             menuHandler.registerMenu(commonData.journalMenuId, createQuestMenu{
                 fontSize = config.data.ui.fontSize,
                 sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
                 relativePosition = util.vector2(config.data.journal.position.x * 0.01, config.data.journal.position.y * 0.01),
                 onClose = function ()
+                    menuHandler.activateDeactivateCallback(false)
                     advWMapIntegration.setMapHotkeysActive(true)
                 end
             })
@@ -585,6 +587,7 @@ local function giverMarkerClick(userData)
 
     if hasNonTrackedQuest then
         advWMapIntegration.setMapHotkeysActive(false)
+        menuHandler.activateDeactivateCallback(true)
         menuHandler.registerMenu(commonData.allQuestsMenuId, createQuestMenu{
             fontSize = config.data.ui.fontSize,
             sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
@@ -602,6 +605,7 @@ local function giverMarkerClick(userData)
             allEntriesDefault = false,
             hideJournalBtn = true,
             onClose = function ()
+                menuHandler.activateDeactivateCallback(false)
                 advWMapIntegration.setMapHotkeysActive(true)
             end
         })
@@ -643,6 +647,8 @@ local function mapQuestItemClick(itemData, objName)
         mapQuestItemClickDelayTimer = nil
 
         if next(mapQuestItemClickDiaIds) then
+            advWMapIntegration.setMapHotkeysActive(false)
+            menuHandler.activateDeactivateCallback(true)
             menuHandler.registerMenu(commonData.allQuestsMenuId, createQuestMenu{
                 fontSize = config.data.ui.fontSize,
                 sizeProportional = util.vector2(config.data.journal.widthProportional * 0.01, config.data.journal.heightProportional * 0.01),
@@ -659,6 +665,10 @@ local function mapQuestItemClick(itemData, objName)
                 nearbyModeDefault = false,
                 allEntriesDefault = false,
                 hideJournalBtn = true,
+                onClose = function ()
+                    menuHandler.activateDeactivateCallback(false)
+                    advWMapIntegration.setMapHotkeysActive(true)
+                end
             })
         end
         mapQuestItemClickDiaIds = {}
