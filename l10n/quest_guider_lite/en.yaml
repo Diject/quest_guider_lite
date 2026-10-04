@@ -203,7 +203,7 @@ quests: "Quests"
 markers: "Markers"
 trackedObjects: "Tracked objects"
 givers: "Givers"
-questItems: "All quest items"
+questItems: "Quest items nearby"
 requirementsColon: "Requirements: "
 clickForInfo: "Click for info"
 cellsAway: |-

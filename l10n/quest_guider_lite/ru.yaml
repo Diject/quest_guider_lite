@@ -203,7 +203,7 @@ quests: "Квесты"
 markers: "Маркеры"
 trackedObjects: "Отслеживаемые объекты"
 givers: "Квестодатели"
-questItems: "Все квестовые предметы"
+questItems: "Квестовые предметы рядом"
 requirementsColon: "Требования: "
 clickForInfo: "Нажмите для информации"
 cellsAway: |-
