@@ -997,9 +997,18 @@ do
 end
 
 
+local replaceJournalMessageTimer
 local function replaceJournalMessage()
     if config.data.journal.overrideJournal or
         config.data.message.replaceJournal >= 40 then return end
+
+    local AdvWMap = I.AdvancedWorldMap
+    if AdvWMap then
+        local mapMenu = AdvWMap.getMapMenu()
+        if mapMenu and mapMenu:isVisible() or
+            not mapMenu and AdvWMap.version >= 23 and AdvWMap.hasActiveMenus() then return end
+
+    end
 
     realTimer.newTimer(0.1, function ()
         if menuHandler.hasActiveMenus() then return end
@@ -1157,7 +1166,14 @@ return {
             end
 
             if e.newMode == "Journal" then
-                replaceJournalMessage()
+                if replaceJournalMessageTimer then
+                    replaceJournalMessageTimer()
+                    replaceJournalMessageTimer = nil
+                end
+                realTimer.newTimer(0.5, function ()
+                    replaceJournalMessage()
+                    replaceJournalMessageTimer = nil
+                end)
             end
         end,
 
