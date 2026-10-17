@@ -1,5 +1,9 @@
 local include = require("scripts.quest_guider_lite.utils.include")
 
+local types = require("openmw.types")
+local NPC = types.NPC
+local Creature = types.Creature
+
 local tableLib = require("scripts.quest_guider_lite.utils.table")
 local requirementChecker = require("scripts.quest_guider_lite.requirementChecker")
 local stringLib = require("scripts.quest_guider_lite.utils.string")
@@ -303,8 +307,11 @@ function this.checkConditionsForQuest(questId, questIndex, ref, player, params)
             [myTypes.requirementType.CustomDialogue] = true,
             [myTypes.requirementType.CustomDisposition] = true,
             [myTypes.requirementType.NPCReputation] = true,
-            [myTypes.requirementType.CustomLocal] = true,
         }
+
+        if ref.type == NPC or ref.type == Creature then
+            ignoredTypes[myTypes.requirementType.CustomLocal] = true
+        end
 
         local truthTable = {
             [myTypes.requirementType.PreviousDialogChoice] = true,
