@@ -135,7 +135,7 @@ function this.addObjectPositionInfo(content, params)
         return a.name < b.name
     end)
 
-    for _, objData in pairs(objectPosInfo) do
+    for i, objData in pairs(objectPosInfo) do
         local objId = objData.id
 
         local hasDiaId = params.diaId ~= nil
@@ -350,6 +350,7 @@ function this.addObjectPositionInfo(content, params)
         end
 
         content:add{
+            name = "oInf"..tostring(i),
             type = ui.TYPE.Flex,
             props = {
                 autoSize = true,
@@ -372,6 +373,7 @@ function this.addObjectPositionInfo(content, params)
             }
         }
         content:add{
+            name = "int"..tostring(i),
             props = {
                 size = util.vector2(0, math.floor(params.fontSize / 2))
             },

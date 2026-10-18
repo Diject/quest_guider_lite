@@ -13,7 +13,10 @@ this.customTemplates = nil
 
 function this.removeFromContent(content, index)
     local ss, res = pcall(function ()
-        content[index] = nil
+        local elem = content[index]
+        if elem then
+            content[elem.name or index] = nil
+        end
     end)
     return ss and index or nil
 end
