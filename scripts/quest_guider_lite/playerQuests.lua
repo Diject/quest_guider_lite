@@ -66,6 +66,7 @@ this.dialogueInfoCache = {}
 ---@field disabled boolean?
 ---@field finished boolean?
 ---@field pinned boolean?
+---@field tracked boolean?
 ---@field started boolean? -- only for generated data
 ---@field generated boolean? -- only for generated data
 ---@field timestamp number?
@@ -581,6 +582,15 @@ function this.isHidden(questId)
     if not data then return end
 
     return data.disabled
+end
+
+---@param questName string
+---@return boolean
+function this.isStarted(questName)
+    local data = this.getQuestStorageData(questName)
+    if not data then return false end
+
+    return next(data.list or {}) and true or false
 end
 
 ---@param diaId string

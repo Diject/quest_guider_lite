@@ -1106,12 +1106,15 @@ return {
                 end)
 
                 if not tracking.initialized then return end
-                if config.data.tracking.autoTrack then
-                    local name = playerQuests.getQuestNameByDiaId(questId)
-                    if name and name ~= "" then
-                        if playerQuests.isHidden(name) then
-                            tracking.removeMarker{ questId = questId, removeLinked = true }
-                        else
+
+                local qName = playerQuests.getQuestNameByDiaId(questId)
+                if qName and qName ~= "" then
+                    tracking.removeMarker{ questId = questId, removeLinked = true }
+
+                    local stData = playerQuests.getQuestStorageData(qName)
+                    local trackedFlag = stData and stData.tracked
+                    if config.data.tracking.autoTrack and (not stData or trackedFlag ~= false) or trackedFlag then
+                        if not playerQuests.isHidden(qName) then
                             realTimer.newTimer(0.01, function ()
                                 tracking.trackQuest(questId, stage)
                             end)

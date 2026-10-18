@@ -105,6 +105,12 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         return has
     end
 
+    local function isTracked()
+        local stData = playerQuests.getQuestStorageData(self.params.questName)
+        local isStarted = playerQuests.isStarted(self.params.questName)
+        return stData and stData.tracked or config.data.tracking.autoTrack and stData and stData.tracked ~= false and isStarted
+    end
+
     local function updateTrackButton(hasTracked)
         local content = self:getButtonFlex().content
         local ss, index = pcall(function()
@@ -135,7 +141,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             })
         else
             content:insert(ss and index or (#content + 1), button{
-                text = l10n("trackObjects"),
+                text = l10n("trackQuest"),
                 textSize = math.floor(self.params.fontSize * 0.8),
                 visible = tracking.initialized,
                 layoutName = "TR_QuestBox_TrackAllBtn",
@@ -152,6 +158,11 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         self.trackObjectsFunc = function ()
             self:addTrackButtons(true)
 
+            local stData = playerQuests.getOrInitQuestStorageData(self.params.questName)
+            if stData then
+                stData.tracked = true
+            end
+
             for _, info in pairs(self.questInfo) do
                 tracking.trackQuest(info.diaId, info.diaIndex, {
                         force = self.params.isQuestList,
@@ -164,10 +175,15 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             end)
 
             realTimer.newTimer(0.75, function ()
-                trackingElementLib.updateObjectTrackingElements(self.content)
-                updateTrackButton(hasTrackedObjects(false))
+                if self.trackedObjectsContent then
+                    trackingElementLib.updateObjectTrackingElements(self.trackedObjectsContent)
+                end
+                updateTrackButton(isTracked())
                 self:update()
             end)
+
+            updateTrackButton(true)
+            self:update()
         end
     else
         self.trackObjectsFunc = nil
@@ -177,6 +193,15 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
 
     if hasTracked then
         self.untrackObjectsFunc = function ()
+            local stData = playerQuests.getOrInitQuestStorageData(self.params.questName)
+            if stData then
+                if playerQuests.isStarted(self.params.questName) then
+                    stData.tracked = false
+                else
+                    stData.tracked = nil
+                end
+            end
+
             for _, info in pairs(self.questInfo) do
                 tracking.removeMarker{
                     questId = info.diaId,
@@ -188,7 +213,9 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
             tracking.updateTemporaryMarkers()
 
             self:addTrackButtons()
-            trackingElementLib.updateObjectTrackingElements(self.content)
+            if self.trackedObjectsContent then
+                trackingElementLib.updateObjectTrackingElements(self.trackedObjectsContent)
+            end
             playerRef:sendEvent("QGL:updateQuestMenu", {})
         end
     else
@@ -196,9 +223,9 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
     end
 
     self.toggleTrackObjectsFunc = function ()
-        local hasTracked = hasTrackedObjects(false)
+        local isTracked = isTracked()
 
-        if hasTracked then
+        if isTracked then
             if self.untrackObjectsFunc then
                 self.untrackObjectsFunc()
             end
@@ -209,7 +236,7 @@ function questBoxMeta.addTrackButtons(self, showRemoveBtn)
         end
     end
 
-    updateTrackButton(hasTracked)
+    updateTrackButton(isTracked())
 end
 
 
@@ -288,6 +315,8 @@ function questBoxMeta:addQuestObjectsLayout(data, questDiaLinks)
         parentScrollBoxUserData = self:getScrollBox().userData,
         updateFunc = self.update,
     })
+
+    self.trackedObjectsContent = objectsFlexContent
 
     self.content:insert(firstEntryIndex + 1, {
         props = {
