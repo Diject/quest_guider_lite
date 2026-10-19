@@ -117,8 +117,8 @@ end
 
 scrollBoxMeta.clearContent = function (self)
     local mainFlex = self:getMainFlex()
-    uiUtils.clearContent(mainFlex.content)
-    uiUtils.clearContent(self.params.content)
+    mainFlex.content = ui.content{}
+    self.params.content = ui.content{}
 end
 
 
@@ -185,7 +185,7 @@ scrollBoxMeta.updateContent = function (self, strict)
         return
     end
 
-    uiUtils.clearContent(mainFlex.content)
+    mainFlex.content = ui.content{}
 
     mainFlex.content:add{
         type = ui.TYPE.Widget,

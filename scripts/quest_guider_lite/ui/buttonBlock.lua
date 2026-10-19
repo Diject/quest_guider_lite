@@ -96,7 +96,7 @@ end
 
 function buttonBlock:clear()
     self.buttons = {}
-    uiUtils.clearContent(self.layout.content)
+    self.layout.content = ui.content{}
 end
 
 
