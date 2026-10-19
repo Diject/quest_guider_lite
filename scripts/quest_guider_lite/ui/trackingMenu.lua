@@ -1408,7 +1408,7 @@ function this.createContent(params)
                 updateFunc = updateFunc,
                 textSize = meta.params.fontSize * 0.8,
                 anchor = util.vector2(1, 0.5),
-                position = util.vector2(bottomBtnsSize.x - 6, bottomBtnsSize.y / 2),
+                position = util.vector2(bottomBtnsSize.x - 10, bottomBtnsSize.y / 2),
                 text = l10n("removeAll"),
                 event = function (layout)
                     playerRef:sendEvent("QGL:removeAllTrackedMessageBox")
