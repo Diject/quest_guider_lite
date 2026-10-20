@@ -212,6 +212,9 @@ function methods.updateAllQuestItemsMarker(this, trackingInt, interface)
             if not config.data.tracking.advWMapMarkers.enabled or
                 not config.data.tracking.advWMapMarkers.details.questItems then return false end
 
+            local record = object.type.record(object.recordId)
+            if not record or record.isOrganic then return false end
+
             local threshold = config.data.tracking.advWMapMarkers.questItemLimit
             if threshold == 0 then return false end
 
