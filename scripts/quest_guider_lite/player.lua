@@ -141,6 +141,7 @@ local function onInit()
     tracking.init()
     playerQuests.init()
     questLog.init()
+    playerInventory.snapshot()
 end
 
 
@@ -162,6 +163,7 @@ local function onLoad(data)
     async:newUnsavableSimulationTimer(0.1, function ()
         teleportedCallback()
     end)
+    playerInventory.snapshot()
 end
 
 
@@ -1195,6 +1197,12 @@ return {
         DialogueResponse = function(e)
             if e.type ~= "topic" and e.type ~= "greeting" then return end
             dialogueTime.updateDialogue(e.recordId)
+
+            -- don't take a snapshot for the first dialogue, as it may include extra items.
+            if e.type == "greeting" and (not dialogueMenuActor or e.actor and dialogueMenuActor.id ~= e.actor.id) then
+                playerInventory.snapshot()
+                playerInventory.clearDifference()
+            end
 
             local tm = core.getRealTime()
             playerInventory.snapshot(lastDialogueId == e.recordId and lastDialogueTimestamp + 1 < tm)

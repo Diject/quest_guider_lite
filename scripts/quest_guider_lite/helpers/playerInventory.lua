@@ -35,6 +35,11 @@ function this.snapshot(doNotClearDifference)
 end
 
 
+function this.clearDifference()
+    this.difference = {}
+end
+
+
 function this.getCount(itemId)
     return inventory:countOf(itemId) or 0
 end
