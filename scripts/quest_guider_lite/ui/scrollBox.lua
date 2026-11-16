@@ -157,7 +157,7 @@ end
 ---@param value number
 scrollBoxMeta.setContentHeight = function (self, value)
     self.params.contentHeight = value
-    self.maxPositiveShift = math.floor(value - self.innnerSize.y * 0.25)
+    self.maxPositiveShift = math.max(0, math.floor(value - self.innnerSize.y * 0.25))
     self:updateScrollBarVisibility()
     self:updateScrollPosition()
 end
@@ -167,7 +167,7 @@ scrollBoxMeta.calcContentHeight = function (self)
     local mainFlex = self:getMainFlex()
     local height = uiUtils.getContentHeight(self.params.content)
     self.params.contentHeight = height
-    self.maxPositiveShift = math.floor(height - self.innnerSize.y * 0.25)
+    self.maxPositiveShift = math.max(0, math.floor(height - self.innnerSize.y * 0.25))
     self:updateScrollBarVisibility()
     self:updateScrollPosition()
 end
